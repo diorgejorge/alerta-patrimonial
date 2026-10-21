@@ -274,7 +274,10 @@ def coletar(pessoas, tempo_max=30 * 60, chave_api=None):
         return {k: {"api": False} for k in pessoas}
     api = Api(chave_api, time.monotonic() + tempo_max)
     out = {}
-    for k, p in pessoas.items():
+    print(f"Portal da Transparencia: consultando {len(pessoas)} pessoas pela API...")
+    for n, (k, p) in enumerate(pessoas.items(), 1):
+        if n % 20 == 0:
+            print(f"  {n}/{len(pessoas)} pessoas, {api.req} consultas, {api.falhas} falhas")
         if not api.ativa():
             out[k] = {"pendente": "tempo" if time.monotonic() >= api.fim else "falha"}
             continue

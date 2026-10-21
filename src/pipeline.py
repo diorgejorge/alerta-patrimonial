@@ -127,6 +127,7 @@ def serie_tse(anos):
     """Uma linha por pessoa e eleicao: patrimonio total declarado."""
     partes = []
     for ano in anos:
+        print(f"TSE {ano}: baixando e lendo declaracoes...")
         zb, zc = baixar("bem_candidato", ano), baixar("consulta_cand", ano)
         if not zb or not zc:
             continue

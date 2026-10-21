@@ -545,7 +545,10 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=1.0, tim
                     if f.uf and f.uf != uf:
                         continue
                     p["fut"]["rec"].append(gerais[f] if f in gerais else f.submeter(termo))
-            for p in ativos:  # conforme as buscas chegam, agenda a leitura das materias
+            print(f"Noticias: buscando para {len(ativos)} pessoas...")
+            for n, p in enumerate(ativos, 1):  # conforme as buscas chegam, agenda a leitura das materias
+                if n % 20 == 0:
+                    print(f"  {n}/{len(ativos)} pessoas")
                 preparar(p, paginas, fim, max_verif)
                 verif += p["verif"]
             for p in ativos:
