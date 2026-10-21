@@ -308,8 +308,19 @@ def main():
             cpf=r["chave"][4:] if str(r["chave"]).startswith("cpf:") else "", empresas=r.get("empresas_cnpj") or []))
         q["cargo"] += " " + str(r["cargo"])
         q["idx"].append(i)
-    info = {} if args.demo else transparencia.coletar(pessoas, chave_api=os.getenv("TRANSPARENCIA_TOKEN"))
-    secoes = {i: transparencia.secao(info.get(k), q["nome_urna"] or q["nome"]) for k, q in pessoas.items() for i in q["idx"]}
+    try:  # o Portal nunca derruba a atualizacao: se falhar, a secao sai "Indisponivel"
+        info = {} if args.demo else transparencia.coletar(pessoas, chave_api=os.getenv("TRANSPARENCIA_TOKEN"))
+    except Exception as ex:
+        print(f"[aviso] Portal da Transparencia indisponivel ({ex!r})", file=sys.stderr)
+        info = {k: {"pendente": "falha"} for k in pessoas}
+    secoes = {}
+    for k, q in pessoas.items():
+        try:
+            html_sec = transparencia.secao(info.get(k), q["nome_urna"] or q["nome"])
+        except Exception as ex:
+            print(f"[aviso] secao do Portal falhou para {q['nome']} ({ex!r})", file=sys.stderr)
+            html_sec = transparencia.NAO_DEU
+        secoes.update({i: html_sec for i in q["idx"]})
     for i, cam in gerar_dossies(dados["alertas"], DOCS, buscar=not args.demo, fontes_extra=fontes,
                                 transparencia=secoes).items():
         dados["alertas"][i]["dossie"] = cam

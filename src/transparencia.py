@@ -265,6 +265,24 @@ def emendas(api, nomes):
                 total_pago=sum(a[1] for a in por_ano.values()), n=len(lista))
 
 
+def _pessoa(api, p):
+    """Tudo o que o Portal tem sobre uma pessoa; cada parte que falha fica None (= indisponivel)."""
+    r = {"api": True}
+    if any(c in (p.get("cargo") or "").upper() for c in CARGOS_EMENDA):
+        r["emendas"] = emendas(api, [p.get("nome_urna"), p.get("nome")])
+    cpf = re.sub(r"\D", "", p.get("cpf") or "")
+    r["sem_cpf"] = len(cpf) != 11
+    if not r["sem_cpf"]:
+        r["pf"] = pessoa_fisica(api, cpf, p.get("nome"))
+        if r["pf"] and r["pf"]["despesas"]:
+            r["recursos_pf"] = recursos(api, cpf)
+        elif r["pf"]:
+            r["recursos_pf"] = []
+    r["empresas"] = [(nome, pessoa_juridica(api, cnpj))
+                     for nome, cnpj in (p.get("empresas") or []) if cnpj_ok(cnpj)][:3]
+    return r
+
+
 def coletar(pessoas, tempo_max=30 * 60, chave_api=None):
     """pessoas: {chave: dict(nome, nome_urna, cargo, cpf, empresas=[(nome, cnpj)])} na ordem do painel.
     Tudo pela API oficial (precisa de `chave_api`); sem chave nada e consultado.
@@ -281,20 +299,11 @@ def coletar(pessoas, tempo_max=30 * 60, chave_api=None):
         if not api.ativa():
             out[k] = {"pendente": "tempo" if time.monotonic() >= api.fim else "falha"}
             continue
-        r = {"api": True}
-        if any(c in (p.get("cargo") or "").upper() for c in CARGOS_EMENDA):
-            r["emendas"] = emendas(api, [p.get("nome_urna"), p.get("nome")])
-        cpf = re.sub(r"\D", "", p.get("cpf") or "")
-        r["sem_cpf"] = len(cpf) != 11
-        if not r["sem_cpf"]:
-            r["pf"] = pessoa_fisica(api, cpf, p.get("nome"))
-            if r["pf"] and r["pf"]["despesas"]:
-                r["recursos_pf"] = recursos(api, cpf)
-            elif r["pf"]:
-                r["recursos_pf"] = []
-        r["empresas"] = [(nome, pessoa_juridica(api, cnpj))
-                         for nome, cnpj in (p.get("empresas") or []) if cnpj_ok(cnpj)][:3]
-        out[k] = r
+        try:
+            out[k] = _pessoa(api, p)
+        except Exception as ex:  # dado inesperado da API: so esta pessoa fica "indisponivel"
+            print(f"[aviso] Portal da Transparencia: erro ao montar {p.get('nome')} ({ex!r})", file=sys.stderr)
+            out[k] = {"pendente": "falha"}
     print(f"Portal da Transparencia (API): {len(out)} pessoas, {api.req} consultas, {api.falhas} falhas.")
     return out
 
@@ -307,7 +316,7 @@ def _link(caminho, **params):
 def secao(r, nome):
     """HTML da secao 'Dinheiro público' do dossie."""
     if r is None:
-        return '<p class="vazio">Consulta ao Portal da Transparência não realizada nesta execução.</p>'
+        return NAO_DEU
     if not r.get("api") and not r.get("pendente"):
         return ('<p class="vazio">Não consultado: falta configurar a chave da API do Portal da Transparência '
                 '(TRANSPARENCIA_TOKEN).</p>')
@@ -379,12 +388,13 @@ def secao(r, nome):
     return "".join(partes) or '<p class="vazio">Nada a consultar para esta pessoa.</p>'
 
 
-NAO_DEU = '<p class="vazio">Não foi possível consultar a API do Portal da Transparência agora.</p>'
+NAO_DEU = ('<p class="vazio"><b>Indisponível</b>: a API do Portal da Transparência não respondeu nesta execução. '
+           f'Consulte direto no <a href="{SITE}" target="_blank" rel="noopener">Portal da Transparência</a>.</p>')
 
 
 def _beneficio(b):
     if b["erro"]:
-        return "consta no CPF, mas não foi possível detalhar agora"
+        return "consta no CPF · detalhe indisponível nesta execução"
     if b["total"] is None or not b["meses"]:
         return "consta no CPF (detalhe não disponível na API)"
     return f'{len(b["meses"])} mês(es), de {e(b["meses"][0])} a {e(b["meses"][-1])} · {brl(b["total"])}'
