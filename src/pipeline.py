@@ -6,6 +6,7 @@ import argparse, json, os, re, sys, unicodedata, urllib.request, urllib.parse, z
 import datetime as dt
 from pathlib import Path
 import pandas as pd
+from dossie import gerar_dossies
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE, DOCS, CFG = ROOT / "data" / "cache", ROOT / "docs", ROOT / "config"
@@ -13,10 +14,47 @@ ESTADO = ROOT / "data" / "estado.json"
 BASE = "https://cdn.tse.jus.br/estatistica/sead/odsele"
 ORDEM = {"forte": 3, "atencao": 2, "informativo": 1}
 
+# DivulgaCandContas: pagina do candidato em
+#   {DIVULGA}/{REGIAO}/{UF}/{ID_ELEICAO}/{SQ_CANDIDATO}/{ANO}/{SG_UE}
+# REGIAO usa a grafia do proprio site (CENTROOESTE, sem hifen; "BR" para Presidente/Vice).
+# ID_ELEICAO e o id interno do site (rest/v1/eleicao/ordinarias), NAO o CD_ELEICAO dos CSVs
+# (ex.: 2022 -> 2040602022; o CD_ELEICAO 546 do CSV nao abre a pagina).
+DIVULGA = "https://divulgacandcontas.tse.jus.br/divulga/#/candidato"
+REGIAO = {**dict.fromkeys("AC AP AM PA RO RR TO".split(), "NORTE"),
+          **dict.fromkeys("AL BA CE MA PB PE PI RN SE".split(), "NORDESTE"),
+          **dict.fromkeys("DF GO MT MS".split(), "CENTROOESTE"),
+          **dict.fromkeys("ES MG RJ SP".split(), "SUDESTE"),
+          **dict.fromkeys("PR RS SC".split(), "SUL"), "BR": "BR"}
+ID_DIVULGA = {2006: "14423", 2008: "14422", 2010: "14417", 2012: "1699", 2014: "680", 2016: "2",
+              2018: "2022802018", 2020: "2030402020", 2022: "2040602022", 2024: "2045202024",
+              2026: "20322002026"}
+ID_DIVULGA_UE = {(2020, "06050"): "2032002020"}  # Macapa/AP 2020 (eleicao adiada, id proprio)
+
 
 def norm(s):
     s = unicodedata.normalize("NFKD", str(s or "")).encode("ascii", "ignore").decode()
     return re.sub(r"\s+", " ", s).strip().upper()
+
+
+def txt(v):
+    """Texto limpo; None/NaN viram ''."""
+    return "" if v is None or (isinstance(v, float) and v != v) else str(v).strip()
+
+
+def link_tse(r):
+    """URL da pagina do candidato no DivulgaCandContas, ou None se faltar dado."""
+    uf, ue, sq = txt(r.get("uf")).upper(), txt(r.get("sg_ue")), re.sub(r"\D", "", txt(r.get("sq_candidato")))
+    try:
+        ano = int(r.get("ano"))
+    except (TypeError, ValueError):
+        return None
+    if r.get("suplementar") in (True, 1) or not (uf and ue and sq):
+        return None  # eleicoes suplementares tem outro id no site
+    eleicao = ID_DIVULGA_UE.get((ano, ue)) or ID_DIVULGA.get(ano)
+    regiao = REGIAO.get(uf)
+    if not (eleicao and regiao):
+        return None
+    return f"{DIVULGA}/{regiao}/{uf}/{eleicao}/{sq}/{ano}/{ue}"
 
 
 # ---------------------------------------------------------------- coleta TSE
@@ -74,9 +112,14 @@ def serie_tse(anos):
         m["ano"] = int(ano)
         sit = m["DS_SIT_TOT_TURNO"] if "DS_SIT_TOT_TURNO" in m else pd.Series("", index=m.index)
         m["eleito"] = sit.astype(str).str.upper().str.startswith("ELEITO")
+        col = lambda c: m[c].astype(str).str.strip() if c in m else pd.Series("", index=m.index)
+        m["sq_candidato"], m["cd_eleicao"] = col("SQ_CANDIDATO"), col("CD_ELEICAO")
+        m["sg_ue"], m["nome_urna"] = col("SG_UE"), col("NM_URNA_CANDIDATO")
+        m["suplementar"] = col("NM_TIPO_ELEICAO").map(norm).str.contains("SUPLEMENTAR")
         partes.append(m.rename(columns={"NM_CANDIDATO": "nome", "DS_CARGO": "cargo",
                                         "SG_UF": "uf", "SG_PARTIDO": "partido"})
-                       [["chave", "ano", "nome", "cargo", "uf", "partido", "eleito", "patrimonio"]])
+                       [["chave", "ano", "nome", "cargo", "uf", "partido", "eleito", "patrimonio",
+                         "sq_candidato", "cd_eleicao", "sg_ue", "nome_urna", "suplementar"]])
     if not partes:
         sys.exit("Nenhum dado do TSE disponivel. Verifique a conexao e os anos em config/parametros.json.")
     return pd.concat(partes, ignore_index=True)
@@ -92,7 +135,9 @@ def serie_demo(seed=7):
         if i == 1:
             f = 25.0  # caso extremo
         linhas.append(dict(chave=f"demo:{i}", ano=2018, nome=f"PESSOA DEMO {i:03d}", cargo="DEPUTADO FEDERAL",
-                           uf=random.choice(["PA", "SP", "MG", "BA"]), partido="XX", eleito=True, patrimonio=base))
+                           uf=random.choice(["PA", "SP", "MG", "BA"]), partido="XX", eleito=True, patrimonio=base,
+                           sq_candidato=None, cd_eleicao=None, sg_ue=None, nome_urna=f"DEMO {i:03d}",
+                           suplementar=False))  # sem SQ real: link_tse fica None no demo
         linhas.append(dict(linhas[-1], ano=2022, patrimonio=base * f, eleito=False))
     return pd.DataFrame(linhas)
 
@@ -124,7 +169,8 @@ def pares(serie, regras, extras, p):
             cap = None if (renda is None and not extra) else (renda or 0.0) * p["taxa_poupanca"] + extra
             out.append(dict(chave=chave, nome=b["nome"], cargo=b["cargo"], uf=b["uf"], partido=b["partido"],
                             ano_ini=a["ano"], ano_fim=b["ano"], pat_ini=a["patrimonio"], pat_fim=b["patrimonio"],
-                            cresc=b["patrimonio"] - a["patrimonio"], cap=cap, cargo_ini=a["cargo"]))
+                            cresc=b["patrimonio"] - a["patrimonio"], cap=cap, cargo_ini=a["cargo"],
+                            nome_urna=txt(b.get("nome_urna")) or None, link_tse=link_tse(b)))
     df = pd.DataFrame(out)
     if df.empty:
         return df
@@ -201,7 +247,9 @@ def main():
     dados = dict(gerado_em=dt.datetime.now().strftime("%Y-%m-%d %H:%M"), universo=int(len(df)),
                  alertas=json.loads(pub.to_json(orient="records")))
     DOCS.mkdir(exist_ok=True)
-    tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    for i, cam in gerar_dossies(dados["alertas"], DOCS, buscar=not args.demo).items():
+        dados["alertas"][i]["dossie"] = cam
+    tpl =(ROOT / "src" / "template.html").read_text(encoding="utf-8")
     (DOCS / "index.html").write_text(tpl.replace("/*DADOS*/null", json.dumps(dados, ensure_ascii=False)),
                                       encoding="utf-8")
     ESTADO.write_text(json.dumps({r.id: r.nivel for r in alertas.itertuples()}, ensure_ascii=False))

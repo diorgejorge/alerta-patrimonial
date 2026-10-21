@@ -36,10 +36,11 @@ const D=/*DADOS*/null;
 const R=v=>v==null?"—":"R$ "+Math.round(v).toLocaleString("pt-BR");
 const NV={forte:"Forte",atencao:"Atenção",informativo:"Informativo"};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(a.dossie&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(a.dossie)?` · <a href="${esc(a.dossie)}">Dossiê</a>`:"");
 function draw(){
   const q=document.getElementById("q").value.toLowerCase(),nv=document.getElementById("nv").value;
-  const rows=D.alertas.filter(a=>(!nv||a.nivel===nv)&&(`${a.nome} ${a.cargo} ${a.uf}`.toLowerCase().includes(q)));
-  document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}</small></td><td>${esc(a.cargo)}</td><td>${a.ano_ini}–${a.ano_fim}</td><td class="n">${R(a.pat_ini)}</td><td class="n">${R(a.pat_fim)}</td><td class="n">${R(a.cresc)}</td><td class="n">${R(a.cap)}</td><td class="n">${a.razao==null?"—":a.razao.toFixed(1)+"×"}</td><td class="n">${a.percentil.toFixed(0)}</td><td class="nivel ${a.nivel}">${NV[a.nivel]}</td></tr>`).join("");
+  const rows=D.alertas.filter(a=>(!nv||a.nivel===nv)&&(`${a.nome} ${a.nome_urna??""} ${a.cargo} ${a.uf}`.toLowerCase().includes(q)));
+  document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></td><td>${esc(a.cargo)}</td><td>${a.ano_ini}–${a.ano_fim}</td><td class="n">${R(a.pat_ini)}</td><td class="n">${R(a.pat_fim)}</td><td class="n">${R(a.cresc)}</td><td class="n">${R(a.cap)}</td><td class="n">${a.razao==null?"—":a.razao.toFixed(1)+"×"}</td><td class="n">${a.percentil.toFixed(0)}</td><td class="nivel ${a.nivel}">${NV[a.nivel]}</td></tr>`).join("");
   document.getElementById("vz").hidden=rows.length>0;
 }
 if(D){document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
