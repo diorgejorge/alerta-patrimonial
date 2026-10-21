@@ -1,12 +1,14 @@
-"""Dinheiro publico ligado a cada pessoa, consultado nas paginas do Portal da Transparencia
-(portaldatransparencia.gov.br, as mesmas consultas que o site faz ao montar as tabelas; sem API/chave).
+"""Dinheiro publico ligado a cada pessoa, no Portal da Transparencia (portaldatransparencia.gov.br).
+Emendas: consultas que o proprio site faz ao montar as tabelas. Beneficios, recursos e sancoes: API oficial
+(chave em TRANSPARENCIA_TOKEN), porque essas paginas do site recusam robos.
 - Emendas parlamentares de que a pessoa e autora e quem recebeu os pagamentos.
-- Beneficios sociais pagos ao CPF da pessoa (BPC, Bolsa Familia, Auxilio Emergencial, Seguro-Defeso, PETI,
-  Auxilio Reconstrucao). So como beneficiaria: dados de representados/dependentes nunca sao buscados.
+- Beneficios sociais pagos ao CPF da pessoa (BPC, Bolsa Familia, Auxilio Emergencial/Brasil, Garantia-Safra, PETI,
+  Seguro-Defeso, Auxilio Reconstrucao). So como titular: registros de representados/dependentes sao descartados.
+- Sancoes (CEIS, CNEP, CEAF, CEPIM) da pessoa e das empresas.
 - Recursos federais recebidos pelo CPF da pessoa e pelo CNPJ das empresas declaradas ao TSE.
 CPF/CNPJ so vao na consulta ao Portal; nunca aparecem na pagina."""
 import datetime as dt
-import html, json, re, sys, time, unicodedata, urllib.parse, urllib.request
+import html, json, re, sys, time, unicodedata, urllib.error, urllib.parse, urllib.request
 
 SITE = "https://portaldatransparencia.gov.br"
 UA = "Mozilla/5.0 (compatible; alerta-patrimonial/1.0; +https://github.com)"
@@ -139,75 +141,198 @@ def emendas(portal, nomes):
                 total_pago=sum(a[1] for a in por_ano.values()), n=len(lista))
 
 
-BENEFICIOS = [  # (nome, caminho, filtro do CPF, coluna de valor, janelas anuais ou None = sem periodo)
-    ("BPC (Benefício de Prestação Continuada)", "/beneficios/bpc", "beneficiario", "valorTotalPeriodo", None),
-    ("PETI", "/beneficios/peti", "beneficiario", "valorTotalParcela", None),
-    ("Auxílio Reconstrução", "/beneficios/auxilio-reconstrucao", "cpfNisBeneficiario", "valorParcela", None),
-    ("Bolsa Família (até 2021)", "/beneficios/bolsa-familia", "cpfNisBeneficiario", "valorTotalPeriodo", (2019, 2021)),
-    ("Auxílio Emergencial", "/beneficios/auxilio-emergencial", "cpfNisBeneficiario", "valorTotalPeriodo", (2020, 2021)),
-    ("Seguro-Defeso", "/beneficios/seguro-defeso", "cpfNisBeneficiario", "valor", (2019, None)),
+
+# ---------------------------------------------------------------- API oficial (beneficios, recursos, sancoes)
+API = "https://api.portaldatransparencia.gov.br/api-de-dados"
+
+
+class Api:
+    """API de dados do Portal (chave gratuita em portaldatransparencia.gov.br/api-de-dados/cadastrar-email).
+    Limite do Portal: 90 consultas/min das 06h as 24h e 300/min da 0h as 6h (Brasilia)."""
+
+    def __init__(self, chave_api, fim, timeout=30):
+        self.chave, self.fim, self.timeout = chave_api, fim, timeout
+        self.ultimo, self.req, self.falhas, self.seguidas = 0.0, 0, 0, 0
+
+    def ativa(self):
+        return bool(self.chave) and self.seguidas < 5 and time.monotonic() < self.fim
+
+    def pausa(self):
+        h = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=3)).hour
+        return 0.25 if h < 6 else 0.75  # com folga abaixo do limite de cada faixa
+
+    def get(self, caminho, _de_novo=False, **params):
+        """JSON de {API}{caminho}; None se falhar."""
+        if not self.ativa():
+            return None
+        espera = self.pausa() - (time.monotonic() - self.ultimo)
+        if espera > 0:
+            time.sleep(espera)
+        self.ultimo = time.monotonic()
+        self.req += 1
+        req = urllib.request.Request(f"{API}{caminho}?" + urllib.parse.urlencode(params),
+                                     headers={"chave-api-dados": self.chave, "Accept": "application/json", "User-Agent": UA})
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                dados = json.loads(r.read(20_000_000).decode("utf-8", "replace") or "null")
+            self.seguidas = 0
+            return dados
+        except urllib.error.HTTPError as ex:
+            if ex.code == 429 and not _de_novo:  # passou do limite: espera um minuto e tenta uma vez
+                time.sleep(60)
+                return self.get(caminho, _de_novo=True, **params)
+            self._falha(caminho, ex)
+        except Exception as ex:
+            self._falha(caminho, ex)
+        return None
+
+    def _falha(self, caminho, ex):
+        self.falhas += 1
+        self.seguidas += 1
+        print(f"[aviso] API do Portal da Transparencia falhou em {caminho} ({ex})", file=sys.stderr)
+
+    def paginas(self, caminho, max_paginas=20, **params):
+        """Junta as paginas (a API devolve listas; pagina vazia = fim). None se a primeira falhar."""
+        out = []
+        for pg in range(1, max_paginas + 1):
+            d = self.get(caminho, pagina=pg, **params)
+            if d is None:
+                return out or None
+            if not isinstance(d, list) or not d:
+                break
+            out += d
+        return out
+
+
+# flag de /pessoa-fisica -> (nome, caminho, parametro do CPF)
+BENEFICIOS = [
+    ("favorecidoBpc", "BPC (Benefício de Prestação Continuada)", "/bpc-por-cpf-ou-nis", "codigo"),
+    ("favorecidoBolsaFamilia", "Bolsa Família", "/bolsa-familia-sacado-por-cpf-ou-nis", "codigo"),
+    ("favorecidoNovoBolsaFamilia", "Novo Bolsa Família", "/novo-bolsa-familia-sacado-por-cpf-ou-nis", "codigo"),
+    ("auxilioEmergencial", "Auxílio Emergencial", "/auxilio-emergencial-por-cpf-ou-nis", "codigoBeneficiario"),
+    ("favorecidoAuxilioBrasil", "Auxílio Brasil", "/auxilio-brasil-sacado-por-cpf-ou-nis", "codigo"),
+    ("favorecidoSafra", "Garantia-Safra", "/safra-codigo-por-cpf-ou-nis", "codigo"),
+    ("favorecidoPeti", "PETI", "/peti-por-cpf-ou-nis", "codigo"),
+    ("favorecidoSeguroDefeso", "Seguro-Defeso", "/seguro-defeso-codigo", "codigo"),
+    ("favorecidoAuxilioReconstrucao", "Auxílio Reconstrução", None, None),
 ]
+SANCOES_PF = [("sancionadoCEIS", "CEIS (empresas/pessoas inidôneas e suspensas)"),
+              ("sancionadoCNEP", "CNEP (empresas punidas)"), ("sancionadoCEAF", "CEAF (expulsões da administração federal)")]
+SANCOES_PJ = SANCOES_PF + [("sancionadoCEPIM", "CEPIM (entidades sem fins lucrativos impedidas)")]
+TITULARES = ("beneficiario", "beneficiarioBolsaFamilia", "beneficiarioNovoBolsaFamilia", "titularBolsaFamilia",
+             "beneficiarioSafra", "beneficiarioPeti", "pessoaSeguroDefeso")
 
 
-def beneficios(portal, cpf):
-    out = []
+def _num(v):
+    return float(v) if isinstance(v, (int, float)) else valor(v)
+
+
+def _mes(d):
+    """Mes de referencia (AAAA-MM) de um registro de beneficio, nos varios formatos da API."""
+    for k in ("dataMesReferencia", "mesDisponibilizacao", "dataMesCompetencia", "dataSaque"):
+        s = str(d.get(k) or "")
+        m = re.search(r"(\d{4})-(\d{2})", s) or re.search(r"(\d{2})/(\d{4})", s)
+        if m:
+            a, b = m.groups()
+            return f"{a}-{b}" if len(a) == 4 else f"{b}-{a}"
+        m = re.fullmatch(r"(\d{4})(\d{2})", s)
+        if m:
+            return f"{m.group(1)}-{m.group(2)}"
+    return ""
+
+
+def _titular(d, nome):
+    """True se o registro e da propria pessoa (descarta casos em que ela so aparece como representante)."""
+    for k in TITULARES:
+        t = d.get(k)
+        if isinstance(t, dict) and t.get("nome"):
+            return chave(t["nome"]) == chave(nome)
+    return True
+
+
+def pessoa_fisica(api, cpf, nome):
+    pf = api.get("/pessoa-fisica", cpf=cpf)
+    if isinstance(pf, list):
+        pf = pf[0] if pf else {}
+    if pf is None:
+        return None
+    bens = []
+    for flag, rotulo, caminho, param in BENEFICIOS:
+        if not pf.get(flag):
+            continue
+        if caminho is None:
+            bens.append(dict(nome=rotulo, meses=[], total=None, erro=False))
+            continue
+        dados = api.paginas(caminho, **{param: cpf})
+        if dados is None:
+            bens.append(dict(nome=rotulo, meses=[], total=None, erro=True))
+            continue
+        proprios = [d for d in dados if _titular(d, nome)]
+        if not proprios and dados:
+            continue  # so aparece como representante legal de outra pessoa: nao exibimos
+        meses = sorted({m for m in map(_mes, proprios) if m})
+        total = sum(_num(d.get("valor") if d.get("valor") is not None else d.get("valorSaque")) for d in proprios)
+        bens.append(dict(nome=rotulo, meses=meses, total=total, erro=False))
+    sancoes = [rot for f, rot in SANCOES_PF if pf.get(f)]
+    return dict(beneficios=bens, sancoes=sancoes, despesas=bool(pf.get("favorecidoDespesas")),
+                servidor=bool(pf.get("servidor")))
+
+
+def recursos(api, codigo):
+    """Recursos federais recebidos por um CPF/CNPJ desde 2019, por orgao (Despesas > Recursos recebidos)."""
     hoje = dt.date.today()
-    for nome, caminho, filtro, col, anos in BENEFICIOS:
-        janelas = [None] if anos is None else range(anos[0], (anos[1] or hoje.year) + 1)
-        meses, total, erro = set(), 0.0, False
-        for a in janelas:
-            per = {} if a is None else dict(de=f"01/01/{a}", ate=f"31/12/{a}" if a < hoje.year else hoje.strftime("%d/%m/%Y"))
-            dados = portal.get(caminho, **{filtro: cpf}, **per, direcaoOrdenacao="desc", colunaOrdenacao="mesReferencia",
-                               colunasSelecionadas=f"mesReferencia,uf,municipio,cpf,beneficiario,{col}")
-            if dados is None:
-                erro = True
-                continue
-            for d in dados:
-                meses.add(d.get("mesReferencia") or "")
-                total += valor(d.get(col))
-        if meses or erro:
-            out.append(dict(nome=nome, meses=sorted(m for m in meses if m), total=total, erro=erro and not meses))
-    return out
-
-
-def recursos(portal, codigo):
-    """Recursos federais recebidos por um CPF/CNPJ (Despesas > Recursos recebidos), por orgao."""
-    dados = portal.get("/despesas/recursos-recebidos", cpfCnpj=codigo, de="01/01/2019",
-                       ate=dt.date.today().strftime("%d/%m/%Y"), direcaoOrdenacao="desc", colunaOrdenacao="valorRecebido",
-                       colunasSelecionadas="mesAno,favorecido,tipoFavorecido,ufFavorecido,orgaoSuperior,valorRecebido")
+    dados = api.paginas("/despesas/recursos-recebidos", max_paginas=30, mesAnoInicio="01/2019",
+                        mesAnoFim=hoje.strftime("%m/%Y"), codigoFavorecido=codigo)
     if dados is None:
         return None
     por = {}
     for d in dados:
-        org = re.sub(r"^\d+\s*-\s*", "", d.get("orgaoSuperior") or "—")
-        por[org] = por.get(org, 0.0) + valor(d.get("valorRecebido"))
+        org = d.get("nomeOrgaoSuperior") or d.get("nomeOrgao") or "—"
+        por[org] = por.get(org, 0.0) + _num(d.get("valor"))
     return sorted(por.items(), key=lambda kv: kv[1], reverse=True)
 
 
-def coletar(pessoas, pausa=0.6, tempo_max=30 * 60):
+def pessoa_juridica(api, cnpj):
+    pj = api.get("/pessoa-juridica", cnpj=cnpj)
+    if isinstance(pj, list):
+        pj = pj[0] if pj else {}
+    if pj is None:
+        return None
+    rec = recursos(api, cnpj) if pj.get("favorecidoDespesas") else []
+    return dict(sancoes=[rot for f, rot in SANCOES_PJ if pj.get(f)], recursos=rec,
+                contratos=bool(pj.get("possuiContratacao")), convenios=bool(pj.get("convenios")))
+
+
+def coletar(pessoas, pausa=0.6, tempo_max=30 * 60, chave_api=None):
     """pessoas: {chave: dict(nome, nome_urna, cargo, cpf, empresas=[(nome, cnpj)])} na ordem do painel.
-    Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": "tempo"} (ou "bloqueio" se o site recusar as consultas)."""
-    portal = Portal(pausa, time.monotonic() + tempo_max)
+    Emendas: paginas do site. Beneficios, recursos e sancoes: API oficial (precisa de `chave_api`).
+    Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": "tempo"} (ou "bloqueio")."""
+    fim = time.monotonic() + tempo_max
+    portal, api = Portal(pausa, fim), Api(chave_api, fim)
     out = {}
     for k, p in pessoas.items():
-        if not portal.ativo():
-            out[k] = {"pendente": "tempo" if not portal.no_prazo() else "bloqueio"}
+        if not portal.no_prazo():
+            out[k] = {"pendente": "tempo"}
             continue
-        r = {}
+        r = {"api": bool(chave_api)}
         if any(c in (p.get("cargo") or "").upper() for c in CARGOS_EMENDA):
             r["emendas"] = emendas(portal, [p.get("nome_urna"), p.get("nome")])
             if not r["emendas"] and portal.bloqueado("emendas"):
                 r["emendas"] = "bloqueio"
         cpf = re.sub(r"\D", "", p.get("cpf") or "")
-        if len(cpf) == 11:
-            r["beneficios"] = beneficios(portal, cpf)
-            if portal.bloqueado("beneficios") and not any(b["meses"] for b in r["beneficios"]):
-                r["beneficios"] = "bloqueio"
-            r["recursos_pf"] = recursos(portal, cpf)
-        r["empresas"] = [(nome, recursos(portal, cnpj)) for nome, cnpj in (p.get("empresas") or []) if cnpj_ok(cnpj)][:3]
         r["sem_cpf"] = len(cpf) != 11
+        if chave_api and not r["sem_cpf"]:
+            r["pf"] = pessoa_fisica(api, cpf, p.get("nome"))
+            if r["pf"] and r["pf"]["despesas"]:
+                r["recursos_pf"] = recursos(api, cpf)
+            elif r["pf"]:
+                r["recursos_pf"] = []
+        if chave_api:
+            r["empresas"] = [(nome, pessoa_juridica(api, cnpj))
+                             for nome, cnpj in (p.get("empresas") or []) if cnpj_ok(cnpj)][:3]
         out[k] = r
-    print(f"Portal da Transparencia: {len(out)} pessoas, {portal.req} consultas, {portal.falhas} falhas.")
+    print(f"Portal da Transparencia: {len(out)} pessoas; site {portal.req} consultas/{portal.falhas} falhas; "
+          f"API {api.req} consultas/{api.falhas} falhas" + ("" if chave_api else " (sem TRANSPARENCIA_TOKEN)") + ".")
     return out
 
 
@@ -257,34 +382,61 @@ def secao(r, nome):
                                   f'<li>{e(n)}<br><small>{brl(v)}'
                                   f'{" · banco que repassa a estados e municípios, não é o destino final" if any(i in chave(n).upper() for i in INTERMEDIARIOS) else ""}'
                                   f"</small></li>" for n, v in em["favorecidos"]) + "</ul>")
+    if not r.get("api"):
+        partes.append('<p class="vazio">Benefícios sociais, recursos recebidos e sanções não foram consultados: '
+                      'falta configurar a chave da API do Portal da Transparência (TRANSPARENCIA_TOKEN).</p>')
+        return "".join(partes)
     if r.get("sem_cpf"):
-        partes.append('<p class="vazio">O TSE não informa o CPF desta candidatura, então benefícios sociais e '
-                      'recursos recebidos pela pessoa não foram consultados.</p>')
+        partes.append('<p class="vazio">O TSE não informa o CPF desta candidatura, então benefícios sociais, '
+                      'recursos recebidos e sanções da pessoa não foram consultados.</p>')
     else:
-        partes.append("<h3>Benefícios sociais pagos ao CPF da pessoa</h3>")
-        bs = r.get("beneficios") or []
-        if bs == "bloqueio":
-            partes.append(BLOQ)
-        elif not bs:
-            partes.append('<p class="vazio">Nenhum benefício social encontrado (BPC, Bolsa Família, Auxílio Emergencial, '
-                          'Seguro-Defeso, PETI, Auxílio Reconstrução).</p>')
+        pf = r.get("pf")
+        partes.append("<h3>Benefícios sociais pagos à própria pessoa</h3>")
+        if pf is None:
+            partes.append(NAO_DEU)
+        elif not pf["beneficios"]:
+            partes.append('<p class="vazio">Nenhum benefício social registrado no CPF (BPC, Bolsa Família, '
+                          'Auxílio Emergencial, Auxílio Brasil, Garantia-Safra, PETI, Seguro-Defeso, Auxílio Reconstrução).</p>')
         else:
-            partes.append('<ul class="nt">' + "".join(
-                f'<li><b>{e(b["nome"])}</b><br><small>'
-                + ("não foi possível consultar agora" if b["erro"] else
-                   f'{len(b["meses"])} mês(es) ({e(b["meses"][0])} a {e(b["meses"][-1])}) · {brl(b["total"])}')
-                + "</small></li>" for b in bs) + "</ul>")
-        rp = r.get("recursos_pf")
-        partes.append("<h3>Recursos federais recebidos pelo CPF</h3>")
-        partes.append('<p class="vazio">Não foi possível consultar agora.</p>' if rp is None else
-                      '<p class="vazio">Nada encontrado desde 2019.</p>' if not rp else
-                      '<ul class="nt">' + "".join(f"<li>{e(o)}<br><small>{brl(v)}</small></li>" for o, v in rp[:MAX_FAV]) + "</ul>")
+            partes.append('<ul class="nt">' + "".join(f"<li><b>{e(b['nome'])}</b><br><small>{_beneficio(b)}</small></li>"
+                                                      for b in pf["beneficios"]) + "</ul>")
+        if pf is not None:
+            partes.append("<h3>Sanções</h3>" + (
+                '<ul class="nt">' + "".join(f"<li>Consta no {e(s)}</li>" for s in pf["sancoes"]) + "</ul>"
+                if pf["sancoes"] else '<p class="vazio">Não consta nos cadastros de sanções (CEIS, CNEP, CEAF).</p>'))
+        partes.append("<h3>Recursos federais recebidos pelo CPF</h3>" + _recursos(r.get("recursos_pf")))
     emp = r.get("empresas") or []
     if emp:
-        partes.append("<h3>Recursos federais recebidos pelas empresas declaradas</h3>")
-        for nome_emp, rec in emp:
-            partes.append(f"<p><b>{e(nome_emp)}</b></p>" + (
-                '<p class="vazio">Não foi possível consultar agora.</p>' if rec is None else
-                '<p class="vazio">Nada encontrado desde 2019.</p>' if not rec else
-                '<ul class="nt">' + "".join(f"<li>{e(o)}<br><small>{brl(v)}</small></li>" for o, v in rec[:MAX_FAV]) + "</ul>"))
+        partes.append("<h3>Empresas declaradas: recursos federais e sanções</h3>")
+        for nome_emp, pj in emp:
+            partes.append(f"<p><b>{e(nome_emp)}</b></p>")
+            if pj is None:
+                partes.append(NAO_DEU)
+                continue
+            extra = [x for x, ok in (("tem contratos com o governo federal", pj["contratos"]),
+                                     ("tem convênios", pj["convenios"])) if ok]
+            if pj["sancoes"]:
+                partes.append('<ul class="nt">' + "".join(f"<li>Consta no {e(s)}</li>" for s in pj["sancoes"]) + "</ul>")
+            if extra:
+                partes.append(f"<p><small>{e('; '.join(extra).capitalize())}.</small></p>")
+            partes.append(_recursos(pj["recursos"]))
     return "".join(partes) or '<p class="vazio">Nada a consultar para esta pessoa.</p>'
+
+
+NAO_DEU = '<p class="vazio">Não foi possível consultar a API do Portal da Transparência agora.</p>'
+
+
+def _beneficio(b):
+    if b["erro"]:
+        return "consta no CPF, mas não foi possível detalhar agora"
+    if b["total"] is None or not b["meses"]:
+        return "consta no CPF (detalhe não disponível na API)"
+    return f'{len(b["meses"])} mês(es), de {e(b["meses"][0])} a {e(b["meses"][-1])} · {brl(b["total"])}'
+
+
+def _recursos(rec):
+    if rec is None:
+        return NAO_DEU
+    if not rec:
+        return '<p class="vazio">Nada recebido do governo federal desde 2019.</p>'
+    return '<ul class="nt">' + "".join(f"<li>{e(o)}<br><small>{brl(v)}</small></li>" for o, v in rec[:MAX_FAV]) + "</ul>"

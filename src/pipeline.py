@@ -307,7 +307,7 @@ def main():
             cpf=r["chave"][4:] if str(r["chave"]).startswith("cpf:") else "", empresas=r.get("empresas_cnpj") or []))
         q["cargo"] += " " + str(r["cargo"])
         q["idx"].append(i)
-    info = {} if args.demo else transparencia.coletar(pessoas)
+    info = {} if args.demo else transparencia.coletar(pessoas, chave_api=os.getenv("TRANSPARENCIA_TOKEN"))
     secoes = {i: transparencia.secao(info.get(k), q["nome_urna"] or q["nome"]) for k, q in pessoas.items() for i in q["idx"]}
     for i, cam in gerar_dossies(dados["alertas"], DOCS, buscar=not args.demo, fontes_extra=fontes,
                                 transparencia=secoes).items():
