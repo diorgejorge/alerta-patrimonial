@@ -18,6 +18,27 @@ th{font-weight:600;color:var(--mut);white-space:nowrap}td.n,th.n{text-align:righ
 .nivel{font-weight:600}.forte{color:var(--forte)}.atencao{color:var(--atencao)}.informativo{color:var(--info)}.novo{color:var(--novo);font-weight:600}
 small{color:var(--mut)}.vazio{padding:2em;color:var(--mut)}
 a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:1em 0}
+.kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.8em 1em}
+.kpi b{display:block;font-size:1.6rem;font-weight:600;line-height:1.2}.kpi span{color:var(--mut);font-size:.85rem}
+.graf{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px;margin:1em 0;align-items:start}
+.card h2{font-size:1rem;margin:0}.card p{margin:.1em 0 .6em;color:var(--mut);font-size:.85rem}
+.leg{display:flex;gap:14px;flex-wrap:wrap;color:var(--mut);font-size:.85rem;margin:.6em 0 0}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.bars{display:grid;grid-template-columns:max-content 1fr;gap:4px 10px;align-items:center}
+.rot{font-size:.85rem;text-align:right;white-space:nowrap}
+.trilho{display:flex;align-items:center;gap:8px;min-height:24px;border-radius:4px;cursor:pointer;outline-offset:2px}
+.trk{flex:1;min-width:0}.st{display:flex;gap:2px;height:16px;min-width:2px}
+.st i{min-width:2px}.st i:last-child{border-radius:0 4px 4px 0}
+.st .forte{background:var(--forte)}.st .atencao{background:var(--atencao)}.st .informativo{background:var(--info)}
+.tot{font-size:.8rem;color:var(--mut);font-variant-numeric:tabular-nums;min-width:2ch}
+.trilho:hover .st,.trilho:focus-visible .st{filter:brightness(1.15)}.bars.filtrado .trilho:not(.sel){opacity:.35}
+.trilho.outros{cursor:default}
+#tip{position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.5em .75em;font-size:.85rem;box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:9;min-width:170px}
+#tip b{display:block;margin-bottom:.2em}#tip div{display:flex;justify-content:space-between;gap:14px}#tip div span:first-child{color:var(--mut)}
+#tip s{display:inline-block;width:10px;height:2px;margin-right:6px;vertical-align:middle;text-decoration:none}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chips button{font:inherit;font-size:.85rem;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);cursor:pointer}
+details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
 </style>
 </head>
 <body><main>
@@ -28,7 +49,15 @@ a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 <div class="barra">
 <input id="q" type="search" placeholder="Buscar por nome, cargo ou UF" aria-label="Buscar">
 <select id="nv" aria-label="Nível"><option value="">Todos os níveis</option><option value="forte">Forte</option><option value="atencao">Atenção</option><option value="informativo">Informativo</option></select>
+<div id="chips" class="chips"></div>
 </div>
+<section class="kpis" id="kpis" aria-label="Resumo"></section>
+<section class="graf">
+<div class="card"><h2>Alertas por partido</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gp"></div><div class="leg" id="lg1"></div></div>
+<div class="card"><h2>Alertas por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
+</section>
+<details class="dados"><summary>Ver dados dos gráficos em tabela</summary><div class="graf"><div class="tab" id="tp"></div><div class="tab" id="tu"></div></div></details>
+<div id="tip" role="tooltip" hidden></div>
 <div class="tab"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio inicial</th><th class="n">Patrimônio final</th><th class="n">Crescimento</th><th class="n">Capacidade estimada</th><th class="n">Razão</th><th class="n">Percentil</th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table><div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div></div>
 </main>
 <script>
@@ -37,9 +66,71 @@ const R=v=>v==null?"—":"R$ "+Math.round(v).toLocaleString("pt-BR");
 const NV={forte:"Forte",atencao:"Atenção",informativo:"Informativo"};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(a.dossie&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(a.dossie)?` · <a href="${esc(a.dossie)}">Dossiê</a>`:"");
+const NIVEIS=["forte","atencao","informativo"];
+const F={partido:"",uf:""};
+const RC=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",notation:"compact",maximumFractionDigits:1}).format(v);
+const $=id=>document.getElementById(id);
+const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e;};
+// filtros de busca e nivel valem para tudo; cada grafico ignora o proprio filtro de dimensao
+function filtra(ign){
+  const q=$("q").value.toLowerCase(),nv=$("nv").value;
+  return D.alertas.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)
+    &&(`${a.nome} ${a.nome_urna??""} ${a.cargo} ${a.uf} ${a.partido}`.toLowerCase().includes(q)));
+}
+function agrupa(rows,dim,max){
+  const g={};
+  for(const a of rows){const k=a[dim]||"—";const o=g[k]??={k,n:0,cresc:0,forte:0,atencao:0,informativo:0};o.n++;o[a.nivel]++;o.cresc+=a.cresc||0;}
+  let l=Object.values(g).sort((x,y)=>y.n-x.n||y.cresc-x.cresc);
+  if(max&&l.length>max){const r=l.slice(max),o={k:"Outros",outros:true,n:0,cresc:0,forte:0,atencao:0,informativo:0};
+    for(const x of r)for(const c of ["n","cresc",...NIVEIS])o[c]+=x[c];l=[...l.slice(0,max),o];}
+  return l;
+}
+function tip(ev,x){
+  const t=$("tip");t.replaceChildren(el("b",null,x.k+(x.outros?"":"")));
+  const lin=(rot,val,cls)=>{const d=el("div"),s=el("span");if(cls){const k=el("s");k.style.background=`var(--${cls==="informativo"?"info":cls})`;s.append(k);}s.append(rot);d.append(s,el("strong",null,val));t.append(d);};
+  lin("Alertas",x.n.toLocaleString("pt-BR"));for(const n of NIVEIS)if(x[n])lin(NV[n],x[n].toLocaleString("pt-BR"),n);
+  lin("Crescimento somado",RC(x.cresc));
+  t.hidden=false;const r=ev.target.closest(".trilho").getBoundingClientRect(),w=t.offsetWidth;
+  t.style.left=Math.max(8,Math.min(innerWidth-w-8,(ev.clientX??r.left+r.width/2)-w/2))+"px";
+  t.style.top=(r.top-t.offsetHeight-8<8?r.bottom+8:r.top-t.offsetHeight-8)+"px";
+}
+function grafico(id,dim,max){
+  const l=agrupa(filtra(dim),dim,max),box=$(id),top=Math.max(1,...l.map(x=>x.n));
+  box.replaceChildren();box.classList.toggle("filtrado",!!F[dim]);
+  for(const x of l){
+    const tr=el("div","trilho"+(x.outros?" outros":"")+(F[dim]===x.k?" sel":""));
+    const trk=el("div","trk"),st=el("div","st");st.style.width=(x.n/top*100)+"%";
+    for(const n of NIVEIS)if(x[n]){const s=el("i",n);s.style.flex=x[n]+" 1 0";st.append(s);}
+    trk.append(st);tr.append(trk,el("span","tot",x.n));
+    tr.setAttribute("aria-label",`${x.k}: ${x.n} alertas (`+NIVEIS.filter(n=>x[n]).map(n=>`${NV[n]} ${x[n]}`).join(", ")+")");
+    tr.onpointermove=ev=>tip(ev,x);tr.onpointerleave=()=>$("tip").hidden=true;
+    if(!x.outros){tr.tabIndex=0;tr.setAttribute("role","button");tr.setAttribute("aria-pressed",F[dim]===x.k);
+      tr.onfocus=ev=>tip(ev,x);tr.onblur=()=>$("tip").hidden=true;
+      const tg=()=>{F[dim]=F[dim]===x.k?"":x.k;$("tip").hidden=true;draw();};
+      tr.onclick=tg;tr.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();tg();}};}
+    box.append(el("span","rot",x.k),tr);
+  }
+  if(!l.length)box.append(el("span","rot","—"),el("span","tot","Nenhum alerta"));
+  return l;
+}
+function tabela(id,titulo,l){
+  const t=el("table"),h=el("tr");for(const c of [titulo,"Alertas","Forte","Atenção","Informativo","Crescimento somado"])h.append(el("th",c===titulo?null:"n",c));
+  const tb=el("tbody");for(const x of l){const r=el("tr");r.append(el("td",null,x.k));for(const c of ["n",...NIVEIS])r.append(el("td","n",x[c].toLocaleString("pt-BR")));r.append(el("td","n",R(x.cresc)));tb.append(r);}
+  const th=el("thead");th.append(h);t.append(th,tb);$(id).replaceChildren(t);
+}
+function painel(rows){
+  const pessoas=new Set(rows.map(a=>a.nome+"|"+a.uf)).size,cr=rows.reduce((s,a)=>s+(a.cresc||0),0);
+  const k=$("kpis");k.replaceChildren();
+  for(const [v,r] of [[rows.length.toLocaleString("pt-BR"),"Alertas"],[pessoas.toLocaleString("pt-BR"),"Pessoas"],
+    [rows.filter(a=>a.nivel==="forte").length.toLocaleString("pt-BR"),"Alertas fortes"],[RC(cr),"Crescimento patrimonial somado"]]){
+    const d=el("div","kpi");d.append(el("b",null,v),el("span",null,r));k.append(d);}
+  tabela("tp","Partido",grafico("gp","partido",0));tabela("tu","UF",grafico("gu","uf",0));
+  const c=$("chips");c.replaceChildren();
+  for(const [dim,rot] of [["partido","Partido"],["uf","UF"]])if(F[dim]){const b=el("button",null,`${rot}: ${F[dim]} ×`);b.title="Remover filtro";b.onclick=()=>{F[dim]="";draw();};c.append(b);}
+}
+for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=el("i");i.style.background=`var(--${n==="informativo"?"info":n})`;s.append(i,NV[n]);$(id).append(s);}
 function draw(){
-  const q=document.getElementById("q").value.toLowerCase(),nv=document.getElementById("nv").value;
-  const rows=D.alertas.filter(a=>(!nv||a.nivel===nv)&&(`${a.nome} ${a.nome_urna??""} ${a.cargo} ${a.uf}`.toLowerCase().includes(q)));
+  const rows=filtra();painel(rows);
   document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></td><td>${esc(a.cargo)}</td><td>${a.ano_ini}–${a.ano_fim}</td><td class="n">${R(a.pat_ini)}</td><td class="n">${R(a.pat_fim)}</td><td class="n">${R(a.cresc)}</td><td class="n">${R(a.cap)}</td><td class="n">${a.razao==null?"—":a.razao.toFixed(1)+"×"}</td><td class="n">${a.percentil.toFixed(0)}</td><td class="nivel ${a.nivel}">${NV[a.nivel]}</td></tr>`).join("");
   document.getElementById("vz").hidden=rows.length>0;
 }

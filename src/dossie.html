@@ -20,18 +20,23 @@ ul.nt{list-style:none;margin:0;padding:0;border:1px solid var(--line);background
 ul.nt li{padding:.6em .9em;border-bottom:1px solid var(--line);overflow-wrap:anywhere}ul.nt li:last-child{border-bottom:0}
 small{color:var(--mut)}.vazio{padding:1em 0;color:var(--mut);margin:0}code{overflow-wrap:anywhere}
 a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
+h3{font-size:1rem;margin:1.2em 0 .4em;overflow-wrap:anywhere}
+.tag{display:inline-block;font-size:.78rem;line-height:1.4;padding:0 .45em;margin:.15em .3em 0 0;border:1px solid var(--line);border-radius:3px;color:var(--mut);overflow-wrap:anywhere}
 </style>
 </head>
 <body><main>
 <a class="voltar" href="../index.html">← Voltar ao painel</a>
 __CABECALHO__
-<p class="aviso">As notícias abaixo foram coletadas automaticamente no Google Notícias por busca de nome e podem se referir a homônimos ou a outros assuntos. O alerta patrimonial é indício para acompanhamento, não prova de irregularidade. Confira sempre as fontes antes de qualquer conclusão.</p>
+<p class="aviso">As notícias abaixo foram coletadas automaticamente no Bing Notícias e no Google Notícias. Só entram notícias que citam a pessoa (nome de urna ou nome civil) ou uma empresa ligada a ela pelo nome, no título, no resumo ou no texto da matéria; cada uma indica onde a menção foi encontrada. Ainda assim pode haver homônimos ou menções sem relação com o patrimônio. O alerta patrimonial é indício para acompanhamento, não prova de irregularidade. Confira sempre as fontes antes de qualquer conclusão.</p>
 <h2>Períodos em alerta</h2>
 <div class="tab"><table><thead><tr><th>Período</th><th class="n">Patrimônio inicial</th><th class="n">Patrimônio final</th><th class="n">Crescimento</th><th class="n">Capacidade estimada</th><th class="n">Razão</th><th class="n">Percentil</th><th>Nível</th></tr></thead><tbody>__PERIODOS__</tbody></table></div>
-<h2>Notícias recentes</h2>
+<h2>Notícias que citam __NOME__</h2>
 __RECENTES__
-<h2>Notícias sobre patrimônio e investigações</h2>
+<h2>Patrimônio e investigações</h2>
 __PATRIMONIO__
-<p><a href="__BUSCA__" target="_blank" rel="noopener">Buscar mais no Google Notícias</a><br><small>Busca usada: <code>__QUERY__</code></small></p>
-<p class="fonte">Dossiê gerado em __GERADO__. Patrimônio: declarações de bens do <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">Portal de Dados Abertos do TSE</a>. Notícias: Google Notícias (apenas título, veículo, data e link).</p>
+<p><a href="__BUSCABING__" target="_blank" rel="noopener">Buscar mais no Bing Notícias</a> · <a href="__BUSCA__" target="_blank" rel="noopener">Buscar mais no Google Notícias</a><br><small>Busca usada: <code>__QUERY__</code></small></p>
+<h2>Empresas ligadas</h2>
+<p class="fonte">Empresas extraídas da descrição dos bens declarados ao TSE (quotas, ações, participações societárias). A lista é automática e pode estar incompleta ou conter erros de leitura.</p>
+__EMPRESAS__
+<p class="fonte">Dossiê gerado em __GERADO__. Patrimônio e empresas: declarações de bens do <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">Portal de Dados Abertos do TSE</a>. Notícias: Bing Notícias e Google Notícias (apenas título, veículo, data e link).</p>
 </main></body></html>
