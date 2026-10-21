@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Alerta patrimonial</title>
+<style>
+:root{--bg:#f7f7f5;--fg:#1d2328;--mut:#5d6870;--line:#d9dcdd;--card:#fff;--forte:#a3261b;--atencao:#b86a00;--info:#3d5a73;--novo:#14532d}
+@media (prefers-color-scheme:dark){:root{--bg:#14181b;--fg:#e8ebec;--mut:#9aa5ac;--line:#2e363b;--card:#1b2024;--forte:#ff8a7d;--atencao:#f0b45c;--info:#8db3d1;--novo:#7fd9a0}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:16px 16px 40px}
+main{max-width:1100px;margin:0 auto}h1{font-size:1.6rem;margin:.6em 0 .2em}
+.aviso{border-left:3px solid var(--atencao);padding:.4em .9em;color:var(--mut);max-width:75ch;margin:1em 0}
+.barra{display:flex;gap:10px;flex-wrap:wrap;margin:1em 0}input,select{font:inherit;padding:.45em .7em;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--fg)}
+input{flex:1;min-width:200px}.tab{overflow-x:auto;border:1px solid var(--line);background:var(--card)}
+table{border-collapse:collapse;width:100%;min-width:820px}th,td{padding:.55em .8em;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-weight:600;color:var(--mut);white-space:nowrap}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.nivel{font-weight:600}.forte{color:var(--forte)}.atencao{color:var(--atencao)}.informativo{color:var(--info)}.novo{color:var(--novo);font-weight:600}
+small{color:var(--mut)}.vazio{padding:2em;color:var(--mut)}
+</style>
+</head>
+<body><main>
+<h1>Alerta patrimonial</h1>
+<small id="meta"></small>
+<p class="aviso">Indícios para acompanhamento, não prova de irregularidade. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
+<div class="barra">
+<input id="q" type="search" placeholder="Buscar por nome, cargo ou UF" aria-label="Buscar">
+<select id="nv" aria-label="Nível"><option value="">Todos os níveis</option><option value="forte">Forte</option><option value="atencao">Atenção</option><option value="informativo">Informativo</option></select>
+</div>
+<div class="tab"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio inicial</th><th class="n">Patrimônio final</th><th class="n">Crescimento</th><th class="n">Capacidade estimada</th><th class="n">Razão</th><th class="n">Percentil</th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table><div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div></div>
+</main>
+<script>
+const D=/*DADOS*/null;
+const R=v=>v==null?"—":"R$ "+Math.round(v).toLocaleString("pt-BR");
+const NV={forte:"Forte",atencao:"Atenção",informativo:"Informativo"};
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function draw(){
+  const q=document.getElementById("q").value.toLowerCase(),nv=document.getElementById("nv").value;
+  const rows=D.alertas.filter(a=>(!nv||a.nivel===nv)&&(`${a.nome} ${a.cargo} ${a.uf}`.toLowerCase().includes(q)));
+  document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}</small></td><td>${esc(a.cargo)}</td><td>${a.ano_ini}–${a.ano_fim}</td><td class="n">${R(a.pat_ini)}</td><td class="n">${R(a.pat_fim)}</td><td class="n">${R(a.cresc)}</td><td class="n">${R(a.cap)}</td><td class="n">${a.razao==null?"—":a.razao.toFixed(1)+"×"}</td><td class="n">${a.percentil.toFixed(0)}</td><td class="nivel ${a.nivel}">${NV[a.nivel]}</td></tr>`).join("");
+  document.getElementById("vz").hidden=rows.length>0;
+}
+if(D){document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;draw();}
+</script></body></html>

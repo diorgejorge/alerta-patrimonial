@@ -1,0 +1,11 @@
+{
+  "anos": [2018, 2020, 2022, 2024, 2026],
+  "taxa_poupanca": 0.30,
+  "crescimento_minimo": 100000,
+  "min_pares_grupo": 20,
+  "limiar_forte":     {"razao": 3.0, "percentil": 95},
+  "limiar_atencao":   {"razao": 2.0, "percentil": 90},
+  "limiar_informativo": {"percentil": 95},
+  "publicar_somente_monitorados": true,
+  "max_linhas_sem_lista": 200
+}
