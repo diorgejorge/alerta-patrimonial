@@ -30,7 +30,7 @@ Abra `docs/index.html` no navegador.
 1. Crie um repositório **privado** e envie estes arquivos.
 2. (Opcional) Em Settings → Secrets, crie `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID`.
 3. O workflow roda toda segunda-feira, atualiza `docs/` e `data/estado.json` (memória para marcar alertas "novos").
-4. Para ver o painel, baixe `docs/index.html` do repositório. Não publique em GitHub Pages aberto se a lista contiver pessoas específicas.
+4. Painel no GitHub Pages: em Settings → Pages, escolha **Source: GitHub Actions**. O workflow `pages.yml` publica `docs/` depois de cada atualização (ou manualmente em Actions → Publicar painel). Lembre que o site do Pages é **público**, mesmo com repositório privado.
 
 ## Limitações
 - Bens são declarados pelo custo histórico, não pelo valor de mercado.
