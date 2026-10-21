@@ -15,7 +15,7 @@ SITE = "https://portaldatransparencia.gov.br"
 UA = "Mozilla/5.0 (compatible; alerta-patrimonial/1.0; +https://github.com)"
 CARGOS_EMENDA = ("DEPUTADO FEDERAL", "SENADOR", "SUPLENTE")  # autores de emendas
 INTERMEDIARIOS = ("BANCO DO BRASIL", "CAIXA ECONOMICA")  # repassam fundo a fundo: nao sao o destino final
-MAX_EMENDAS, MAX_DOCS_EMENDAS, MAX_FAV = 5, 3, 6
+MAX_EMENDAS, MAX_DOCS_EMENDAS, MAX_FAV = 5, 2, 6
 e = html.escape
 
 
@@ -90,14 +90,15 @@ class Api:
             if ex.code == 429 and not _de_novo:  # passou do limite: espera um minuto e tenta uma vez
                 time.sleep(60)
                 return self.get(caminho, _de_novo=True, **params)
-            self._falha(caminho, ex)
+            self._falha(caminho, ex, conta=ex.code >= 500)  # 4xx: so esta consulta foi recusada, a API segue no ar
         except Exception as ex:
             self._falha(caminho, ex)
         return None
 
-    def _falha(self, caminho, ex):
+    def _falha(self, caminho, ex, conta=True):
         self.falhas += 1
-        self.seguidas += 1
+        if conta:
+            self.seguidas += 1
         print(f"[aviso] API do Portal da Transparencia falhou em {caminho} ({ex})", file=sys.stderr)
 
     def paginas(self, caminho, max_paginas=20, **params):
@@ -198,9 +199,16 @@ def pessoa_fisica(api, cpf, nome):
 def recursos(api, codigo):
     """Recursos federais recebidos por um CPF/CNPJ desde 2019, por orgao (Despesas > Recursos recebidos)."""
     hoje = dt.date.today()
-    dados = api.paginas("/despesas/recursos-recebidos", max_paginas=30, mesAnoInicio="01/2019",
-                        mesAnoFim=hoje.strftime("%m/%Y"), codigoFavorecido=codigo)
-    if dados is None:
+    dados, falhou = [], 0
+    for ano in range(2019, hoje.year + 1):  # a API recusa (HTTP 400) periodos maiores que um ano
+        fim = hoje.strftime("%m/%Y") if ano == hoje.year else f"12/{ano}"
+        parte = api.paginas("/despesas/recursos-recebidos", max_paginas=10, mesAnoInicio=f"01/{ano}",
+                            mesAnoFim=fim, codigoFavorecido=codigo)
+        if parte is None:
+            falhou += 1
+        else:
+            dados += parte
+    if falhou and not dados:
         return None
     por = {}
     for d in dados:
@@ -250,8 +258,8 @@ def emendas(api, nomes):
     top = sorted(lista, key=lambda d: _num(d.get("valorPago")), reverse=True)[:MAX_EMENDAS]
     favs = {}
     for d in top[:MAX_DOCS_EMENDAS]:
-        docs = api.paginas(f"/emendas/documentos/{urllib.parse.quote(str(d.get('codigoEmenda') or ''))}", max_paginas=5) or []
-        pagos = [x for x in docs if "pagamento" in chave(x.get("fase")) and x.get("codigoDocumento")][:3]  # 3 pagamentos por emenda: poupa consultas
+        docs = api.paginas(f"/emendas/documentos/{urllib.parse.quote(str(d.get('codigoEmenda') or ''))}", max_paginas=2) or []
+        pagos = [x for x in docs if "pagamento" in chave(x.get("fase")) and x.get("codigoDocumento")][:2]  # 2 pagamentos por emenda: poupa consultas
         for x in pagos:
             doc = api.get(f"/despesas/documentos/{urllib.parse.quote(str(x['codigoDocumento']))}")
             if isinstance(doc, list):
@@ -283,7 +291,7 @@ def _pessoa(api, p):
     return r
 
 
-def coletar(pessoas, tempo_max=30 * 60, chave_api=None):
+def coletar(pessoas, tempo_max=45 * 60, chave_api=None):
     """pessoas: {chave: dict(nome, nome_urna, cargo, cpf, empresas=[(nome, cnpj)])} na ordem do painel.
     Tudo pela API oficial (precisa de `chave_api`); sem chave nada e consultado.
     Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": "tempo"}."""
