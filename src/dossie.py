@@ -467,7 +467,7 @@ def periodo(a):
             f'<td class="n">{rz}</td><td class="n">{pc}</td><td class="nivel {e(nv)}">{e(NV.get(nv, nv))}</td></tr>')
 
 
-def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado):
+def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp=""):
     ult = linhas[-1]  # periodo mais recente
     urna = (ult.get("nome_urna") or "").strip()
     tse = next((a["link_tse"] for a in reversed(linhas) if url_ok(a.get("link_tse"))), None)
@@ -483,7 +483,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado):
                 RECENTES=lista(recentes, "Nenhuma notícia recente que cite a pessoa ou empresa ligada pelo nome."),
                 PATRIMONIO=lista(patrimonio, "Nenhuma notícia sobre patrimônio ou investigações que cite a pessoa "
                                              "ou empresa ligada pelo nome."),
-                EMPRESAS=bloco_empresas(empresas), QUERY=e(q),
+                EMPRESAS=bloco_empresas(empresas), QUERY=e(q), TRANSPARENCIA=transp,  # html ja escapado (transparencia.secao)
                 BUSCA=e(BUSCA + urllib.parse.urlencode({"q": q, **LOCAL})),
                 BUSCABING=e(BING + urllib.parse.urlencode({"q": q, **BING_LOCAL})), GERADO=e(gerado))
     # passada unica: texto externo ja inserido nunca e reprocessado
@@ -492,7 +492,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado):
 
 # ---------------------------------------------------------------- entrada
 def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=1.0, timeout=20,
-                  tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=()):
+                  tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=(), transparencia=None):
     """Gera destino/dossie/<slug>.html por pessoa (nome+UF) e devolve {indice_da_linha: "dossie/<slug>.html"}.
     Noticias so para as primeiras max_pessoas (ordem de `alertas`); as demais saem sem busca automatica.
     As buscas RSS correm numa fila por fonte (Bing e Google em paralelo, `pausa` s entre buscas na mesma
@@ -586,7 +586,9 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=1.0, tim
         while s in usados:
             s, c = f"{base}-{c}", c + 1
         usados.add(s)
-        (pasta / f"{s}.html").write_text(pagina(tpl, p["linhas"], p["q"], rec, pat, empresas, gerado),
+        transp = next((transparencia[i] for i in p["idx"] if i in (transparencia or {})),
+                      '<p class="vazio">Consulta ao Portal da Transparência não realizada nesta execução.</p>')
+        (pasta / f"{s}.html").write_text(pagina(tpl, p["linhas"], p["q"], rec, pat, empresas, gerado, transp),
                                          encoding="utf-8")
         for i in p["idx"]:
             indice[i] = f"dossie/{s}.html"

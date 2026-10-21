@@ -6,7 +6,8 @@ import argparse, json, os, re, sys, unicodedata, urllib.request, urllib.parse, z
 import datetime as dt
 from pathlib import Path
 import pandas as pd
-from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS
+from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
+import transparencia
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE, DOCS, CFG = ROOT / "data" / "cache", ROOT / "docs", ROOT / "config"
@@ -106,13 +107,20 @@ def empresas_por_sq(bens):
         else pd.Series("", index=bens.index)
     alvo = (tipo + " " + desc).str.contains(r"QUOT|COTA|A[CÇ][OÕÃA]|PARTICIPA|CAPITAL|QUINH",
                                             case=False, regex=True, na=False)  # pre-filtro rapido
-    out = {}
+    out, cnpjs = {}, {}
     for sq, d, t in zip(bens.loc[alvo, "SQ_CANDIDATO"].astype(str).str.strip(), desc[alvo], tipo[alvo]):
         lst = out.setdefault(sq, [])
-        for nome in empresas_do_bem(d, t):
+        nomes = empresas_do_bem(d, t)
+        for nome in nomes:
             if nome not in lst and len(lst) < MAX_EMPRESAS:
                 lst.append(nome)
-    return out
+        # CNPJ da empresa (dado publico) so para consultar o Portal da Transparencia; nao vai para o site
+        achados = [c for c in dict.fromkeys(re.sub(r"\D", "", x) for x in RE_CNPJ.findall(d)) if transparencia.cnpj_ok(c)]
+        if len(nomes) == 1 and achados:
+            par = cnpjs.setdefault(sq, [])
+            if all(c != achados[0] for _, c in par):
+                par.append((nomes[0], achados[0]))
+    return out, cnpjs
 
 
 def serie_tse(anos):
@@ -125,7 +133,7 @@ def serie_tse(anos):
         bens, cand = ler_zip(zb), ler_zip(zc)
         bens["VR"] = dinheiro(bens["VR_BEM_CANDIDATO"])
         pat = bens.groupby("SQ_CANDIDATO", as_index=False)["VR"].sum().rename(columns={"VR": "patrimonio"})
-        emp = empresas_por_sq(bens)
+        emp, emp_cnpj = empresas_por_sq(bens)
         cand = cand.drop_duplicates("SQ_CANDIDATO").copy()
         cand["chave"] = cand.apply(chave_pessoa, axis=1)
         m = cand.merge(pat, on="SQ_CANDIDATO", how="inner")
@@ -137,10 +145,12 @@ def serie_tse(anos):
         m["sg_ue"], m["nome_urna"] = col("SG_UE"), col("NM_URNA_CANDIDATO")
         m["suplementar"] = col("NM_TIPO_ELEICAO").map(norm).str.contains("SUPLEMENTAR")
         m["empresas"] = m["sq_candidato"].map(lambda s: list(emp.get(s, ())))
+        m["empresas_cnpj"] = m["sq_candidato"].map(lambda s: list(emp_cnpj.get(s, ())))
         partes.append(m.rename(columns={"NM_CANDIDATO": "nome", "DS_CARGO": "cargo",
                                         "SG_UF": "uf", "SG_PARTIDO": "partido"})
                        [["chave", "ano", "nome", "cargo", "uf", "partido", "eleito", "patrimonio",
-                         "sq_candidato", "cd_eleicao", "sg_ue", "nome_urna", "suplementar", "empresas"]])
+                         "sq_candidato", "cd_eleicao", "sg_ue", "nome_urna", "suplementar", "empresas",
+                         "empresas_cnpj"]])
     if not partes:
         sys.exit("Nenhum dado do TSE disponivel. Verifique a conexao e os anos em config/parametros.json.")
     return pd.concat(partes, ignore_index=True)
@@ -158,7 +168,7 @@ def serie_demo(seed=7):
         linhas.append(dict(chave=f"demo:{i}", ano=2018, nome=f"PESSOA DEMO {i:03d}", cargo="DEPUTADO FEDERAL",
                            uf=random.choice(["PA", "SP", "MG", "BA"]), partido="XX", eleito=True, patrimonio=base,
                            sq_candidato=None, cd_eleicao=None, sg_ue=None, nome_urna=f"DEMO {i:03d}",
-                           suplementar=False, empresas=[]))  # sem SQ real: link_tse fica None no demo
+                           suplementar=False, empresas=[], empresas_cnpj=[]))  # sem SQ real: link_tse fica None no demo
         linhas.append(dict(linhas[-1], ano=2022, patrimonio=base * f, eleito=False))
     return pd.DataFrame(linhas)
 
@@ -193,7 +203,9 @@ def pares(serie, regras, extras, p):
                             cresc=b["patrimonio"] - a["patrimonio"], cap=cap, cargo_ini=a["cargo"],
                             nome_urna=txt(b.get("nome_urna")) or None, link_tse=link_tse(b),
                             empresas=[str(x) for x in b["empresas"]]
-                            if isinstance(b.get("empresas"), (list, tuple)) else []))
+                            if isinstance(b.get("empresas"), (list, tuple)) else [],
+                            empresas_cnpj=list(b["empresas_cnpj"])
+                            if isinstance(b.get("empresas_cnpj"), (list, tuple)) else []))
     df = pd.DataFrame(out)
     if df.empty:
         return df
@@ -277,7 +289,7 @@ def main():
                      .head(p["max_linhas_sem_lista"]).drop(columns="o")
     vis = vis.assign(o=vis.nivel.map(ORDEM)).sort_values(["novo", "o", "cresc"], ascending=False).drop(columns="o")
 
-    pub = vis.drop(columns=["chave", "id", "cargo_ini"])  # CPF nunca vai para o site
+    pub = vis.drop(columns=["chave", "id", "cargo_ini", "empresas_cnpj"])  # CPF/CNPJ nunca vao para o site
     pub = pub.astype(object).where(pub.notna(), None)
     dados = dict(gerado_em=dt.datetime.now().strftime("%Y-%m-%d %H:%M"), universo=int(len(df)),
                  alertas=json.loads(pub.to_json(orient="records")))
@@ -287,7 +299,18 @@ def main():
     dados["metodo"] = dict(taxa=p["taxa_poupanca"], minimo=p["crescimento_minimo"], forte=p["limiar_forte"],
                            atencao=p["limiar_atencao"], informativo=p["limiar_informativo"])  # texto "Como ler"
     dados["fontes"] = [dict(nome=f["nome"], uf=f["uf"]) for f in fontes]
-    for i, cam in gerar_dossies(dados["alertas"], DOCS, buscar=not args.demo, fontes_extra=fontes).items():
+    # Portal da Transparencia: uma consulta por pessoa (nome+UF), na ordem do painel; CPF/CNPJ ficam so aqui
+    pessoas = {}
+    for i, r in enumerate(vis.to_dict("records")):
+        q = pessoas.setdefault((norm(r["nome"]), str(r["uf"]).upper()), dict(
+            nome=r["nome"], nome_urna=txt(r.get("nome_urna")), cargo="", idx=[],
+            cpf=r["chave"][4:] if str(r["chave"]).startswith("cpf:") else "", empresas=r.get("empresas_cnpj") or []))
+        q["cargo"] += " " + str(r["cargo"])
+        q["idx"].append(i)
+    info = {} if args.demo else transparencia.coletar(pessoas)
+    secoes = {i: transparencia.secao(info.get(k), q["nome_urna"] or q["nome"]) for k, q in pessoas.items() for i in q["idx"]}
+    for i, cam in gerar_dossies(dados["alertas"], DOCS, buscar=not args.demo, fontes_extra=fontes,
+                                transparencia=secoes).items():
         dados["alertas"][i]["dossie"] = cam
     tpl =(ROOT / "src" / "template.html").read_text(encoding="utf-8")
     (DOCS / "index.html").write_text(tpl.replace("/*DADOS*/null", json.dumps(dados, ensure_ascii=False)),

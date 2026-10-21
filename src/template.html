@@ -45,6 +45,7 @@ a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 details.leitura{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.6em 1em;margin:0 0 1em}
 details.leitura summary{cursor:pointer;font-weight:600}details.leitura p,details.leitura ul{max-width:80ch;margin:.5em 0}
 th small{font-weight:400}td.n small{color:var(--mut)}
+.contagem{margin:.4em 0;color:var(--mut)}.contagem button{font:inherit;font-size:.85rem;margin-left:6px;padding:.15em .6em;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--fg);cursor:pointer}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
 </style>
 </head>
@@ -70,6 +71,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <details class="dados"><summary>Ver dados dos gráficos em tabela</summary><div class="graf"><div class="tab" id="tp"></div><div class="tab" id="tu"></div></div></details>
 <div id="tip" role="tooltip" hidden></div>
 <details class="leitura" id="como-ler"><summary>Como ler a tabela</summary><div id="leitura"></div></details>
+<p class="contagem" id="contagem" aria-live="polite"></p>
 <div class="tab"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table><div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div></div>
 </main>
 <script>
@@ -118,7 +120,7 @@ function grafico(id,dim,max){
     tr.onpointermove=ev=>tip(ev,x);tr.onpointerleave=()=>$("tip").hidden=true;
     if(!x.outros){tr.tabIndex=0;tr.setAttribute("role","button");tr.setAttribute("aria-pressed",F[dim]===x.k);
       tr.onfocus=ev=>tip(ev,x);tr.onblur=()=>$("tip").hidden=true;
-      const tg=()=>{F[dim]=F[dim]===x.k?"":x.k;$("tip").hidden=true;draw();};
+      const tg=()=>{F[dim]=F[dim]===x.k?"":x.k;$("tip").hidden=true;draw();if(F[dim])$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
       tr.onclick=tg;tr.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();tg();}};}
     box.append(el("span","rot",x.k),tr);
   }
@@ -144,6 +146,9 @@ for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=
 function draw(){
   const rows=filtra();painel(rows);
   document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></td><td>${esc(a.cargo)}</td><td>${a.ano_ini}–${a.ano_fim}</td><td class="n">${R(a.pat_ini)}</td><td class="n">${R(a.pat_fim)}</td><td class="n">${R(a.cresc)}</td><td class="n">${R(a.cap)}</td><td class="n">${VZ(a.razao)}</td><td class="n">${PC(a.percentil)}</td><td class="nivel ${a.nivel}">${NV[a.nivel]}</td></tr>`).join("");
+  const fl=[F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
+  $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${D.alertas.length.toLocaleString("pt-BR")} registros`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
+  if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf="";draw();};
   document.getElementById("vz").hidden=rows.length>0;
 }
 const VZ=v=>v==null?"—":v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"×";
