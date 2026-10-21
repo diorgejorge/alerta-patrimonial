@@ -172,12 +172,12 @@ def recursos(portal, codigo):
 
 def coletar(pessoas, pausa=0.6, tempo_max=30 * 60):
     """pessoas: {chave: dict(nome, nome_urna, cargo, cpf, empresas=[(nome, cnpj)])} na ordem do painel.
-    Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": True}."""
+    Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": "tempo"} (ou "bloqueio" se o site recusar as consultas)."""
     portal = Portal(pausa, time.monotonic() + tempo_max)
     out = {}
     for k, p in pessoas.items():
         if not portal.ativo():
-            out[k] = {"pendente": True}
+            out[k] = {"pendente": "bloqueio" if portal.seguidas >= 5 else "tempo"}
             continue
         r = {}
         if any(c in (p.get("cargo") or "").upper() for c in CARGOS_EMENDA):
@@ -202,6 +202,10 @@ def secao(r, nome):
     """HTML da secao 'Dinheiro público' do dossie."""
     if r is None:
         return '<p class="vazio">Consulta ao Portal da Transparência não realizada nesta execução.</p>'
+    if r.get("pendente") == "bloqueio":
+        return ('<p class="vazio">O Portal da Transparência recusou as consultas automáticas nesta execução '
+                '(proteção contra robôs). Consulte direto no '
+                f'<a href="{SITE}" target="_blank" rel="noopener">Portal da Transparência</a>.</p>')
     if r.get("pendente"):
         return '<p class="vazio">Consulta ao Portal da Transparência não realizada nesta execução (limite de tempo).</p>'
     partes = []
