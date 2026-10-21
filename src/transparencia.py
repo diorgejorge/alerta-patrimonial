@@ -52,16 +52,25 @@ def cnpj_ok(c):
 class Portal:
     """Requisicoes ao site com pausa entre chamadas, prazo total e parada apos falhas seguidas."""
 
+    GRUPOS = ("emendas", "beneficios", "despesas")  # falhas contadas por grupo: um bloqueio nao derruba os outros
+
     def __init__(self, pausa, fim, timeout=30):
         self.pausa, self.fim, self.timeout = pausa, fim, timeout
-        self.ultimo, self.req, self.falhas, self.seguidas = 0.0, 0, 0, 0
+        self.ultimo, self.req, self.falhas, self.seguidas = 0.0, 0, 0, {}
+
+    def bloqueado(self, grupo):
+        return self.seguidas.get(grupo, 0) >= 5
+
+    def no_prazo(self):
+        return time.monotonic() < self.fim
 
     def ativo(self):
-        return self.seguidas < 5 and time.monotonic() < self.fim
+        return self.no_prazo() and not all(self.bloqueado(g) for g in self.GRUPOS)
 
     def get(self, caminho, **params):
         """JSON de {SITE}{caminho}/resultado?...; None se falhar."""
-        if not self.ativo():
+        grupo = caminho.strip("/").split("/")[0]
+        if not self.no_prazo() or self.bloqueado(grupo):
             return None
         espera = self.pausa - (time.monotonic() - self.ultimo)
         if espera > 0:
@@ -72,13 +81,18 @@ class Portal:
         url = f"{SITE}{caminho}/resultado?" + urllib.parse.urlencode({**base, **params})
         try:
             with urllib.request.urlopen(urllib.request.Request(url, headers=HDR), timeout=self.timeout) as r:
+                if r.status == 202 or r.headers.get("x-amzn-waf-action"):
+                    # protecao anti-robo do site (AWS WAF): nao contornamos, so registramos
+                    raise RuntimeError(f"bloqueio anti-robo do site ({r.headers.get('x-amzn-waf-action') or r.status})")
                 dados = json.loads(r.read(10_000_000).decode("utf-8", "replace"))
-            self.seguidas = 0
+            self.seguidas[grupo] = 0
             return dados.get("data") or []
         except Exception as ex:
             self.falhas += 1
-            self.seguidas += 1
+            self.seguidas[grupo] = self.seguidas.get(grupo, 0) + 1
             print(f"[aviso] Portal da Transparencia falhou em {caminho} ({ex})", file=sys.stderr)
+            if self.bloqueado(grupo):
+                print(f"[aviso] Portal da Transparencia: consultas de '{grupo}' suspensas nesta execucao", file=sys.stderr)
             return None
 
 
@@ -177,14 +191,18 @@ def coletar(pessoas, pausa=0.6, tempo_max=30 * 60):
     out = {}
     for k, p in pessoas.items():
         if not portal.ativo():
-            out[k] = {"pendente": "bloqueio" if portal.seguidas >= 5 else "tempo"}
+            out[k] = {"pendente": "tempo" if not portal.no_prazo() else "bloqueio"}
             continue
         r = {}
         if any(c in (p.get("cargo") or "").upper() for c in CARGOS_EMENDA):
             r["emendas"] = emendas(portal, [p.get("nome_urna"), p.get("nome")])
+            if not r["emendas"] and portal.bloqueado("emendas"):
+                r["emendas"] = "bloqueio"
         cpf = re.sub(r"\D", "", p.get("cpf") or "")
         if len(cpf) == 11:
             r["beneficios"] = beneficios(portal, cpf)
+            if portal.bloqueado("beneficios") and not any(b["meses"] for b in r["beneficios"]):
+                r["beneficios"] = "bloqueio"
             r["recursos_pf"] = recursos(portal, cpf)
         r["empresas"] = [(nome, recursos(portal, cnpj)) for nome, cnpj in (p.get("empresas") or []) if cnpj_ok(cnpj)][:3]
         r["sem_cpf"] = len(cpf) != 11
@@ -194,6 +212,10 @@ def coletar(pessoas, pausa=0.6, tempo_max=30 * 60):
 
 
 # ---------------------------------------------------------------- html (secao do dossie)
+BLOQ = ('<p class="vazio">O Portal da Transparência recusou estas consultas automáticas nesta execução '
+        f'(proteção contra robôs). Consulte direto no <a href="{SITE}" target="_blank" rel="noopener">Portal</a>.</p>')
+
+
 def _link(caminho, **params):
     return e(f"{SITE}{caminho}?" + urllib.parse.urlencode(params))
 
@@ -212,7 +234,9 @@ def secao(r, nome):
     em = r.get("emendas", "nao-aplica")
     if em != "nao-aplica":
         partes.append("<h3>Emendas parlamentares de autoria</h3>")
-        if not em:
+        if em == "bloqueio":
+            partes.append(BLOQ)
+        elif not em:
             partes.append(f'<p class="vazio">Nenhuma emenda encontrada com o autor “{e(nome)}”.</p>')
         else:
             link = _link("/emendas/consulta", autorEmenda=",".join(em["autores"]), ordenarPor="valorPago", direcao="desc")
@@ -239,7 +263,9 @@ def secao(r, nome):
     else:
         partes.append("<h3>Benefícios sociais pagos ao CPF da pessoa</h3>")
         bs = r.get("beneficios") or []
-        if not bs:
+        if bs == "bloqueio":
+            partes.append(BLOQ)
+        elif not bs:
             partes.append('<p class="vazio">Nenhum benefício social encontrado (BPC, Bolsa Família, Auxílio Emergencial, '
                           'Seguro-Defeso, PETI, Auxílio Reconstrução).</p>')
         else:
