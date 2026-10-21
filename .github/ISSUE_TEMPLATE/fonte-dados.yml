@@ -1,0 +1,46 @@
+name: Sugerir fonte de dados
+description: Indique uma base pública que ajude a analisar patrimônio, renda ou vínculos de políticos.
+title: "[Fonte de dados] "
+labels: ["fonte-dados"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Fontes de dados precisam de código novo para entrar no painel, então cada sugestão é avaliada caso a caso.
+        Esta sugestão fica pública.
+  - type: input
+    id: nome
+    attributes:
+      label: Nome da base
+      placeholder: "Ex.: Portal da Transparência: sanções (CEIS/CNEP)"
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: Endereço
+      placeholder: "https://..."
+    validations:
+      required: true
+  - type: dropdown
+    id: acesso
+    attributes:
+      label: Como os dados são obtidos
+      options:
+        - "Download de arquivo (CSV, ZIP etc.)"
+        - API
+        - Consulta no site
+        - Não sei
+    validations:
+      required: true
+  - type: textarea
+    id: conteudo
+    attributes:
+      label: O que a base contém e como ajuda o painel
+      placeholder: "Ex.: lista empresas com contratos públicos, permitindo cruzar com as empresas declaradas pelos candidatos."
+    validations:
+      required: true
+  - type: textarea
+    id: licenca
+    attributes:
+      label: Licença ou termos de uso (opcional)

@@ -32,6 +32,16 @@ Abra `docs/index.html` no navegador.
 3. O workflow roda toda segunda-feira, atualiza `docs/` e `data/estado.json` (memória para marcar alertas "novos").
 4. Painel no GitHub Pages: em Settings → Pages, escolha **Source: GitHub Actions**. O workflow `pages.yml` publica `docs/` depois de cada atualização (ou manualmente em Actions → Publicar painel). Lembre que o site do Pages é **público**, mesmo com repositório privado.
 
+## Sugestões de fontes pelo site
+O painel tem o bloco "Ajude a ampliar as fontes", que abre formulários de issue no GitHub (é preciso ter conta; a sugestão fica pública):
+- **Fonte de notícias** (`.github/ISSUE_TEMPLATE/fonte-noticias.yml`): veículo, feed RSS ou endereço de busca com `{q}` e abrangência (nacional ou UF).
+- **Fonte de dados** (`.github/ISSUE_TEMPLATE/fonte-dados.yml`): base pública para avaliar; precisa de código novo, então não entra sozinha.
+
+Para aprovar uma fonte de notícias, aplique o rótulo **`aprovada`** na issue (crie o rótulo uma vez em Issues → Labels). O workflow `fontes.yml` testa o feed, grava em `config/fontes_noticias.csv`, responde e fecha a issue. Como só quem tem acesso de escrita aplica rótulos, nada entra sem revisão. A fonte passa a valer na próxima atualização:
+- feed com `{q}` (ex.: `https://site.com.br/?s={q}&feed=rss2`): busca o nome de cada pessoa e pode abrir a matéria para confirmar a menção;
+- feed geral (sem `{q}`): lido uma vez por execução; só entram itens que citam a pessoa no título ou no resumo.
+Para remover uma fonte, apague a linha do CSV.
+
 ## Limitações
 - Bens são declarados pelo custo histórico, não pelo valor de mercado.
 - Herança, venda de bens, atividade rural/empresarial e renda do cônjuge não entram.

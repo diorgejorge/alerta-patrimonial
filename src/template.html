@@ -38,6 +38,10 @@ a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 #tip b{display:block;margin-bottom:.2em}#tip div{display:flex;justify-content:space-between;gap:14px}#tip div span:first-child{color:var(--mut)}
 #tip s{display:inline-block;width:10px;height:2px;margin-right:6px;vertical-align:middle;text-decoration:none}
 .chips{display:flex;gap:8px;flex-wrap:wrap}.chips button{font:inherit;font-size:.85rem;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);cursor:pointer}
+.contrib{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.8em 1em;margin:1em 0}
+.contrib h2{font-size:1rem;margin:0 0 .3em}.contrib p{margin:.3em 0}.acoes{display:flex;gap:8px;flex-wrap:wrap}
+.acoes a{display:inline-block;padding:.35em .8em;border:1px solid var(--line);border-radius:4px;text-decoration:none;font-size:.9rem}
+.acoes a:hover{background:var(--bg)}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
 </style>
 </head>
@@ -46,6 +50,10 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <small id="meta"></small>
 <p class="aviso">Indícios para acompanhamento, não prova de irregularidade. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
 <p class="fonte">Fonte: declarações de bens e candidaturas do <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">Portal de Dados Abertos do TSE</a>. Para conferir a declaração de cada pessoa, consulte o <a href="https://divulgacandcontas.tse.jus.br/" target="_blank" rel="noopener">DivulgaCandContas</a>.</p>
+<section class="contrib" id="contrib" hidden><h2>Ajude a ampliar as fontes</h2>
+<p id="fontes-uso"></p>
+<p class="acoes"><a id="sug-noticia" target="_blank" rel="noopener">Sugerir fonte de notícias</a><a id="sug-dados" target="_blank" rel="noopener">Sugerir fonte de dados</a><a id="sug-lista" target="_blank" rel="noopener">Ver sugestões enviadas</a></p>
+<small>As sugestões são feitas pelo GitHub (é preciso ter conta), ficam públicas e só entram no site depois de revisadas.</small></section>
 <div class="barra">
 <input id="q" type="search" placeholder="Buscar por nome, cargo ou UF" aria-label="Buscar">
 <select id="nv" aria-label="Nível"><option value="">Todos os níveis</option><option value="forte">Forte</option><option value="atencao">Atenção</option><option value="informativo">Informativo</option></select>
@@ -134,6 +142,18 @@ function draw(){
   document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></td><td>${esc(a.cargo)}</td><td>${a.ano_ini}–${a.ano_fim}</td><td class="n">${R(a.pat_ini)}</td><td class="n">${R(a.pat_fim)}</td><td class="n">${R(a.cresc)}</td><td class="n">${R(a.cap)}</td><td class="n">${a.razao==null?"—":a.razao.toFixed(1)+"×"}</td><td class="n">${a.percentil.toFixed(0)}</td><td class="nivel ${a.nivel}">${NV[a.nivel]}</td></tr>`).join("");
   document.getElementById("vz").hidden=rows.length>0;
 }
-if(D){document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+function contrib(){
+  // repositorio: informado pelo pipeline no Actions ou deduzido do endereco usuario.github.io/repo
+  let repo=D.repo;const h=location.hostname.match(/^([\w-]+)\.github\.io$/i),p=location.pathname.split("/").filter(Boolean)[0];
+  if(!repo&&h&&p)repo=`${h[1]}/${p}`;
+  if(!repo||!/^[\w.-]+\/[\w.-]+$/.test(repo))return;
+  const base=`https://github.com/${repo}/issues`;
+  $("sug-noticia").href=`${base}/new?template=fonte-noticias.yml`;$("sug-dados").href=`${base}/new?template=fonte-dados.yml`;
+  $("sug-lista").href=`${base}?q=is%3Aissue+in%3Atitle+%22Fonte+de%22`;
+  const fs=D.fontes||[];
+  $("fontes-uso").textContent="Notícias dos dossiês: Bing Notícias, Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
+  $("contrib").hidden=false;
+}
+if(D){contrib();document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;draw();}
 </script></body></html>

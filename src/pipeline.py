@@ -237,6 +237,18 @@ def carregar_monitorados():
     return cpfs, nomes, extras
 
 
+def carregar_fontes():
+    """Fontes de noticias aprovadas pelo site (issues com rotulo "aprovada"): nome, feed, uf."""
+    f = CFG / "fontes_noticias.csv"
+    df = pd.read_csv(f, dtype=str, keep_default_na=False) if f.exists() else pd.DataFrame()
+    out = []
+    for _, r in df.iterrows():
+        feed = r.get("feed", "").strip()
+        if feed.startswith(("https://", "http://")) and r.get("nome", "").strip():
+            out.append(dict(nome=r["nome"].strip(), feed=feed, uf=r.get("uf", "").strip().upper()))
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true", help="dados sinteticos para testar sem internet")
@@ -270,7 +282,10 @@ def main():
     dados = dict(gerado_em=dt.datetime.now().strftime("%Y-%m-%d %H:%M"), universo=int(len(df)),
                  alertas=json.loads(pub.to_json(orient="records")))
     DOCS.mkdir(exist_ok=True)
-    for i, cam in gerar_dossies(dados["alertas"], DOCS, buscar=not args.demo).items():
+    fontes = carregar_fontes()
+    dados["repo"] = os.getenv("GITHUB_REPOSITORY")  # links "sugerir fonte" do painel
+    dados["fontes"] = [dict(nome=f["nome"], uf=f["uf"]) for f in fontes]
+    for i, cam in gerar_dossies(dados["alertas"], DOCS, buscar=not args.demo, fontes_extra=fontes).items():
         dados["alertas"][i]["dossie"] = cam
     tpl =(ROOT / "src" / "template.html").read_text(encoding="utf-8")
     (DOCS / "index.html").write_text(tpl.replace("/*DADOS*/null", json.dumps(dados, ensure_ascii=False)),

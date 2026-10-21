@@ -229,14 +229,15 @@ def verificavel(link):
     return bool(host) and not host.endswith(("bing.com", "news.google.com"))
 
 
-def itens_rss(xml, bing):
+def itens_rss(xml, bing, real, max_itens=MAX_ITENS):
+    """`bing`: link vem embrulhado no apiclick do Bing; `real`: link leva a materia (pode ser lida)."""
     try:
         raiz = ET.fromstring(xml)
     except ET.ParseError:  # prefixo de namespace sem declaracao: troca "News:Source" por "News_Source"
         raiz = ET.fromstring(re.sub(rb"<(/?)([A-Za-z]+):", rb"<\1\2_", xml))
     itens, vistos = [], set()
     for it in raiz.iter("item"):
-        link = (it.findtext("link") or "").strip()
+        link = (it.findtext("link") or "").strip() or (it.findtext("guid") or "").strip()
         if bing:
             link = url_real(link)
         if not url_ok(link) or link in vistos:
@@ -252,8 +253,8 @@ def itens_rss(xml, bing):
         if veiculo and titulo.endswith(" - " + veiculo):  # Google anexa " - Veiculo" ao titulo
             titulo = titulo[: -len(veiculo) - 3]
         itens.append(dict(titulo=titulo, resumo=sem_tags(it.findtext("description")), veiculo=veiculo,
-                          data=data_pub(it.findtext("pubDate")), link=link, bing=bing))
-        if len(itens) >= MAX_ITENS:  # RSS vem por relevancia: pega os mais relevantes
+                          data=data_pub(it.findtext("pubDate")), link=link, real=real))
+        if len(itens) >= max_itens:  # RSS vem por relevancia: pega os mais relevantes
             break
     return itens
 
@@ -261,9 +262,13 @@ def itens_rss(xml, bing):
 class Fonte:
     """Uma fonte RSS com fila propria (1 thread): pausa entre buscas, tolerancia a falhas e prazo."""
 
-    def __init__(self, nome, base, params, ua, bing, pausa, timeout, fim):
+    def __init__(self, nome, base, params, ua, bing, pausa, timeout, fim, modelo=None, uf="", max_itens=MAX_ITENS):
+        """`modelo`: URL de fonte sugerida, com {q} no lugar da busca (sem {q} = feed geral do veiculo)."""
         self.nome, self.base, self.params, self.ua, self.bing = nome, base, params, ua, bing
         self.pausa, self.timeout, self.fim = pausa, timeout, fim
+        self.modelo, self.uf, self.max_itens = modelo, uf, max_itens
+        # feed geral traz de tudo: so aceita mencao no titulo/resumo, sem abrir cada materia
+        self.real = bing or (modelo is not None and "{q}" in modelo)
         self.ultimo, self.req, self.falhas, self.seguidas = None, 0, 0, 0
         self.pool = ThreadPoolExecutor(max_workers=1)
 
@@ -281,12 +286,15 @@ class Fonte:
                 time.sleep(espera)
         self.ultimo = time.monotonic()
         self.req += 1
-        url = self.base + urllib.parse.urlencode({"q": q, **self.params})
+        if self.modelo is not None:
+            url = self.modelo.replace("{q}", urllib.parse.quote_plus(q))
+        else:
+            url = self.base + urllib.parse.urlencode({"q": q, **self.params})
         try:
             req = urllib.request.Request(url, headers={"User-Agent": self.ua, "Accept-Language": "pt-BR,pt;q=0.9"})
             with urllib.request.urlopen(req, timeout=self.timeout) as r:
                 xml = r.read(5_000_000)
-            itens = itens_rss(xml, self.bing)
+            itens = itens_rss(xml, self.bing, self.real, self.max_itens)
             self.seguidas = 0
             return itens
         except Exception as ex:
@@ -372,7 +380,7 @@ def preparar(p, paginas, fim, max_verif):
             if kt:
                 vis.add(kt)
             c = dict(it, mt=achados(it["titulo"], alvos), md=achados(it["resumo"], alvos), fut=None)
-            if not ((c["mt"] | c["md"]) & rel) and it["bing"] and verificavel(it["link"]):
+            if not ((c["mt"] | c["md"]) & rel) and it["real"] and verificavel(it["link"]):
                 if it["link"] in futs:
                     c["fut"] = futs[it["link"]]
                 elif len(futs) < max_verif:
@@ -482,7 +490,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado):
 
 # ---------------------------------------------------------------- entrada
 def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=1.0, timeout=20,
-                  tempo_max=12 * 60, max_verif=20, workers=12):
+                  tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=()):
     """Gera destino/dossie/<slug>.html por pessoa (nome+UF) e devolve {indice_da_linha: "dossie/<slug>.html"}.
     Noticias so para as primeiras max_pessoas (ordem de `alertas`); as demais saem sem busca automatica.
     As buscas RSS correm numa fila por fonte (Bing e Google em paralelo, `pausa` s entre buscas na mesma
@@ -516,6 +524,12 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=1.0, tim
         ativos = [p for p in pessoas if p["n"] < max_pessoas]
         fontes = [Fonte("Bing Notícias", BING, {"format": "rss", **BING_LOCAL}, UA_NAV, True, pausa, timeout, fim),
                   Fonte("Google Notícias", RSS, LOCAL, UA, False, pausa, timeout, fim)]
+        # fontes sugeridas pelo site (config/fontes_noticias.csv): com {q} = busca no veiculo; sem = feed geral
+        extras = [Fonte(x["nome"], None, None, UA_NAV, False, pausa, timeout, fim, modelo=x["feed"],
+                        uf=(x.get("uf") or "").upper(), max_itens=MAX_ITENS if "{q}" in x["feed"] else 200)
+                  for x in fontes_extra]
+        gerais = {f: f.submeter("") for f in extras if "{q}" not in f.modelo}  # uma leitura por execucao
+        fontes += extras
         paginas = ThreadPoolExecutor(max_workers=workers)
         try:
             for p in ativos:  # enfileira todas as buscas; cada fonte atende na ordem do painel
@@ -523,6 +537,12 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=1.0, tim
                 if p["emps"]:
                     cons["emp"] = " OR ".join(f'"{base_empresa(x).title()}"' for x in p["emps"][:MAX_BUSCA_EMP])
                 p["fut"] = {s: [f.submeter(q) for f in fontes] for s, q in cons.items()}
+                uf = p["k"][1]
+                termo = " ".join((p["linhas"][-1].get("nome_urna") or p["linhas"][-1]["nome"]).split())
+                for f in extras:
+                    if f.uf and f.uf != uf:
+                        continue
+                    p["fut"]["rec"].append(gerais[f] if f in gerais else f.submeter(termo))
             for p in ativos:  # conforme as buscas chegam, agenda a leitura das materias
                 preparar(p, paginas, fim, max_verif)
                 verif += p["verif"]

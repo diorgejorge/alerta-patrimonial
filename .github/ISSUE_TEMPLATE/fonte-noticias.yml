@@ -1,0 +1,51 @@
+name: Sugerir fonte de notícias
+description: Indique um veículo jornalístico para o dossiê buscar notícias.
+title: "[Fonte de notícias] "
+labels: ["fonte-noticias"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Depois de revisada e aprovada, a fonte passa a ser usada nos dossiês na próxima atualização semanal.
+        Só entram notícias que citam a pessoa ou uma empresa ligada a ela pelo nome. Esta sugestão fica pública.
+  - type: input
+    id: nome
+    attributes:
+      label: Nome do veículo
+      placeholder: "Ex.: Jornal Opção"
+    validations:
+      required: true
+  - type: input
+    id: site
+    attributes:
+      label: Site do veículo
+      placeholder: "https://www.exemplo.com.br"
+    validations:
+      required: true
+  - type: input
+    id: feed
+    attributes:
+      label: Feed RSS ou endereço de busca (opcional)
+      description: |
+        Use {q} no lugar do nome pesquisado. Em sites WordPress costuma funcionar `https://site.com.br/?s={q}&feed=rss2`.
+        Também vale o feed geral do site (ex.: `https://site.com.br/feed`). Se deixar em branco, tentamos `<site>/?s={q}&feed=rss2`.
+      placeholder: "https://www.exemplo.com.br/?s={q}&feed=rss2"
+  - type: dropdown
+    id: uf
+    attributes:
+      label: Abrangência
+      description: Veículos regionais só são consultados para pessoas daquele estado.
+      options: [Nacional, AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO]
+    validations:
+      required: true
+  - type: textarea
+    id: motivo
+    attributes:
+      label: Por que esta fonte é útil? (opcional)
+  - type: checkboxes
+    id: confirma
+    attributes:
+      label: Confirmação
+      options:
+        - label: É um veículo jornalístico com notícias públicas, sem paywall total.
+          required: true
