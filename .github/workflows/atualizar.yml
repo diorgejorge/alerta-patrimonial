@@ -1,13 +1,17 @@
 name: Atualizar alertas
 on:
   schedule:
-    - cron: "0 9 * * 1"   # toda segunda, 09:00 UTC
+    - cron: "0 9 * * 1"   # toda segunda, 09:00 UTC (06:00 em Brasília)
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:  # uma atualizacao por vez; a seguinte espera a anterior terminar
+  group: atualizar
+  cancel-in-progress: false
 jobs:
   rodar:
     runs-on: ubuntu-latest
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6

@@ -29,7 +29,7 @@ Abra `docs/index.html` no navegador.
 ## Automação (GitHub Actions)
 1. Crie um repositório **privado** e envie estes arquivos.
 2. (Opcional) Em Settings → Secrets, crie `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID`.
-3. O workflow roda toda segunda-feira, atualiza `docs/` e `data/estado.json` (memória para marcar alertas "novos").
+3. O workflow `atualizar.yml` roda sozinho toda segunda-feira às 06:00 (Brasília): baixa os dados do TSE, refaz alertas, notícias e consultas ao Portal da Transparência, grava `docs/` e `data/estado.json` (memória para marcar alertas "novos") e o `pages.yml` publica o site em seguida. Leva cerca de 1 hora; uma execução manual (Actions → Atualizar alertas → Run workflow) espera a anterior terminar. O GitHub desativa agendamentos de repositórios sem nenhum commit por 60 dias; como cada execução grava um commit, isso não deve acontecer, mas se acontecer basta reativar em Actions.
 4. Painel no GitHub Pages: em Settings → Pages, escolha **Source: GitHub Actions**. O workflow `pages.yml` publica `docs/` depois de cada atualização (ou manualmente em Actions → Publicar painel). Lembre que o site do Pages é **público**, mesmo com repositório privado.
 
 ## Sugestões de fontes pelo site
