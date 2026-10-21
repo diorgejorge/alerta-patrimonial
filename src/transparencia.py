@@ -1,6 +1,6 @@
 """Dinheiro publico ligado a cada pessoa, no Portal da Transparencia (portaldatransparencia.gov.br).
-Emendas: consultas que o proprio site faz ao montar as tabelas. Beneficios, recursos e sancoes: API oficial
-(chave em TRANSPARENCIA_TOKEN), porque essas paginas do site recusam robos.
+Todas as consultas usam so a API oficial (api.portaldatransparencia.gov.br, chave em TRANSPARENCIA_TOKEN);
+o site aparece apenas como link para leitura humana.
 - Emendas parlamentares de que a pessoa e autora e quem recebeu os pagamentos.
 - Beneficios sociais pagos ao CPF da pessoa (BPC, Bolsa Familia, Auxilio Emergencial/Brasil, Garantia-Safra, PETI,
   Seguro-Defeso, Auxilio Reconstrucao). So como titular: registros de representados/dependentes sao descartados.
@@ -10,9 +10,9 @@ CPF/CNPJ so vao na consulta ao Portal; nunca aparecem na pagina."""
 import datetime as dt
 import html, json, re, sys, time, unicodedata, urllib.error, urllib.parse, urllib.request
 
+
 SITE = "https://portaldatransparencia.gov.br"
 UA = "Mozilla/5.0 (compatible; alerta-patrimonial/1.0; +https://github.com)"
-HDR = {"User-Agent": UA, "X-Requested-With": "XMLHttpRequest", "Accept": "application/json"}
 CARGOS_EMENDA = ("DEPUTADO FEDERAL", "SENADOR", "SUPLENTE")  # autores de emendas
 INTERMEDIARIOS = ("BANCO DO BRASIL", "CAIXA ECONOMICA")  # repassam fundo a fundo: nao sao o destino final
 MAX_EMENDAS, MAX_DOCS_EMENDAS, MAX_FAV = 5, 3, 6
@@ -51,98 +51,7 @@ def cnpj_ok(c):
     return True
 
 
-class Portal:
-    """Requisicoes ao site com pausa entre chamadas, prazo total e parada apos falhas seguidas."""
-
-    GRUPOS = ("emendas", "beneficios", "despesas")  # falhas contadas por grupo: um bloqueio nao derruba os outros
-
-    def __init__(self, pausa, fim, timeout=30):
-        self.pausa, self.fim, self.timeout = pausa, fim, timeout
-        self.ultimo, self.req, self.falhas, self.seguidas = 0.0, 0, 0, {}
-
-    def bloqueado(self, grupo):
-        return self.seguidas.get(grupo, 0) >= 5
-
-    def no_prazo(self):
-        return time.monotonic() < self.fim
-
-    def ativo(self):
-        return self.no_prazo() and not all(self.bloqueado(g) for g in self.GRUPOS)
-
-    def get(self, caminho, **params):
-        """JSON de {SITE}{caminho}/resultado?...; None se falhar."""
-        grupo = caminho.strip("/").split("/")[0]
-        if not self.no_prazo() or self.bloqueado(grupo):
-            return None
-        espera = self.pausa - (time.monotonic() - self.ultimo)
-        if espera > 0:
-            time.sleep(espera)
-        self.ultimo = time.monotonic()
-        self.req += 1
-        base = dict(paginacaoSimples="true", tamanhoPagina=100, offset=0)
-        url = f"{SITE}{caminho}/resultado?" + urllib.parse.urlencode({**base, **params})
-        try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=HDR), timeout=self.timeout) as r:
-                if r.status == 202 or r.headers.get("x-amzn-waf-action"):
-                    # protecao anti-robo do site (AWS WAF): nao contornamos, so registramos
-                    raise RuntimeError(f"bloqueio anti-robo do site ({r.headers.get('x-amzn-waf-action') or r.status})")
-                dados = json.loads(r.read(10_000_000).decode("utf-8", "replace"))
-            self.seguidas[grupo] = 0
-            return dados.get("data") or []
-        except Exception as ex:
-            self.falhas += 1
-            self.seguidas[grupo] = self.seguidas.get(grupo, 0) + 1
-            print(f"[aviso] Portal da Transparencia falhou em {caminho} ({ex})", file=sys.stderr)
-            if self.bloqueado(grupo):
-                print(f"[aviso] Portal da Transparencia: consultas de '{grupo}' suspensas nesta execucao", file=sys.stderr)
-            return None
-
-
-# ---------------------------------------------------------------- consultas
-def emendas(portal, nomes):
-    """Emendas de autoria da pessoa (nome de urna = nome parlamentar no Portal)."""
-    codigos = set()
-    for nome in nomes:
-        if not nome:
-            continue
-        for d in portal.get("/emendas/consulta", palavraChave=nome, colunasSelecionadas="autor",
-                            direcaoOrdenacao="asc", colunaOrdenacao="autor") or []:
-            m = re.match(r"\s*(\d+)\s*-\s*(.+)", d.get("autor") or "")
-            if m and chave(m.group(2)) == chave(nome):
-                codigos.add(m.group(1))
-        if codigos:
-            break
-    lista = []
-    for cod in sorted(codigos):
-        lista += portal.get("/emendas/consulta", autorEmenda=cod, direcaoOrdenacao="desc", colunaOrdenacao="valorPago",
-                            colunasSelecionadas="codigoEmenda,ano,autor,localidadeDoGasto,funcao,subfuncao,"
-                                                "valorEmpenhado,valorPago") or []
-    if not lista:
-        return None
-    por_ano = {}
-    for d in lista:
-        a = por_ano.setdefault(d.get("ano"), [0.0, 0.0, 0])
-        a[0] += valor(d.get("valorEmpenhado")); a[1] += valor(d.get("valorPago")); a[2] += 1
-    top = sorted(lista, key=lambda d: valor(d.get("valorPago")), reverse=True)[:MAX_EMENDAS]
-    favs = {}
-    for d in top[:MAX_DOCS_EMENDAS]:
-        docs = portal.get("/emendas/documentos-relacionados", codigo=d.get("codigoEmenda"), ano=d.get("ano"),
-                          codigoFuncao=d.get("codigoFuncao") or "", codigoSubfuncao=d.get("codigoSubfuncao") or "",
-                          localidadeDoGasto=d.get("localidadeDoGasto") or "", skTipoEmenda=d.get("skTipoEmenda") or "",
-                          palavraChave="", direcaoOrdenacao="desc", colunaOrdenacao="valor",
-                          colunasSelecionadas="data,fase,codigoDocumentoResumido,favorecido,valor") or []
-        for x in docs:
-            if (x.get("fase") or "").lower() != "pagamento":
-                continue
-            nome = re.sub(r"^[\d./-]+\s*-\s*", "", x.get("favorecido") or "").strip() or "—"
-            favs[nome] = favs.get(nome, 0.0) + valor(x.get("valor"))
-    return dict(autores=sorted(codigos), anos=sorted(por_ano.items(), key=lambda kv: kv[0] or 0, reverse=True),
-                top=top, favorecidos=sorted(favs.items(), key=lambda kv: kv[1], reverse=True)[:MAX_FAV],
-                total_pago=sum(a[1] for a in por_ano.values()), n=len(lista))
-
-
-
-# ---------------------------------------------------------------- API oficial (beneficios, recursos, sancoes)
+# ---------------------------------------------------------------- API oficial
 API = "https://api.portaldatransparencia.gov.br/api-de-dados"
 
 
@@ -203,7 +112,6 @@ class Api:
             out += d
         return out
 
-
 # flag de /pessoa-fisica -> (nome, caminho, parametro do CPF)
 BENEFICIOS = [
     ("favorecidoBpc", "BPC (Benefício de Prestação Continuada)", "/bpc-por-cpf-ou-nis", "codigo"),
@@ -224,7 +132,16 @@ TITULARES = ("beneficiario", "beneficiarioBolsaFamilia", "beneficiarioNovoBolsaF
 
 
 def _num(v):
-    return float(v) if isinstance(v, (int, float)) else valor(v)
+    """Numero da API: pode vir como numero, '1234.56' ou '1.234,56'."""
+    if isinstance(v, (int, float)):
+        return float(v)
+    s = str(v or "").strip()
+    if "," in s:
+        return valor(s)
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
 
 
 def _mes(d):
@@ -303,44 +220,83 @@ def pessoa_juridica(api, cnpj):
                 contratos=bool(pj.get("possuiContratacao")), convenios=bool(pj.get("convenios")))
 
 
-def coletar(pessoas, pausa=0.6, tempo_max=30 * 60, chave_api=None):
+def _favorecido(doc):
+    """Nome do favorecido num documento de despesa da API (os formatos variam entre endpoints)."""
+    f = doc.get("favorecido")
+    if isinstance(f, dict):
+        f = f.get("nome") or f.get("razaoSocialReceita") or f.get("nomeFantasiaReceita")
+    nome = doc.get("nomeFavorecido") or f or ""
+    return re.sub(r"^[\d./-]+\s*-\s*", "", str(nome)).strip()
+
+
+def emendas(api, nomes):
+    """Emendas de autoria da pessoa (nome de urna = nome parlamentar no Portal) e quem recebeu os pagamentos."""
+    lista = []
+    for nome in nomes:
+        if not nome:
+            continue
+        dados = api.paginas("/emendas", max_paginas=40, nomeAutor=nome)
+        if dados is None:
+            return None
+        lista = [d for d in dados if chave(d.get("nomeAutor") or d.get("autor")) == chave(nome)]
+        if lista:
+            break
+    if not lista:
+        return {}
+    por_ano = {}
+    for d in lista:
+        a = por_ano.setdefault(d.get("ano"), [0.0, 0.0, 0])
+        a[0] += _num(d.get("valorEmpenhado")); a[1] += _num(d.get("valorPago")); a[2] += 1
+    top = sorted(lista, key=lambda d: _num(d.get("valorPago")), reverse=True)[:MAX_EMENDAS]
+    favs = {}
+    for d in top[:MAX_DOCS_EMENDAS]:
+        docs = api.paginas(f"/emendas/documentos/{urllib.parse.quote(str(d.get('codigoEmenda') or ''))}", max_paginas=5) or []
+        pagos = [x for x in docs if "pagamento" in chave(x.get("fase")) and x.get("codigoDocumento")][:3]  # 3 pagamentos por emenda: poupa consultas
+        for x in pagos:
+            doc = api.get(f"/despesas/documentos/{urllib.parse.quote(str(x['codigoDocumento']))}")
+            if isinstance(doc, list):
+                doc = doc[0] if doc else None
+            if not isinstance(doc, dict):
+                continue
+            nome = _favorecido(doc) or "—"
+            favs[nome] = favs.get(nome, 0.0) + _num(doc.get("valor") if doc.get("valor") is not None else doc.get("valorDocumento"))
+    return dict(nome_autor=lista[0].get("nomeAutor") or "", anos=sorted(por_ano.items(), key=lambda kv: kv[0] or 0, reverse=True),
+                top=top, favorecidos=sorted(favs.items(), key=lambda kv: kv[1], reverse=True)[:MAX_FAV],
+                total_pago=sum(a[1] for a in por_ano.values()), n=len(lista))
+
+
+def coletar(pessoas, tempo_max=30 * 60, chave_api=None):
     """pessoas: {chave: dict(nome, nome_urna, cargo, cpf, empresas=[(nome, cnpj)])} na ordem do painel.
-    Emendas: paginas do site. Beneficios, recursos e sancoes: API oficial (precisa de `chave_api`).
-    Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": "tempo"} (ou "bloqueio")."""
-    fim = time.monotonic() + tempo_max
-    portal, api = Portal(pausa, fim), Api(chave_api, fim)
+    Tudo pela API oficial (precisa de `chave_api`); sem chave nada e consultado.
+    Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": "tempo"}."""
+    if not chave_api:
+        print("Portal da Transparencia: sem TRANSPARENCIA_TOKEN, nada consultado.")
+        return {k: {"api": False} for k in pessoas}
+    api = Api(chave_api, time.monotonic() + tempo_max)
     out = {}
     for k, p in pessoas.items():
-        if not portal.no_prazo():
-            out[k] = {"pendente": "tempo"}
+        if not api.ativa():
+            out[k] = {"pendente": "tempo" if time.monotonic() >= api.fim else "falha"}
             continue
-        r = {"api": bool(chave_api)}
+        r = {"api": True}
         if any(c in (p.get("cargo") or "").upper() for c in CARGOS_EMENDA):
-            r["emendas"] = emendas(portal, [p.get("nome_urna"), p.get("nome")])
-            if not r["emendas"] and portal.bloqueado("emendas"):
-                r["emendas"] = "bloqueio"
+            r["emendas"] = emendas(api, [p.get("nome_urna"), p.get("nome")])
         cpf = re.sub(r"\D", "", p.get("cpf") or "")
         r["sem_cpf"] = len(cpf) != 11
-        if chave_api and not r["sem_cpf"]:
+        if not r["sem_cpf"]:
             r["pf"] = pessoa_fisica(api, cpf, p.get("nome"))
             if r["pf"] and r["pf"]["despesas"]:
                 r["recursos_pf"] = recursos(api, cpf)
             elif r["pf"]:
                 r["recursos_pf"] = []
-        if chave_api:
-            r["empresas"] = [(nome, pessoa_juridica(api, cnpj))
-                             for nome, cnpj in (p.get("empresas") or []) if cnpj_ok(cnpj)][:3]
+        r["empresas"] = [(nome, pessoa_juridica(api, cnpj))
+                         for nome, cnpj in (p.get("empresas") or []) if cnpj_ok(cnpj)][:3]
         out[k] = r
-    print(f"Portal da Transparencia: {len(out)} pessoas; site {portal.req} consultas/{portal.falhas} falhas; "
-          f"API {api.req} consultas/{api.falhas} falhas" + ("" if chave_api else " (sem TRANSPARENCIA_TOKEN)") + ".")
+    print(f"Portal da Transparencia (API): {len(out)} pessoas, {api.req} consultas, {api.falhas} falhas.")
     return out
 
 
 # ---------------------------------------------------------------- html (secao do dossie)
-BLOQ = ('<p class="vazio">O Portal da Transparência recusou estas consultas automáticas nesta execução '
-        f'(proteção contra robôs). Consulte direto no <a href="{SITE}" target="_blank" rel="noopener">Portal</a>.</p>')
-
-
 def _link(caminho, **params):
     return e(f"{SITE}{caminho}?" + urllib.parse.urlencode(params))
 
@@ -349,22 +305,23 @@ def secao(r, nome):
     """HTML da secao 'Dinheiro público' do dossie."""
     if r is None:
         return '<p class="vazio">Consulta ao Portal da Transparência não realizada nesta execução.</p>'
-    if r.get("pendente") == "bloqueio":
-        return ('<p class="vazio">O Portal da Transparência recusou as consultas automáticas nesta execução '
-                '(proteção contra robôs). Consulte direto no '
-                f'<a href="{SITE}" target="_blank" rel="noopener">Portal da Transparência</a>.</p>')
-    if r.get("pendente"):
+    if not r.get("api") and not r.get("pendente"):
+        return ('<p class="vazio">Não consultado: falta configurar a chave da API do Portal da Transparência '
+                '(TRANSPARENCIA_TOKEN).</p>')
+    if r.get("pendente") == "tempo":
         return '<p class="vazio">Consulta ao Portal da Transparência não realizada nesta execução (limite de tempo).</p>'
+    if r.get("pendente"):
+        return NAO_DEU
     partes = []
     em = r.get("emendas", "nao-aplica")
     if em != "nao-aplica":
         partes.append("<h3>Emendas parlamentares de autoria</h3>")
-        if em == "bloqueio":
-            partes.append(BLOQ)
+        if em is None:
+            partes.append(NAO_DEU)
         elif not em:
             partes.append(f'<p class="vazio">Nenhuma emenda encontrada com o autor “{e(nome)}”.</p>')
         else:
-            link = _link("/emendas/consulta", autorEmenda=",".join(em["autores"]), ordenarPor="valorPago", direcao="desc")
+            link = _link("/emendas/consulta", palavraChave=em["nome_autor"] or nome, ordenarPor="valorPago", direcao="desc")
             partes.append(f'<p>{em["n"]} emendas, {brl(em["total_pago"])} pagos no total. '
                           f'<a href="{link}" target="_blank" rel="noopener">Ver todas no Portal</a></p>')
             partes.append('<div class="tab"><table><thead><tr><th>Ano</th><th class="n">Emendas</th>'
@@ -372,9 +329,9 @@ def secao(r, nome):
                           + "".join(f'<tr><td>{e(str(a))}</td><td class="n">{v[2]}</td><td class="n">{brl(v[0])}</td>'
                                     f'<td class="n">{brl(v[1])}</td></tr>' for a, v in em["anos"]) + "</tbody></table></div>")
             partes.append("<p><b>Maiores emendas</b></p><ul class=\"nt\">" + "".join(
-                f'<li><a href="{_link("/emendas/detalhe", codigoEmenda=d.get("codigoEmenda"), codigoTipoEmenda=d.get("skTipoEmenda") or 1)}"'
+                f'<li><a href="{_link("/emendas/consulta", codigoEmenda=d.get("codigoEmenda") or "")}"'
                 f' target="_blank" rel="noopener">{e(str(d.get("ano")))} · {e(d.get("funcao") or "—")} / {e(d.get("subfuncao") or "—")}</a>'
-                f'<br><small>{e(d.get("localidadeDoGasto") or "—")} · pago {brl(valor(d.get("valorPago")))}</small></li>'
+                f'<br><small>{e(d.get("localidadeDoGasto") or "—")} · pago {brl(_num(d.get("valorPago")))}</small></li>'
                 for d in em["top"]) + "</ul>")
             if em["favorecidos"]:
                 partes.append(f"<p><b>Quem recebeu os pagamentos</b> (das {min(len(em['top']), MAX_DOCS_EMENDAS)} maiores emendas)</p>"
@@ -382,10 +339,6 @@ def secao(r, nome):
                                   f'<li>{e(n)}<br><small>{brl(v)}'
                                   f'{" · banco que repassa a estados e municípios, não é o destino final" if any(i in chave(n).upper() for i in INTERMEDIARIOS) else ""}'
                                   f"</small></li>" for n, v in em["favorecidos"]) + "</ul>")
-    if not r.get("api"):
-        partes.append('<p class="vazio">Benefícios sociais, recursos recebidos e sanções não foram consultados: '
-                      'falta configurar a chave da API do Portal da Transparência (TRANSPARENCIA_TOKEN).</p>')
-        return "".join(partes)
     if r.get("sem_cpf"):
         partes.append('<p class="vazio">O TSE não informa o CPF desta candidatura, então benefícios sociais, '
                       'recursos recebidos e sanções da pessoa não foram consultados.</p>')

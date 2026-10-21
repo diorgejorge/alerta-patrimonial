@@ -28,7 +28,7 @@ Abra `docs/index.html` no navegador.
 
 ## Automação (GitHub Actions)
 1. Crie um repositório **privado** e envie estes arquivos.
-2. Em Settings → Secrets and variables → Actions, crie `TRANSPARENCIA_TOKEN` com a chave gratuita da API do Portal da Transparência (cadastro em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email). Sem ela, o dossiê mostra só as emendas. (Opcional) Crie também `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID`.
+2. Em Settings → Secrets and variables → Actions, crie `TRANSPARENCIA_TOKEN` com a chave gratuita da API do Portal da Transparência (cadastro em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email). Todas as consultas ao Portal (emendas, benefícios, despesas e sanções) usam só essa API; sem a chave, a seção "Dinheiro público" do dossiê fica sem dados. (Opcional) Crie também `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID`.
 3. O workflow `atualizar.yml` roda sozinho toda segunda-feira às 04:00 (Brasília): baixa os dados do TSE, refaz alertas, notícias e consultas ao Portal da Transparência, grava `docs/` e `data/estado.json` (memória para marcar alertas "novos") e o `pages.yml` publica o site em seguida. Leva cerca de 1 hora; uma execução manual (Actions → Atualizar alertas → Run workflow) espera a anterior terminar. O GitHub desativa agendamentos de repositórios sem nenhum commit por 60 dias; como cada execução grava um commit, isso não deve acontecer, mas se acontecer basta reativar em Actions.
 4. Painel no GitHub Pages: em Settings → Pages, escolha **Source: GitHub Actions**. O workflow `pages.yml` publica `docs/` depois de cada atualização (ou manualmente em Actions → Publicar painel). Lembre que o site do Pages é **público**, mesmo com repositório privado.
 
