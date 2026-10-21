@@ -455,8 +455,10 @@ def bloco_empresas(empresas):
 
 
 def periodo(a):
-    rz = "—" if nulo(a.get("razao")) else f"{a['razao']:.1f}".replace(".", ",") + "×"
-    pc = "—" if nulo(a.get("percentil")) else f"{a['percentil']:.0f}"
+    rz = "—" if nulo(a.get("razao")) else f"{a['razao']:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
+    p = a.get("percentil")
+    pc = ("—" if nulo(p) else "o maior<br><small>do grupo</small>" if p >= 99.5
+          else f"acima de {p:.0f}%<br><small>dos colegas</small>")  # mesmo texto do painel
     nv = a.get("nivel") or ""
     novo = ' <span class="novo">novo</span>' if a.get("novo") else ""
     return (f"<tr><td>{a['ano_ini']}–{a['ano_fim']}{novo}<br><small>{e(a.get('cargo') or '')}</small></td>"

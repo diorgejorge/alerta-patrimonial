@@ -42,6 +42,9 @@ a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 .contrib h2{font-size:1rem;margin:0 0 .3em}.contrib p{margin:.3em 0}.acoes{display:flex;gap:8px;flex-wrap:wrap}
 .acoes a{display:inline-block;padding:.35em .8em;border:1px solid var(--line);border-radius:4px;text-decoration:none;font-size:.9rem}
 .acoes a:hover{background:var(--bg)}
+details.leitura{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.6em 1em;margin:0 0 1em}
+details.leitura summary{cursor:pointer;font-weight:600}details.leitura p,details.leitura ul{max-width:80ch;margin:.5em 0}
+th small{font-weight:400}td.n small{color:var(--mut)}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
 </style>
 </head>
@@ -66,7 +69,8 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 </section>
 <details class="dados"><summary>Ver dados dos gráficos em tabela</summary><div class="graf"><div class="tab" id="tp"></div><div class="tab" id="tu"></div></div></details>
 <div id="tip" role="tooltip" hidden></div>
-<div class="tab"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio inicial</th><th class="n">Patrimônio final</th><th class="n">Crescimento</th><th class="n">Capacidade estimada</th><th class="n">Razão</th><th class="n">Percentil</th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table><div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div></div>
+<details class="leitura" id="como-ler"><summary>Como ler a tabela</summary><div id="leitura"></div></details>
+<div class="tab"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table><div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div></div>
 </main>
 <script>
 const D=/*DADOS*/null;
@@ -139,8 +143,26 @@ function painel(rows){
 for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=el("i");i.style.background=`var(--${n==="informativo"?"info":n})`;s.append(i,NV[n]);$(id).append(s);}
 function draw(){
   const rows=filtra();painel(rows);
-  document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></td><td>${esc(a.cargo)}</td><td>${a.ano_ini}–${a.ano_fim}</td><td class="n">${R(a.pat_ini)}</td><td class="n">${R(a.pat_fim)}</td><td class="n">${R(a.cresc)}</td><td class="n">${R(a.cap)}</td><td class="n">${a.razao==null?"—":a.razao.toFixed(1)+"×"}</td><td class="n">${a.percentil.toFixed(0)}</td><td class="nivel ${a.nivel}">${NV[a.nivel]}</td></tr>`).join("");
+  document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></td><td>${esc(a.cargo)}</td><td>${a.ano_ini}–${a.ano_fim}</td><td class="n">${R(a.pat_ini)}</td><td class="n">${R(a.pat_fim)}</td><td class="n">${R(a.cresc)}</td><td class="n">${R(a.cap)}</td><td class="n">${VZ(a.razao)}</td><td class="n">${PC(a.percentil)}</td><td class="nivel ${a.nivel}">${NV[a.nivel]}</td></tr>`).join("");
   document.getElementById("vz").hidden=rows.length>0;
+}
+const VZ=v=>v==null?"—":v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"×";
+// percentil no grupo de pares: 100 = o maior crescimento do grupo
+const PC=p=>p==null?"—":p>=99.5?"o maior<br><small>do grupo</small>":`acima de ${Math.round(p)}%<br><small>dos colegas</small>`;
+function leitura(){
+  const m=Object.assign({taxa:.3,minimo:100000,forte:{razao:3,percentil:95},atencao:{razao:2,percentil:90},informativo:{percentil:95}},D.metodo||{});
+  const pct=Math.round(m.taxa*100),sal=46366.19,cap=sal*12*4*m.taxa,cr=cap*10,x=n=>n.toLocaleString("pt-BR");
+  $("leitura").innerHTML=`
+<p><b>Poderia juntar com o salário</b>: soma do salário bruto do cargo no período, supondo que a pessoa guardou ${pct}% dele (mais a renda extra informada, se houver). É uma estimativa generosa: impostos e gastos não são descontados.</p>
+<p><b>Quantas vezes o possível</b>: o crescimento do patrimônio dividido pelo que poderia juntar. <b>1×</b> = cresceu exatamente o que o salário permitiria; <b>10×</b> = cresceu dez vezes mais.</p>
+<p><b>Comparado aos colegas</b>: posição do crescimento entre quem teve o mesmo cargo no mesmo período. "Acima de 97% dos colegas" quer dizer que, de cada 100 colegas, 97 tiveram crescimento menor.</p>
+<p><b>Exemplo</b> (valores ilustrativos): um deputado federal recebe R$ ${x(sal)} por mês. Em 4 anos, guardando ${pct}%, poderia juntar cerca de ${R(cap)}. Se o patrimônio dele cresceu ${R(cr)}, o crescimento foi <b>10× o possível</b>.</p>
+<p><b>Níveis</b> (só para crescimento de pelo menos ${R(m.minimo)}):</p>
+<ul><li><span class="nivel forte">Forte</span>: ${VZ(m.forte.razao)} o possível ou mais <i>e</i> acima de ${m.forte.percentil}% dos colegas.</li>
+<li><span class="nivel atencao">Atenção</span>: ${VZ(m.atencao.razao)} o possível ou mais <i>e</i> acima de ${m.atencao.percentil}% dos colegas, ou acima de 98% dos colegas.</li>
+<li><span class="nivel informativo">Informativo</span>: acima de ${m.informativo.percentil}% dos colegas, sem os outros critérios.</li></ul>
+<p><b>"—"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>
+<p>Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta, por isso o alerta é um indício para acompanhar, não prova.</p>`;
 }
 function contrib(){
   // repositorio: informado pelo pipeline no Actions ou deduzido do endereco usuario.github.io/repo
@@ -154,6 +176,6 @@ function contrib(){
   $("fontes-uso").textContent="Notícias dos dossiês: Bing Notícias, Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
   $("contrib").hidden=false;
 }
-if(D){contrib();document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;draw();}
 </script></body></html>

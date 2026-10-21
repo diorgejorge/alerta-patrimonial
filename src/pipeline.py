@@ -284,6 +284,8 @@ def main():
     DOCS.mkdir(exist_ok=True)
     fontes = carregar_fontes()
     dados["repo"] = os.getenv("GITHUB_REPOSITORY")  # links "sugerir fonte" do painel
+    dados["metodo"] = dict(taxa=p["taxa_poupanca"], minimo=p["crescimento_minimo"], forte=p["limiar_forte"],
+                           atencao=p["limiar_atencao"], informativo=p["limiar_informativo"])  # texto "Como ler"
     dados["fontes"] = [dict(nome=f["nome"], uf=f["uf"]) for f in fontes]
     for i, cam in gerar_dossies(dados["alertas"], DOCS, buscar=not args.demo, fontes_extra=fontes).items():
         dados["alertas"][i]["dossie"] = cam
