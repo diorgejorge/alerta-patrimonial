@@ -50,6 +50,9 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta .cresc{margin:0;display:flex;flex-direction:column}.alerta .cresc b{font-size:1.35rem;line-height:1.2;font-variant-numeric:tabular-nums}
 .alerta dl{margin:0;display:grid;gap:2px;font-size:.875rem}.alerta dl div{display:flex;justify-content:space-between;gap:10px}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.alerta .tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
+.alerta .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
+.alerta button.tag{cursor:pointer}.alerta button.tag:hover{border-color:var(--mut)}
 .alerta .compra{margin:0;font-size:.875rem;padding:.4em .6em;border-radius:6px;background:var(--realce)}
 .alerta .links{margin:auto 0 0;font-size:.9rem}.alerta .links .lk{min-height:44px}.mais{text-align:center}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
@@ -166,7 +169,8 @@ function painel(rows){
 for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=el("i");i.style.background=`var(--${n==="informativo"?"info":n})`;s.append(i,NV[n]);$(id).append(s);}
 // cards em lotes de PAG (pagina leve); a tabela completa so e montada quando aberta
 const PAG=24;let ROWS=[],VIS=0;
-const CARD=a=>`<li class="card alerta"><div class="topo"><span><b>${esc(a.nome_urna||a.nome)}</b>${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.cargo)} · ${esc(a.partido)} · ${esc(a.uf)} · ${a.ano_ini}–${a.ano_fim}</small></span><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span></div>
+const CARD=a=>`<li class="card alerta"><div class="topo"><span><b>${esc(a.nome_urna||a.nome)}</b>${a.novo?' <span class="novo">novo</span>':""}<br><small>${a.ano_ini}–${a.ano_fim}</small></span><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span></div>
+<p class="tags"><span class="tag" title="Cargo">${esc(a.cargo||"Não informado")}</span>${a.partido?`<button type="button" class="tag" data-dim="partido" data-v="${esc(a.partido)}" title="Filtrar pelo partido ${esc(a.partido)}">${esc(a.partido)}</button>`:""}${a.uf?`<button type="button" class="tag" data-dim="uf" data-v="${esc(a.uf)}" title="Filtrar pelo estado ${esc(a.uf)}">${esc(a.uf)}</button>`:""}</p>
 <p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>${COMPRA(a.cresc)}
 <dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>
 ${LK(a)?`<p class="links">${LK(a).replace(/^ · /,"")}</p>`:""}</li>`;
@@ -219,5 +223,6 @@ function contrib(){
   $("contrib").hidden=false;
 }
 if(D){contrib();leitura();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
-document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;$("mais").onclick=mais;$("tabela").ontoggle=tabelaToda;draw();}
+document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;$("mais").onclick=mais;
+$("cards").onclick=ev=>{const t=ev.target.closest("button.tag");if(!t)return;F[t.dataset.dim]=t.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};$("tabela").ontoggle=tabelaToda;draw();}
 </script></body></html>
