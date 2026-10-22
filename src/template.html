@@ -180,7 +180,7 @@ function contrib(){
   $("sug-noticia").href=`${base}/new?template=fonte-noticias.yml`;$("sug-dados").href=`${base}/new?template=fonte-dados.yml`;
   $("sug-lista").href=`${base}?q=is%3Aissue+in%3Atitle+%22Fonte+de%22`;
   const fs=D.fontes||[];
-  $("fontes-uso").textContent="Notícias dos dossiês: Bing Notícias, Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
+  $("fontes-uso").textContent="Notícias dos dossiês: Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
   $("contrib").hidden=false;
 }
 if(D){contrib();leitura();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;

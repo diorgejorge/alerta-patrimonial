@@ -26,7 +26,7 @@ O resultado é um **indício para acompanhamento, nunca prova**. Ele é publicad
 | `src/paginas.py` | Página por pessoa, cartões e gráficos do painel, página de privacidade e leitores das fases futuras (`propostas.jsonl`, `vinculos.csv`). |
 | `src/graficos.py` | Gráficos SVG sem JS: níveis, patrimônio, minigráfico e notícias por tema, cada um com tabela alternativa. |
 | `src/transparencia.py` | Portal da Transparência **só pela API oficial**: emendas, documentos de pagamento, pessoa física, pessoa jurídica e recursos recebidos. Gera a seção "Dinheiro público". |
-| `src/dossie.py` | Notícias (Bing RSS, Google Notícias RSS e fontes sugeridas), filtro de menção direta e empresas extraídas dos bens. Gera `docs/dossie/`. |
+| `src/dossie.py` | Notícias (Google Notícias RSS e fontes sugeridas), filtro de menção direta e empresas extraídas dos bens. Gera `docs/dossie/`. |
 | `src/template.html` | Painel (JS: busca, filtros por nível, partido e UF, gráficos interativos de partido e UF, "Como ler a tabela"). |
 | `src/pessoa.html` | Página da pessoa: abas Resumo, Patrimônio, Notícias, Dinheiro público e Propostas × PLs. |
 | `src/privacidade.html` | Página da LGPD, preenchida com `config/privacidade.json`. |
@@ -53,7 +53,7 @@ O resultado é um **indício para acompanhamento, nunca prova**. Ele é publicad
 3. **Quem aparece**: com `MONITORADOS_CSV`, só os monitorados. Sem ele, os 200 maiores alertas (modo atual, escolhido pelo usuário).
 4. **Id interno** por pessoa (`ID_SEGREDO`). Sem o segredo não há páginas por pessoa nem memória de "novos".
 5. **Portal da Transparência (API)**: no máximo 45 min. Uma falha vira "Indisponível" e não derruba nada.
-6. **Notícias** (Bing, Google e fontes aprovadas): no máximo 12 min. Só entram itens que citam a pessoa ou empresa ligada no título, no resumo ou no texto.
+6. **Notícias** (Google e fontes aprovadas): no máximo 12 min. Só entram itens que citam a pessoa ou empresa ligada no título, no resumo ou no texto.
 7. **Páginas**: dossiê de notícias, página da pessoa, painel (`index.html` + `blocos.json`), `estilo.css` e `privacidade.html`.
 8. **Varredura final** (`varrer`): troca qualquer CPF ou CNPJ, formatado, mascarado ou conhecido, por "[documento omitido]".
 9. `digest.txt` e, opcionalmente, Telegram.
@@ -95,7 +95,7 @@ Execução manual: **Actions → Atualizar alertas → Run workflow**. **Não us
   - `despesas/recursos-recebidos` recusa (HTTP 400) períodos maiores que um ano, por isso a consulta é ano a ano.
   - `/pessoa-fisica` indica por flags quais benefícios e sanções existem; só esses são detalhados.
   - Respostas 4xx não suspendem a API inteira.
-- **Bing Notícias RSS**: `bing.com/news/search?q=…&format=rss&setlang=pt-BR&cc=BR`. O link é `apiclick.aspx?…&url=<URL real>`, e o robô extrai o parâmetro `url`. A tag do veículo vem com namespace (`News:Source`).
+- **Bing Notícias RSS**: removido em 21/10/2026 (issue #2). Nas execuções do GitHub Actions falhava quase sempre (11 de 13 buscas: "not well-formed (invalid token): line 1, column 41"), embora respondesse RSS válido fora do Actions.
 - **Google Notícias RSS**: o link não leva à matéria sem JS. Itens do Google só valem com menção no título ou no resumo.
 - **TSE**: o CSV de 2026 traz CPF. As empresas ligadas são extraídas da descrição dos bens ("quotas da empresa X LTDA"); bancos, cooperativas e ações de bolsa ficam de fora.
 
@@ -129,7 +129,7 @@ Pontos para revisão jurídica:
 | Cálculo de alertas | valores declarados, cargo, período | derivado | `docs/index.html` (sem CPF) | Até a próxima atualização |
 | Id interno | HMAC da chave | derivado | `data/ids.json` | Enquanto houver acompanhamento |
 | Consulta ao Portal | CPF/CNPJ (em memória), emendas, benefícios, sanções, recursos | API do Portal | `docs/pessoa/`, `docs/dossie/` (sem CPF/CNPJ) | Até a próxima atualização |
-| Notícias | título, veículo, data, link | Bing, Google, fontes aprovadas | `docs/dossie/` (fase 1: `data/noticias.jsonl`) | Enquanto houver acompanhamento |
+| Notícias | título, veículo, data, link | Google, fontes aprovadas | `docs/dossie/` (fase 1: `data/noticias.jsonl`) | Enquanto houver acompanhamento |
 | Sugestões de fontes | nome do veículo, URL, usuário do GitHub | Issues do repositório | GitHub | Conforme o GitHub |
 
 ## 9. Decisões já tomadas pelo usuário

@@ -1,7 +1,7 @@
-"""Dossie por pessoa: periodos de alerta + noticias do Bing Noticias e do Google Noticias (RSS, sem chave).
+"""Dossie por pessoa: periodos de alerta + noticias do Google Noticias e das fontes sugeridas (RSS, sem chave).
 So entram noticias que citam a pessoa (nome de urna, nome civil ou primeiro+ultimo nome) ou uma
 empresa ligada a ela (extraida da descricao dos bens declarados ao TSE) no titulo, no resumo do RSS
-ou, para itens do Bing, no texto da materia. Ainda pode haver homonimos.
+ou, para itens de fontes sugeridas com busca, no texto da materia. Ainda pode haver homonimos.
 Guarda so titulo/veiculo/data/link, nunca o texto da materia."""
 import html, math, re, sys, time, unicodedata, urllib.parse, urllib.request
 import datetime as dt
@@ -14,8 +14,6 @@ TPL = Path(__file__).resolve().parent / "dossie.html"
 RSS = "https://news.google.com/rss/search?"
 BUSCA = "https://news.google.com/search?"
 LOCAL = {"hl": "pt-BR", "gl": "BR", "ceid": "BR:pt-419"}
-BING = "https://www.bing.com/news/search?"
-BING_LOCAL = {"setlang": "pt-BR", "cc": "BR"}
 UA = "Mozilla/5.0 (compatible; alerta-patrimonial/1.0)"
 UA_NAV = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
           "Chrome/124.0 Safari/537.36")
@@ -214,23 +212,13 @@ def data_pub(s):
         return None
 
 
-def url_real(link):
-    """Link do Bing (apiclick.aspx?...&url=<URL codificada>) -> URL real da materia."""
-    try:
-        q = urllib.parse.parse_qs(urllib.parse.urlsplit(link).query)
-    except ValueError:
-        return link
-    u = (q.get("url") or [""])[0].strip()
-    return u if url_ok(u) else link
-
-
 def verificavel(link):
     host = urllib.parse.urlsplit(link).netloc.lower() if url_ok(link) else ""
-    return bool(host) and not host.endswith(("bing.com", "news.google.com"))
+    return bool(host) and not host.endswith("news.google.com")
 
 
-def itens_rss(xml, bing, real, max_itens=MAX_ITENS):
-    """`bing`: link vem embrulhado no apiclick do Bing; `real`: link leva a materia (pode ser lida)."""
+def itens_rss(xml, real, max_itens=MAX_ITENS):
+    """`real`: link leva a materia (pode ser lida)."""
     try:
         raiz = ET.fromstring(xml)
     except ET.ParseError:  # prefixo de namespace sem declaracao: troca "News:Source" por "News_Source"
@@ -238,13 +226,11 @@ def itens_rss(xml, bing, real, max_itens=MAX_ITENS):
     itens, vistos = [], set()
     for it in raiz.iter("item"):
         link = (it.findtext("link") or "").strip() or (it.findtext("guid") or "").strip()
-        if bing:
-            link = url_real(link)
         if not url_ok(link) or link in vistos:
             continue
         vistos.add(link)
         veiculo = ""
-        for c in it:  # Google: <source>; Bing: <News:Source> (com namespace)
+        for c in it:  # Google: <source>; outros feeds podem usar namespace (<x:source>)
             t = str(c.tag).rsplit("}", 1)[-1].lower()
             if t == "source" or t.endswith("_source"):
                 veiculo = " ".join((c.text or "").split())
@@ -262,13 +248,13 @@ def itens_rss(xml, bing, real, max_itens=MAX_ITENS):
 class Fonte:
     """Uma fonte RSS com fila propria (1 thread): pausa entre buscas, tolerancia a falhas e prazo."""
 
-    def __init__(self, nome, base, params, ua, bing, pausa, timeout, fim, modelo=None, uf="", max_itens=MAX_ITENS):
+    def __init__(self, nome, base, params, ua, pausa, timeout, fim, modelo=None, uf="", max_itens=MAX_ITENS):
         """`modelo`: URL de fonte sugerida, com {q} no lugar da busca (sem {q} = feed geral do veiculo)."""
-        self.nome, self.base, self.params, self.ua, self.bing = nome, base, params, ua, bing
+        self.nome, self.base, self.params, self.ua = nome, base, params, ua
         self.pausa, self.timeout, self.fim = pausa, timeout, fim
         self.modelo, self.uf, self.max_itens = modelo, uf, max_itens
-        # feed geral traz de tudo: so aceita mencao no titulo/resumo, sem abrir cada materia
-        self.real = bing or (modelo is not None and "{q}" in modelo)
+        # Google: link e redirecionamento; feed geral traz de tudo: so mencao no titulo/resumo, sem abrir a materia
+        self.real = modelo is not None and "{q}" in modelo
         self.ultimo, self.req, self.falhas, self.seguidas = None, 0, 0, 0
         self.pool = ThreadPoolExecutor(max_workers=1)
 
@@ -294,7 +280,7 @@ class Fonte:
             req = urllib.request.Request(url, headers={"User-Agent": self.ua, "Accept-Language": "pt-BR,pt;q=0.9"})
             with urllib.request.urlopen(req, timeout=self.timeout) as r:
                 xml = r.read(5_000_000)
-            itens = itens_rss(xml, self.bing, self.real, self.max_itens)
+            itens = itens_rss(xml, self.real, self.max_itens)
             self.seguidas = 0
             return itens
         except Exception as ex:
@@ -350,7 +336,7 @@ def esperar(fut, limite):
 
 def preparar(p, paginas, fim, max_verif):
     """Junta as fontes de cada secao, deduplica (URL real e titulo), marca mencoes no titulo/resumo e
-    agenda a leitura da materia (so Bing) quando o nome nao aparece em nenhum dos dois."""
+    agenda a leitura da materia (so fontes sugeridas com busca) quando o nome nao aparece em nenhum dos dois."""
     alvos = p["alvos"]
     rel_emp = {i for i, a in enumerate(alvos) if a[1] == "empresa" and a[2] < MAX_BUSCA_EMP}
     rel_todos = set(range(len(alvos)))
@@ -372,7 +358,7 @@ def preparar(p, paginas, fim, max_verif):
         rel = rel_emp if s == "emp" else rel_todos
         vis = vistos["emp" if s == "emp" else "pes"]
         cands = []
-        for it in (x for lst in listas for x in lst):  # Bing primeiro: tem a URL real
+        for it in (x for lst in listas for x in lst):  # Google primeiro, depois as fontes sugeridas
             kt = chave(it["titulo"])
             if it["link"] in vis or (kt and kt in vis):
                 continue
@@ -484,8 +470,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp=""):
                 PATRIMONIO=lista(patrimonio, "Nenhuma notícia sobre patrimônio ou investigações que cite a pessoa "
                                              "ou empresa ligada pelo nome."),
                 EMPRESAS=bloco_empresas(empresas), QUERY=e(q), TRANSPARENCIA=transp,  # html ja escapado (transparencia.secao)
-                BUSCA=e(BUSCA + urllib.parse.urlencode({"q": q, **LOCAL})),
-                BUSCABING=e(BING + urllib.parse.urlencode({"q": q, **BING_LOCAL})), GERADO=e(gerado))
+                BUSCA=e(BUSCA + urllib.parse.urlencode({"q": q, **LOCAL})), GERADO=e(gerado))
     # passada unica: texto externo ja inserido nunca e reprocessado
     return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
 
@@ -495,7 +480,7 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=1.0, tim
                   tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=(), transparencia=None):
     """Gera destino/dossie/<slug>.html por pessoa (nome+UF) e devolve {indice_da_linha: "dossie/<slug>.html"}.
     Noticias so para as primeiras max_pessoas (ordem de `alertas`); as demais saem sem busca automatica.
-    As buscas RSS correm numa fila por fonte (Bing e Google em paralelo, `pausa` s entre buscas na mesma
+    As buscas RSS correm numa fila por fonte (Google e fontes sugeridas em paralelo, `pausa` s entre buscas na mesma
     fonte) e a leitura das materias num pool de `workers` threads; nada novo comeca apos `tempo_max` s."""
     pasta = Path(destino) / "dossie"
     pasta.mkdir(parents=True, exist_ok=True)
@@ -524,10 +509,9 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=1.0, tim
     if buscar:
         fim = time.monotonic() + tempo_max
         ativos = [p for p in pessoas if p["n"] < max_pessoas]
-        fontes = [Fonte("Bing Notícias", BING, {"format": "rss", **BING_LOCAL}, UA_NAV, True, pausa, timeout, fim),
-                  Fonte("Google Notícias", RSS, LOCAL, UA, False, pausa, timeout, fim)]
+        fontes = [Fonte("Google Notícias", RSS, LOCAL, UA, pausa, timeout, fim)]
         # fontes sugeridas pelo site (config/fontes_noticias.csv): com {q} = busca no veiculo; sem = feed geral
-        extras = [Fonte(x["nome"], None, None, UA_NAV, False, pausa, timeout, fim, modelo=x["feed"],
+        extras = [Fonte(x["nome"], None, None, UA_NAV, pausa, timeout, fim, modelo=x["feed"],
                         uf=(x.get("uf") or "").upper(), max_itens=MAX_ITENS if "{q}" in x["feed"] else 200)
                   for x in fontes_extra]
         gerais = {f: f.submeter("") for f in extras if "{q}" not in f.modelo}  # uma leitura por execucao
