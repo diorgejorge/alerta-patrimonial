@@ -64,7 +64,7 @@ O resultado é um **indício para acompanhamento, nunca prova**. Ele é publicad
 
 | Segredo | Para quê | Situação |
 |---|---|---|
-| `ID_SEGREDO` | Gera o id interno sem expor CPF. Texto aleatório longo; **não trocar depois** (os ids mudariam). | **Falta criar.** |
+| `ID_SEGREDO` | Gera o id interno sem expor CPF. Texto aleatório longo; **não trocar nem apagar** (os ids mudariam). | Criado em 22/10/2026 (valor aleatório, não guardado fora do GitHub). |
 | `TRANSPARENCIA_TOKEN` | Chave da API do Portal (cadastro em `portaldatransparencia.gov.br/api-de-dados/cadastrar-email`). | Criado. |
 | `MONITORADOS_CSV` | Lista `nome,cpf,renda_extra_mensal`, lida só em memória. | Opcional. Vazio = modo atual. |
 | `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | Resumo semanal. | Opcional. |
@@ -163,7 +163,7 @@ Pontos para revisão jurídica:
 
 1. **CPFs no histórico do git**: versões antigas de `data/estado.json` (commit `e249e44` e outros do bot) têm cerca de 1.173 CPFs num repositório **público**. O arquivo atual foi zerado. Apagar do histórico exige reescrita e force push (ação destrutiva), **só com autorização do usuário**. Depois, pedir ao suporte do GitHub a limpeza de cache.
 2. **`/pessoa-fisica` na API**: falhou para 144 de 189 pessoas na execução #8. O código do erro está no log (`[aviso] API do Portal… /pessoa-fisica (…)`); falta o print para corrigir. Suspeita: limite próprio dessa consulta.
-3. **Criar `ID_SEGREDO`** e **preencher `config/privacidade.json`** (controlador, contato, encarregado).
+3. ~~Criar `ID_SEGREDO`~~ (feito em 22/10/2026). **Preencher `config/privacidade.json`** (controlador, contato, encarregado).
 4. **Rótulo `aprovada`** nas issues (para o `fontes.yml`).
 5. **Fase 0 sem execução real**: rodar "Atualizar alertas" e conferir o resultado do workflow "Testes" (pytest e Lighthouse).
 6. **Qualidade dos dados**: casos extremos (ex.: 1º suplente com +R$ 272 mi, 407× o possível) parecem erro de dados. Conferir antes de divulgar.
