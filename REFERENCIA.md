@@ -28,6 +28,7 @@ O resultado é um **indício para acompanhamento, nunca prova**. Ele é publicad
 | `src/transparencia.py` | Portal da Transparência **só pela API oficial**: emendas, documentos de pagamento, pessoa física, pessoa jurídica e recursos recebidos. Gera a seção "Dinheiro público". |
 | `src/dossie.py` | Notícias (Google Notícias RSS e fontes sugeridas), filtro de menção direta e empresas extraídas dos bens. Gera `docs/dossie/`. |
 | `src/cota.py` | Cota parlamentar (CEAP da Câmara e CEAPS do Senado, arquivos anuais abertos, últimos 4 anos). Deputado federal ligado pelo CPF do TSE (só internamente); senador pelo nome. Arquivos guardados em `data/cache`. |
+| `src/empresas.py` | Empresas declaradas: atividade (CNAE), início de atividade, capital social e situação nos dados abertos do CNPJ da Receita (WebDAV público do compartilhamento `YggdBLfdninEJX9`, ~7 GB por mês). Varre os arquivos só quando muda o mês de referência ou aparece CNPJ novo, em pasta temporária, e guarda só `data/cache/cnpj_receita.json`; limite de 75 min. O CNPJ nunca vai para o site. |
 | `src/template.html` | Painel (JS: busca, filtros por nível, partido e UF, gráficos interativos de partido e UF, "Como ler a tabela"). |
 | `src/pessoa.html` | Página da pessoa: abas Resumo, Patrimônio, Notícias, Dinheiro público e Propostas × PLs. |
 | `src/privacidade.html` | Página da LGPD, preenchida com `config/privacidade.json`. |

@@ -10,6 +10,7 @@ from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
 import transparencia
 import cota
 import exemplares
+import empresas
 from ids import Ids, varrer
 import paginas
 
@@ -437,6 +438,26 @@ def main():
     for i, ch in enumerate(vis["chave"]):
         if ch in estrelas:
             dados["alertas"][i]["exemplar"] = True
+    # empresas declaradas: atividade, fundacao, capital e situacao nos dados abertos do CNPJ (Receita);
+    # o CNPJ so cruza as bases aqui dentro e nunca vai para o site
+    cnpjs = {c for q in pessoas.values() for _, c in q["empresas"]}
+    try:
+        receita = {} if args.demo or not cnpjs else empresas.coletar(cnpjs, CACHE)
+    except Exception as ex:
+        print(f"[aviso] dados do CNPJ indisponiveis ({ex!r})", file=sys.stderr)
+        receita = {}
+    secoes_receita = {}
+    for q in pessoas.values():
+        if not q["empresas"]:
+            continue
+        ult = max((dados["alertas"][i] for i in q["idx"]), key=lambda a: a.get("ano_fim") or 0)
+        try:
+            html_rec = "<h3>Dados das empresas na Receita Federal</h3>" + empresas.secao(
+                q["empresas"], receita, int(ult.get("ano_ini") or 0))
+        except Exception as ex:
+            print(f"[aviso] secao de empresas falhou para {q['nome']} ({ex!r})", file=sys.stderr)
+            html_rec = ""
+        secoes_receita.update({i: html_rec for i in q["idx"]})
     # processos em que a pessoa e re (lista curada por issue): casa pelo nome civil ou de urna + UF
     processos = carregar_processos()
     for a in dados["alertas"]:
@@ -446,7 +467,8 @@ def main():
             a["processos"] = achou
     bens = carregar_bens()
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
-                                transparencia=secoes, bens=bens, cota=secoes_cota).items():
+                                transparencia=secoes, bens=bens, cota=secoes_cota,
+                                receita=secoes_receita).items():
         dados["alertas"][i]["dossie"] = cam
     # painel: quem mais gastou da cota parlamentar (entre as pessoas em destaque) e com o que
     ranking = []
