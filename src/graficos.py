@@ -10,7 +10,7 @@ e = html.escape
 ROTULO_NIVEL = {"forte": "Muito acima do esperado", "atencao": "Acima do esperado", "informativo": "Para conhecer"}
 ROTULO_TAG = {"politico": "Político", "eleitoral": "Eleitoral", "legislativo": "Legislativo",
               "gestao": "Gestão", "patrimonial": "Patrimonial", "judicial": "Judicial",
-              "criminal": "Segurança pública", "outros": "Outros"}
+              "criminal": "Segurança", "outros": "Outros"}
 MESES = ("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
 VAZIO_PATRIMONIO = '<p class="vazio">Sem declarações para exibir.</p>'
 VAZIO_NOTICIAS = '<p class="vazio">Ainda não há notícias classificadas.</p>'

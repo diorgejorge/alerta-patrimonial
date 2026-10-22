@@ -120,7 +120,7 @@ def _noticias(linhas):
     link = (f'<p><a class="botao" href="../{e(dossie)}">Ver as notícias coletadas para esta pessoa</a></p>'
             if dossie and not re.match(r"^\s*[a-z][a-z0-9+.-]*:", dossie, re.I) else "")
     return ('<p class="vazio">As notícias com tags (político, eleitoral, legislativo, gestão, patrimonial, judicial, '
-            'segurança pública, outros) entram nesta aba na próxima fase.</p>' + link)
+            'segurança, outros) entram nesta aba na próxima fase.</p>' + link)
 
 
 def _propostas(pid):

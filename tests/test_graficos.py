@@ -218,7 +218,7 @@ def test_noticias_por_tema():
     s = g.noticias_por_tema(NOT, "t")
     raiz = acessivel(s)
     tx = textos(raiz)
-    assert tx.index("Político") < tx.index("Segurança pública")  # ordem de ROTULO_TAG
+    assert tx.index("Político") < tx.index("Segurança")  # ordem de ROTULO_TAG
     assert "Gestão" not in tx  # tema zerado fica de fora
     assert "3 notícias" in tx and "4 notícias" in tx
     assert "jan/2024" in tx and "mar/2024" in tx
@@ -235,7 +235,7 @@ def test_noticias_um_mes_e_meses_invalidos():
 
 def test_tabela_noticias_por_tema():
     raiz = ET.fromstring(g.tabela_noticias_por_tema(NOT))
-    assert [th.text for th in raiz.find("thead").iter("th")] == ["Mês", "Político", "Segurança pública", "Total"]
+    assert [th.text for th in raiz.find("thead").iter("th")] == ["Mês", "Político", "Segurança", "Total"]
     linhas = raiz.find("tbody").findall("tr")
     assert [l.find("th").text for l in linhas] == ["jan/2024", "fev/2024", "mar/2024"]
     assert [td.text for td in raiz.find("tfoot").iter("td")] == ["3", "4", "7"]
