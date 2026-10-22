@@ -2,7 +2,7 @@ name: Publicar painel
 on:
   push:
     branches: [main]
-    paths: ["docs/**", "src/template.html", "src/estilo.css", "src/logo.png", "src/icone.png", "config/bens_referencia.json"]
+    paths: ["docs/**", "src/template.html", "src/estilo.css", "src/logo.png", "src/icone.png", "src/metricas.py", "config/bens_referencia.json"]
   workflow_run:
     workflows: ["Atualizar alertas"]
     types: [completed]
@@ -49,6 +49,10 @@ jobs:
           for img in ("logo.png", "icone.png"):
               shutil.copyfile(f"src/{img}", f"_site/{img}")
           PY
+      - name: Contagem de acessos  # GoatCounter, sem cookies; variavel GOATCOUNTER vazia = desligada
+        run: python3 src/metricas.py _site
+        env:
+          GOATCOUNTER: ${{ vars.GOATCOUNTER }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with: { path: _site }

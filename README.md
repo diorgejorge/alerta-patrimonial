@@ -33,6 +33,14 @@ Abra `docs/index.html` (ou `_demo/docs/index.html`) no navegador.
 3. O workflow `atualizar.yml` roda sozinho toda segunda-feira às 04:00 (Brasília): baixa os dados do TSE, refaz alertas, notícias e consultas ao Portal da Transparência, grava `docs/` e `data/estado.json` (memória para marcar alertas "novos") e o `pages.yml` publica o site em seguida. Leva cerca de 1 hora; uma execução manual (Actions → Atualizar alertas → Run workflow) espera a anterior terminar. O GitHub desativa agendamentos de repositórios sem nenhum commit por 60 dias; como cada execução grava um commit, isso não deve acontecer, mas se acontecer basta reativar em Actions.
 4. Painel no GitHub Pages: em Settings → Pages, escolha **Source: GitHub Actions**. O workflow `pages.yml` publica `docs/` depois de cada atualização (ou manualmente em Actions → Publicar painel). Lembre que o site do Pages é **público**, mesmo com repositório privado.
 
+## Contagem de acessos
+Desligada até ser configurada. Usa o [GoatCounter](https://www.goatcounter.com), gratuito para projetos sem fins comerciais, sem cookies e sem guardar IP (por isso não precisa de aviso de cookies):
+1. Crie uma conta no GoatCounter e escolha um código (ex.: `caramelo`, que vira `caramelo.goatcounter.com`).
+2. Em Settings → Secrets and variables → Actions → **Variables**, crie `GOATCOUNTER` com esse código (ou o endereço completo `https://.../count` de uma instalação própria). É variável, não segredo: o código aparece no site de qualquer jeito.
+3. Rode Actions → Publicar painel. O `pages.yml` (via `src/metricas.py`) põe o contador em todas as páginas e a seção "Contagem de acessos" em `privacidade.html`. Para desligar, apague a variável e publique de novo.
+
+Os números ficam no painel do GoatCounter (visitas por página, origem, navegador, tela e país). Para mostrá-los ao público, o GoatCounter permite tornar o painel público nas configurações da conta.
+
 ## Sugestões de fontes pelo site
 O painel tem o bloco "Ajude a ampliar as fontes", que abre formulários de issue no GitHub (é preciso ter conta; a sugestão fica pública):
 - **Fonte de notícias** (`.github/ISSUE_TEMPLATE/fonte-noticias.yml`): veículo, feed RSS ou endereço de busca com `{q}` e abrangência (nacional ou UF).
@@ -67,4 +75,5 @@ O registro das operações de tratamento (art. 37) é mantido pelo responsável 
 - **Base legal (LGPD, Lei 13.709/2018):** dados de acesso público tratados conforme a finalidade, a boa-fé e o interesse público de sua divulgação (art. 7º, § 3º), para finalidade nova e compatível (art. 7º, § 7º), e interesse legítimo de controle social com só os dados estritamente necessários e transparência (art. 7º, IX, e art. 10). A isenção do art. 4º, II, "a" exige fins *exclusivamente* jornalísticos e não é a base principal. Dados sensíveis (art. 5º, II, e art. 11) não são tratados: BPC (pode revelar deficiência) e PETI (crianças, art. 14) ficam de fora. A transparência ativa vem da Lei 12.527/2011 (LAI) e da Lei 9.504/1997.
 - **Transparência ao titular (arts. 9º, 18 e 41):** página `docs/privacidade.html`, preenchida com `config/privacidade.json` (controlador, contato e encarregado; **preencher antes de divulgar**).
 - **Minimização:** CPF e CNPJ só são usados em memória para consultar as fontes oficiais. O site, o JSON publicado, os nomes de arquivo, os logs e o histórico (`data/estado.json`, `data/ids.json`) usam apenas o id interno, um HMAC do identificador com o segredo `ID_SEGREDO`. Benefícios sociais só aparecem quando a pessoa é a titular; registros em que ela é representante legal de outra pessoa são descartados.
+- **Visitantes:** com a contagem de acessos ligada, o GoatCounter recebe a página aberta, a origem, o navegador, o sistema, o tamanho da tela e o país; sem cookies, sem IP guardado e sem identificar quem visita.
 - **Direitos do titular e correções:** pedidos de correção ou de marcação de homônimo entram pelas issues do repositório e são registrados na curadoria (`config/curadoria.csv`).
