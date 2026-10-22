@@ -55,7 +55,8 @@ small,.mut{color:var(--mut)}
 .pessoas{display:grid;gap:10px;grid-template-columns:1fr;list-style:none;padding:0;margin:12px 0}
 .pessoa{display:flex;gap:12px;align-items:center;min-height:44px;text-decoration:none;color:inherit}
 .pessoa:hover{border-color:var(--mut)}
-.pessoa .info{flex:1;min-width:0}.pessoa .nome{font-weight:600;display:block}
+.pessoa .info{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:4px}.pessoa .nome{font-weight:600;display:block;color:inherit;text-decoration:none}
+.pessoa .nome:hover,.pessoa .nome:focus-visible{text-decoration:underline}.pessoa .tags{display:flex;flex-wrap:wrap;gap:6px}
 .pessoa .mini{flex:none;width:96px;color:var(--fg)}
 
 /* tabelas: no celular viram cartoes (cada celula com o rotulo da coluna) */

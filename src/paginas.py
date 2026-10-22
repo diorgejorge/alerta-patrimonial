@@ -156,9 +156,11 @@ def cartao(pid, linhas, hist):
     nome = (topo.get("nome_urna") or topo.get("nome") or "").strip()
     ficha = " · ".join(e(str(x)) for x in (topo.get("cargo"), topo.get("partido"), topo.get("uf")) if x)
     mini = graficos.mini_patrimonio(hist, uid=f"mn-{pid}")
-    return (f'<li><a class="card pessoa" href="pessoa/{e(pid)}.html">{avatar(nome)}'
-            f'<span class="info"><span class="nome">{e(nome)}</span><small>{ficha}</small><br>{chip_nivel(topo.get("nivel"))}</span>'
-            f'<span class="mini">{mini}</span></a></li>')
+    # so o nome e link: as tags (montadas no painel a partir de data-pagina) sao botoes de filtro
+    return (f'<li class="card pessoa" data-pagina="pessoa/{e(pid)}.html">{avatar(nome)}'
+            f'<span class="info"><a class="nome" href="pessoa/{e(pid)}.html">{e(nome)}</a>'
+            f'<small class="ficha">{ficha}</small>{chip_nivel(topo.get("nivel"))}</span>'
+            f'<span class="mini">{mini}</span></li>')
 
 
 def gerar(alertas, pessoas, hist, secoes, docs, gerado):

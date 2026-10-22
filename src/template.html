@@ -133,6 +133,7 @@ const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a
 const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);
 const NIVEIS=["forte","atencao","informativo"];
 const F={partido:"",uf:"",cargo:"",regiao:"",conc:"",flag:""};
+let CART=[];  // cartoes da secao "Pessoas": [li, pagina]
 const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar],renda:["Tem empresas declaradas",a=>a.outras_rendas],reu:["Responde a processo",a=>(a.processos||[]).length>0||a.processos_reu>0]};
 const CONC_ROT={q0:"poucos",q1:"alguns",q2:"muitos",q3:"os que mais concentram"};
 const REGIOES={Norte:"AC AM AP PA RO RR TO",Nordeste:"AL BA CE MA PB PE PI RN SE","Centro-Oeste":"DF GO MS MT",Sudeste:"ES MG RJ SP",Sul:"PR RS SC"};
@@ -267,6 +268,7 @@ function tabelaToda(){
 }
 function draw(){
   const rows=filtra();painel(rows);
+  {const vis=new Set(rows.map(a=>a.pagina));for(const [li,p] of CART)li.hidden=!vis.has(p);}
   $("cg").value=F.cargo;$("rg").value=F.regiao;for(const b of $("legenda").querySelectorAll("button"))b.setAttribute("aria-pressed",F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
   const fl=[F.flag&&FLAG[F.flag][0].toLowerCase(),F.conc&&`concentração ${CONC_ROT[F.conc]}`,F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${D.alertas.length.toLocaleString("pt-BR")} registros`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
@@ -319,5 +321,9 @@ $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 // tags clicaveis (cards e tabela): cargo, partido e UF filtram pela dimensao; marcacoes filtram pela legenda
 const porTag=ev=>{const t=ev.target.closest("button.tag");if(!t)return;if(t.dataset.f)F[t.dataset.f]=t.dataset.v;else F[t.dataset.dim]=t.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
+// secao "Pessoas" (cartoes gerados pelo pipeline): troca o texto cargo · partido · UF pelas tags clicaveis
+CART=[...document.querySelectorAll("li.pessoa[data-pagina]")].map(li=>{const a=D.alertas.find(x=>x.pagina===li.dataset.pagina);
+  const f=li.querySelector(".ficha");if(a&&f)f.outerHTML=`<span class="tags">${TAGS(a)}</span>`;return [li,li.dataset.pagina];});
+for(const u of document.querySelectorAll("ul.pessoas"))u.onclick=porTag;
 $("cards").onclick=porTag;$("tb").onclick=porTag;$("exemplares-lista").onclick=porTag;$("tabela").ontoggle=tabelaToda;draw();}
 </script></body></html>
