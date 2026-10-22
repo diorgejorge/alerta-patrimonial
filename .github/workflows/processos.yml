@@ -1,0 +1,33 @@
+name: Aprovar processo informado
+on:
+  issues:
+    types: [labeled]
+permissions:
+  contents: write
+  issues: write
+jobs:
+  gravar:
+    # so quem tem permissao de escrita consegue aplicar rotulos, entao "aprovada" e a revisao humana
+    if: github.event.label.name == 'aprovada' && startsWith(github.event.issue.title, '[Processo]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12" }
+      - id: processo
+        run: python .github/scripts/aprovar_processo.py
+      - name: Salvar processo
+        if: steps.processo.outputs.ok == 'true'
+        run: |
+          git config user.name "alerta-bot"; git config user.email "bot@users.noreply.github.com"
+          git add config/processos.csv
+          git commit -m "Adiciona processo informado (issue #${{ github.event.issue.number }})"
+          git pull --rebase -X theirs && git push
+      - name: Responder na issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMERO: ${{ github.event.issue.number }}
+          OK: ${{ steps.processo.outputs.ok }}
+        run: |
+          gh issue comment "$NUMERO" --repo "$GITHUB_REPOSITORY" --body-file resposta.md
+          if [ "$OK" = "true" ]; then gh issue close "$NUMERO" --repo "$GITHUB_REPOSITORY"; fi

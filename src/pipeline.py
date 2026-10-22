@@ -307,6 +307,22 @@ def carregar_fontes():
     return out
 
 
+def carregar_processos():
+    """Processos em que a pessoa e re, informados e aprovados por issue (config/processos.csv).
+    Devolve {(nome normalizado, UF): [dict(tribunal, numero, link)]}; so links https de *.jus.br ou Jusbrasil."""
+    f = CFG / "processos.csv"
+    df = pd.read_csv(f, dtype=str, keep_default_na=False) if f.exists() else pd.DataFrame()
+    out = {}
+    for _, r in df.iterrows():
+        link = r.get("link", "").strip()
+        host = urllib.parse.urlsplit(link).netloc.lower()
+        if not (link.startswith("https://") and (host.endswith(".jus.br") or host in ("jusbrasil.com.br", "www.jusbrasil.com.br"))):
+            continue
+        out.setdefault((norm(r.get("nome")), r.get("uf", "").strip().upper()), []).append(
+            dict(tribunal=r.get("tribunal", "").strip(), numero=r.get("numero", "").strip(), link=link))
+    return out
+
+
 def carregar_bens():
     """Bens de referencia (config/bens_referencia.json) para "daria para comprar N ..."; None se faltar."""
     try:
@@ -417,6 +433,13 @@ def main():
     for i, ch in enumerate(vis["chave"]):
         if ch in estrelas:
             dados["alertas"][i]["exemplar"] = True
+    # processos em que a pessoa e re (lista curada por issue): casa pelo nome civil ou de urna + UF
+    processos = carregar_processos()
+    for a in dados["alertas"]:
+        uf = str(a.get("uf") or "").upper()
+        achou = processos.get((norm(a.get("nome")), uf)) or processos.get((norm(a.get("nome_urna")), uf))
+        if achou:
+            a["processos"] = achou
     bens = carregar_bens()
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
                                 transparencia=secoes, bens=bens, cota=secoes_cota).items():

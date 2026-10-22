@@ -1,0 +1,57 @@
+name: Informar processo em que a pessoa é ré
+description: Indique um processo judicial público em que uma pessoa do painel figura como ré.
+title: "[Processo] "
+labels: ["processo"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Depois de revisado e aprovado, o processo aparece como uma tag no card e no dossiê da pessoa, com link para a consulta.
+        Só entram processos **públicos** (sem segredo de justiça) em que a pessoa figura como **ré**, identificados pelo número.
+        Não informe CPF nem outros dados pessoais. Esta indicação fica pública.
+  - type: input
+    id: nome
+    attributes:
+      label: Nome da pessoa (como aparece no painel)
+      placeholder: "Ex.: Fulano de Tal"
+    validations:
+      required: true
+  - type: dropdown
+    id: uf
+    attributes:
+      label: Estado da pessoa no painel
+      options: [AC, AL, AP, AM, BA, CE, DF, ES, GO, MA, MT, MS, MG, PA, PB, PR, PE, PI, RJ, RN, RS, RO, RR, SC, SP, SE, TO, BR]
+    validations:
+      required: true
+  - type: input
+    id: tribunal
+    attributes:
+      label: Tribunal
+      placeholder: "Ex.: STF, STJ, TJMG, TRF1"
+    validations:
+      required: true
+  - type: input
+    id: numero
+    attributes:
+      label: Número do processo
+      description: Número único do CNJ (0000000-00.0000.0.00.0000) ou a classe e o número usados pelo tribunal (ex.: AP 1044, Inq 4781).
+      placeholder: "0000000-00.0000.0.00.0000"
+    validations:
+      required: true
+  - type: input
+    id: link
+    attributes:
+      label: Link da consulta
+      description: Página do processo no site do tribunal (*.jus.br) ou no Jusbrasil.
+      placeholder: "https://portal.stf.jus.br/processos/detalhe.asp?incidente=..."
+    validations:
+      required: true
+  - type: checkboxes
+    id: confirma
+    attributes:
+      label: Confirmação
+      options:
+        - label: O processo é público, está em andamento e a pessoa figura nele como ré.
+          required: true
+        - label: Conferi que não se trata de outra pessoa com o mesmo nome.
+          required: true

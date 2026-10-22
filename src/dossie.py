@@ -495,6 +495,11 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
     cab += f'<p class="ficha">{ficha}</p>'
     if tse:
         cab += f'<p class="ficha"><a href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura e bens no TSE</a></p>'
+    procs = [x for x in (ult.get("processos") or []) if url_ok(x.get("link")) and x["link"].startswith("https://")]
+    if procs:  # lista curada por issue (config/processos.csv): so tribunal, numero e link oficial
+        cab += ('<p class="ficha">Responde a processo como réu: ' + " · ".join(
+            f'<a href="{e(x["link"])}" target="_blank" rel="noopener">{e(x.get("tribunal") or "")} {e(x.get("numero") or "")}</a>'
+            for x in procs) + ' <small>(informado e revisado por issue; ser réu não significa condenação)</small></p>')
     nome = urna or str(ult["nome"])
     vals = dict(TITULO=e(nome), NOME=e(nome), CABECALHO=cab, PERIODOS="".join(periodo(a) for a in linhas),
                 RECENTES=lista(recentes, "Nenhuma notícia recente que cite a pessoa ou empresa ligada pelo nome."),
