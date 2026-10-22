@@ -10,7 +10,9 @@
   function gravar(v) { try { localStorage.setItem(CHAVE, v); } catch (x) { /* navegador sem armazenamento: vale so nesta pagina */ } }
 
   function permitir() {
-    if (window.gtag) window.gtag("consent", "update", { analytics_storage: "granted" });
+    if (!window.gtag) return;
+    window.gtag("consent", "update", { analytics_storage: "granted" });
+    window.gtag("event", "page_view");  // o Google nao reenvia a visita desta pagina ao liberar; sem isso so a proxima contaria
   }
 
   function apagarCookies() {  // _ga e _ga_<id>, em todos os dominios possiveis do endereco atual
