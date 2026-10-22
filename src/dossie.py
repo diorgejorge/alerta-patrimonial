@@ -448,9 +448,13 @@ def periodo(a):
     nv = a.get("nivel") or ""
     novo = ' <span class="novo">novo</span>' if a.get("novo") else ""
     return (f"<tr><td>{a['ano_ini']}–{a['ano_fim']}{novo}<br><small>{e(a.get('cargo') or '')}</small></td>"
-            f'<td class="n">{brl(a.get("pat_ini"))}</td><td class="n">{brl(a.get("pat_fim"))}</td>'
-            f'<td class="n">{brl(a.get("cresc"))}</td><td class="n">{brl(a.get("cap"))}</td>'
-            f'<td class="n">{rz}</td><td class="n">{pc}</td><td class="nivel {e(nv)}">{e(NV.get(nv, nv))}</td></tr>')
+            f'<td class="n" data-label="Patrimônio no início">{brl(a.get("pat_ini"))}</td>'
+            f'<td class="n" data-label="Patrimônio no fim">{brl(a.get("pat_fim"))}</td>'
+            f'<td class="n" data-label="Crescimento">{brl(a.get("cresc"))}</td>'
+            f'<td class="n" data-label="Poderia juntar com o salário">{brl(a.get("cap"))}</td>'
+            f'<td class="n" data-label="Quantas vezes o possível">{rz}</td>'
+            f'<td class="n" data-label="Comparado aos colegas">{pc}</td>'
+            f'<td class="nivel {e(nv)}" data-label="Nível">{e(NV.get(nv, nv))}</td></tr>')
 
 
 def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp=""):

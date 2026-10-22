@@ -23,25 +23,34 @@ a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 h3{font-size:1rem;margin:1.2em 0 .4em;overflow-wrap:anywhere}
 .tag{display:inline-block;font-size:.78rem;line-height:1.4;padding:0 .45em;margin:.15em .3em 0 0;border:1px solid var(--line);border-radius:3px;color:var(--mut);overflow-wrap:anywhere}
 th small{font-weight:400}td.n small{color:var(--mut)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:4px 16px 12px;margin:12px 0;content-visibility:auto;contain-intrinsic-size:auto 400px}
+.card h2{margin:.7em 0 .5em}.card .tab,.card ul.nt{border:0;background:none;max-width:none}.card ul.nt li{padding:.6em 0}
+.grade{display:grid;gap:0 12px;grid-template-columns:1fr}@media (min-width:1024px){.grade{grid-template-columns:1fr 1fr}.grade .card{margin:12px 0}}
+@media (max-width:767px){table.resp{min-width:0}table.resp thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.resp tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}
+  table.resp td{display:flex;justify-content:space-between;gap:12px;border:0;padding:.25em 0;text-align:right}
+  table.resp td::before{content:attr(data-label);color:var(--mut);text-align:left;font-weight:500}
+  table.resp td:first-child{display:block;text-align:left;font-weight:600}table.resp td:first-child::before{content:none}
+  table.resp td.n br{display:none}}
 </style>
 </head>
 <body><main>
 <a class="voltar" href="../index.html">← Voltar ao painel</a>
 __CABECALHO__
 <p class="aviso">As notícias abaixo foram coletadas automaticamente no Google Notícias e nas fontes sugeridas pelos leitores. Só entram notícias que citam a pessoa (nome de urna ou nome civil) ou uma empresa ligada a ela pelo nome, no título, no resumo ou no texto da matéria; cada uma indica onde a menção foi encontrada. Ainda assim pode haver homônimos ou menções sem relação com o patrimônio. O alerta patrimonial é indício para acompanhamento, não prova de irregularidade. Confira sempre as fontes antes de qualquer conclusão.</p>
-<h2>Períodos em alerta</h2>
+<section class="card"><h2>Períodos em alerta</h2>
 <p><small><a href="../index.html#como-ler">O que significam estas colunas?</a></small></p>
-<div class="tab"><table><thead><tr><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody>__PERIODOS__</tbody></table></div>
-<h2>Dinheiro público</h2>
+<div class="tab"><table class="resp"><thead><tr><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody>__PERIODOS__</tbody></table></div></section>
+<section class="card"><h2>Dinheiro público</h2>
 <p class="fonte">Consultado no <a href="https://portaldatransparencia.gov.br/" target="_blank" rel="noopener">Portal da Transparência</a>: emendas de que a pessoa é autora, benefícios sociais pagos ao CPF dela, sanções e recursos federais recebidos por ela e pelas empresas que declarou ao TSE. Receber recursos ou benefícios não é, por si, irregular.</p>
-__TRANSPARENCIA__
-<h2>Notícias que citam __NOME__</h2>
-__RECENTES__
-<h2>Patrimônio e investigações</h2>
+__TRANSPARENCIA__</section>
+<div class="grade"><section class="card"><h2>Notícias que citam __NOME__</h2>
+__RECENTES__</section>
+<section class="card"><h2>Patrimônio e investigações</h2>
 __PATRIMONIO__
-<p><a href="__BUSCA__" target="_blank" rel="noopener">Buscar mais no Google Notícias</a><br><small>Busca usada: <code>__QUERY__</code></small></p>
-<h2>Empresas ligadas</h2>
+<p><a href="__BUSCA__" target="_blank" rel="noopener">Buscar mais no Google Notícias</a><br><small>Busca usada: <code>__QUERY__</code></small></p></section></div>
+<section class="card"><h2>Empresas ligadas</h2>
 <p class="fonte">Empresas extraídas da descrição dos bens declarados ao TSE (quotas, ações, participações societárias). A lista é automática e pode estar incompleta ou conter erros de leitura.</p>
-__EMPRESAS__
+__EMPRESAS__</section>
 <p class="fonte">Dossiê gerado em __GERADO__. Patrimônio e empresas: declarações de bens do <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">Portal de Dados Abertos do TSE</a>. Notícias: Google Notícias e fontes sugeridas pelos leitores (apenas título, veículo, data e link). Conhece um veículo ou base de dados que deveria estar aqui? <a href="../index.html#contrib">Sugira uma fonte</a>.</p>
 </main></body></html>
