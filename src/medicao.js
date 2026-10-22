@@ -1,6 +1,6 @@
 /* Caramelo Vasculha: Google Analytics 4 so depois do "Aceitar" no aviso (LGPD, art. 7o, I, e art. 8o).
    Sem escolha ou com "Recusar", nada do Google e carregado. A escolha fica so neste navegador (localStorage).
-   O id vem de config/analytics.json (paginas.medicao troca __GA_ID__ ao publicar). */
+   O id vem de config/analytics.json: paginas.medicao preenche a variavel ID ao publicar. */
 (function () {
   var ID = "__GA_ID__", CHAVE = "cv-medicao", eu = document.currentScript;
   var base = eu ? new URL(".", eu.src).href : "";
