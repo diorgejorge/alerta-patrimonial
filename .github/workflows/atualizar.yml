@@ -17,6 +17,11 @@ jobs:
       - uses: actions/setup-python@v6
         with: { python-version: "3.12", cache: pip }
       - run: pip install -r requirements.txt
+      - uses: actions/cache@v4  # zips do TSE entre execucoes: 2018-2024 nao mudam; 2026 so rebaixa se mudou
+        with:
+          path: data/cache
+          key: tse-${{ github.run_id }}
+          restore-keys: tse-
       - run: python -u src/pipeline.py  # -u: mostra o andamento no log na hora
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}

@@ -62,16 +62,33 @@ def link_tse(r):
 
 # ---------------------------------------------------------------- coleta TSE
 def baixar(tipo, ano):
+    """Zip do TSE em data/cache (guardado entre execucoes pelo actions/cache). Ano corrente muda:
+    pergunta ao TSE se o arquivo mudou (If-Modified-Since) e so baixa de novo se mudou."""
     dest = CACHE / f"{tipo}_{ano}.zip"
-    if dest.exists() and ano < dt.date.today().year:  # ano corrente muda: rebaixa
+    if dest.exists() and ano < dt.date.today().year:
         return dest
     CACHE.mkdir(parents=True, exist_ok=True)
     url = f"{BASE}/{tipo}/{tipo}_{ano}.zip"
+    marca = dest.with_suffix(".modificado")  # Last-Modified da ultima copia baixada
+    cab = {"User-Agent": "alerta-patrimonial/1.0"}
+    if dest.exists() and marca.exists():
+        cab["If-Modified-Since"] = marca.read_text().strip()
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "alerta-patrimonial/1.0"})
-        with urllib.request.urlopen(req, timeout=300) as r, open(dest, "wb") as f:
-            f.write(r.read())
+        req = urllib.request.Request(url, headers=cab)
+        with urllib.request.urlopen(req, timeout=300) as r:
+            tmp = dest.with_suffix(".parcial")
+            with open(tmp, "wb") as f:
+                while bloco := r.read(1 << 20):
+                    f.write(bloco)
+            tmp.replace(dest)
+            if r.headers.get("Last-Modified"):
+                marca.write_text(r.headers["Last-Modified"])
         return dest
+    except urllib.error.HTTPError as e:
+        if e.code == 304:  # nao mudou desde a copia guardada
+            return dest
+        print(f"[aviso] {url} indisponivel: {e}", file=sys.stderr)
+        return dest if dest.exists() else None
     except Exception as e:
         print(f"[aviso] {url} indisponivel: {e}", file=sys.stderr)
         return dest if dest.exists() else None
