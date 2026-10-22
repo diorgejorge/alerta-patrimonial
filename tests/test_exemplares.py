@@ -10,7 +10,7 @@ CPF_OK, CPF_SANCAO, CPF_GASTAO = "11111111111", "22222222222", "33333333333"
 
 
 def par(chave, cargo, cresc, cap, ano_fim=2026):
-    return dict(chave=chave, nome=chave.upper(), nome_urna=None, cargo=cargo, cargo_ini=cargo, uf="MG", partido="PX",
+    return dict(chave=chave, nome="PESSOA " + chave[-2:], nome_urna=None, cargo=cargo, cargo_ini=cargo, uf="MG", partido="PX",
                 ano_ini=ano_fim - 4, ano_fim=ano_fim, cresc=cresc, cap=cap,
                 razao=(cresc / cap) if cap else None)
 
