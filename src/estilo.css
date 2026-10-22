@@ -13,6 +13,7 @@
   --t-patrimonial:#d55181;--t-judicial:#008300;--t-criminal:#9085e9;--t-outros:#9aa0a5}}
 
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   padding:16px;overflow-wrap:anywhere}

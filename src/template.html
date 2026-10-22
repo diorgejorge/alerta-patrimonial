@@ -271,6 +271,9 @@ function contrib(){
   $("fontes-uso").textContent="Notícias dos dossiês: Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
   $("contrib").hidden=false;
 }
+// blocos gerados a parte (graficos e cartoes de pessoas so existem com ID_SEGREDO): sem conteudo, nao aparecem
+for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
+for(const s of document.querySelectorAll("section.grade.duas,section[aria-labelledby=t-pessoas]"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
 if(D){contrib();leitura();exemplares();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
