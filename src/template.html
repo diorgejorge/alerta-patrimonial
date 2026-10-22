@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Alerta patrimonial</title>
-<meta name="description" content="Painel de alertas patrimoniais com dados públicos do TSE: indícios para acompanhamento, não prova.">
+<title>Patrimônio declarado em foco</title>
+<meta name="description" content="Evolução do patrimônio declarado ao TSE por quem disputa ou exerce cargo eletivo: dados públicos como ponto de partida para pesquisar.">
 <link rel="stylesheet" href="estilo.css">
 <style>
 main{max-width:1100px;margin:0 auto}h1{font-size:1.6rem;margin:.6em 0 .2em}
@@ -46,7 +46,8 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .contagem{margin:.4em 0;color:var(--mut)}.contagem button{font:inherit;font-size:.85rem;margin-left:6px;padding:.15em .6em;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--fg);cursor:pointer}
 .alertas{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));list-style:none;padding:0;margin:.6em 0}
 .alerta{display:flex;flex-direction:column;gap:.5em;content-visibility:auto;contain-intrinsic-size:auto 230px}
-.alerta .topo{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.alerta .chip{flex:none}
+.alerta .topo{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 8px;align-items:flex-start}.alerta .chip{flex:none}
+.alerta .topo>span:first-child{flex:1 1 12ch;overflow-wrap:normal}
 .alerta .cresc{margin:0;display:flex;flex-direction:column}.alerta .cresc b{font-size:1.35rem;line-height:1.2;font-variant-numeric:tabular-nums}
 .alerta dl{margin:0;display:grid;gap:2px;font-size:.875rem}.alerta dl div{display:flex;justify-content:space-between;gap:10px}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
@@ -59,9 +60,9 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 </style>
 </head>
 <body><main>
-<h1>Alerta patrimonial</h1>
+<h1>Patrimônio declarado em foco</h1>
 <small id="meta"></small>
-<p class="aviso">Indícios para acompanhamento, não prova de irregularidade. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
+<p class="aviso">Os dados mostram diferenças entre o crescimento do patrimônio declarado e o que o salário do cargo permitiria. Há várias explicações possíveis; use como ponto de partida para pesquisar. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
 <p class="fonte">Fonte: declarações de bens e candidaturas do <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">Portal de Dados Abertos do TSE</a>. Para conferir a declaração de cada pessoa, consulte o <a href="https://divulgacandcontas.tse.jus.br/" target="_blank" rel="noopener">DivulgaCandContas</a>. <a href="privacidade.html">Privacidade e seus direitos</a>.</p>
 <section class="contrib" id="contrib" hidden><h2>Ajude a ampliar as fontes</h2>
 <p id="fontes-uso"></p>
@@ -69,23 +70,23 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <small>As sugestões são feitas pelo GitHub (é preciso ter conta), ficam públicas e só entram no site depois de revisadas.</small></section>
 <div class="barra">
 <input id="q" type="search" placeholder="Buscar por nome, cargo ou UF" aria-label="Buscar">
-<select id="nv" aria-label="Nível"><option value="">Todos os níveis</option><option value="forte">Forte</option><option value="atencao">Atenção</option><option value="informativo">Informativo</option></select>
+<select id="nv" aria-label="Nível"><option value="">Todos os níveis</option><option value="forte">Muito acima do esperado</option><option value="atencao">Acima do esperado</option><option value="informativo">Para conhecer</option></select>
 <div id="chips" class="chips"></div>
 </div>
 <section class="kpis" id="kpis" aria-label="Resumo"></section>
 <section class="graf">
-<div class="card"><h2>Alertas por partido</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gp"></div><div class="leg" id="lg1"></div></div>
-<div class="card"><h2>Alertas por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
+<div class="card"><h2>Destaques por partido</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gp"></div><div class="leg" id="lg1"></div></div>
+<div class="card"><h2>Destaques por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
 </section>
 <details class="dados"><summary>Ver dados dos gráficos em tabela</summary><div class="graf"><div class="tab" id="tp"></div><div class="tab" id="tu"></div></div></details>
 <div id="tip" role="tooltip" hidden></div>
 <details class="leitura" id="como-ler"><summary>Como ler a tabela</summary><div id="leitura"></div></details>
 <p class="contagem" id="contagem" aria-live="polite"></p>
-<section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Alertas por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
+<section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
 <section aria-labelledby="t-pessoas"><h2 id="t-pessoas">Pessoas</h2><!--CARTOES--></section>
-<h2>Todos os períodos em alerta</h2>
+<h2>Todos os destaques</h2>
 <ul class="alertas" id="cards"></ul>
-<div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div>
+<div id="vz" class="vazio" hidden>Nenhum destaque para este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
 <details class="dados" id="tabela"><summary>Ver todos em tabela</summary>
 <div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table></div></details>
@@ -100,7 +101,7 @@ function COMPRA(v){
   return`<p class="compra">Daria para comprar <b>${n.toLocaleString("pt-BR")}</b> ${esc(n>1?b.plural:b.singular)}${/^https:\/\//.test(b.link||"")?` · <a href="${esc(b.link)}" target="_blank" rel="noopener" title="${esc(b.referencia)}">ver preço</a>`:""}</p>`;
 }
 const R=v=>v==null?"Não informado":"R$ "+Math.round(v).toLocaleString("pt-BR");
-const NV={forte:"Forte",atencao:"Atenção",informativo:"Informativo"};
+const NV={forte:"Muito acima do esperado",atencao:"Acima do esperado",informativo:"Para conhecer"};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
 const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(REL(a.pagina)?` · <a class="lk" href="${esc(a.pagina)}">Dossiê</a>`:"")+(REL(a.dossie)?` · <a class="lk" href="${esc(a.dossie)}">Notícias</a>`:"");
@@ -126,7 +127,7 @@ function agrupa(rows,dim,max){
 function tip(ev,x){
   const t=$("tip");t.replaceChildren(el("b",null,x.k+(x.outros?"":"")));
   const lin=(rot,val,cls)=>{const d=el("div"),s=el("span");if(cls){const k=el("s");k.style.background=`var(--${cls==="informativo"?"info":cls})`;s.append(k);}s.append(rot);d.append(s,el("strong",null,val));t.append(d);};
-  lin("Alertas",x.n.toLocaleString("pt-BR"));for(const n of NIVEIS)if(x[n])lin(NV[n],x[n].toLocaleString("pt-BR"),n);
+  lin("Destaques",x.n.toLocaleString("pt-BR"));for(const n of NIVEIS)if(x[n])lin(NV[n],x[n].toLocaleString("pt-BR"),n);
   lin("Crescimento somado",RC(x.cresc));
   t.hidden=false;const r=ev.target.closest(".trilho").getBoundingClientRect(),w=t.offsetWidth;
   t.style.left=Math.max(8,Math.min(innerWidth-w-8,(ev.clientX??r.left+r.width/2)-w/2))+"px";
@@ -140,7 +141,7 @@ function grafico(id,dim,max){
     const trk=el("div","trk"),st=el("div","st");st.style.width=(x.n/top*100)+"%";
     for(const n of NIVEIS)if(x[n]){const s=el("i",n);s.style.flex=x[n]+" 1 0";st.append(s);}
     trk.append(st);tr.append(trk,el("span","tot",x.n));
-    tr.setAttribute("aria-label",`${x.k}: ${x.n} alertas (`+NIVEIS.filter(n=>x[n]).map(n=>`${NV[n]} ${x[n]}`).join(", ")+")");
+    tr.setAttribute("aria-label",`${x.k}: ${x.n} destaques (`+NIVEIS.filter(n=>x[n]).map(n=>`${NV[n]} ${x[n]}`).join(", ")+")");
     tr.onpointermove=ev=>tip(ev,x);tr.onpointerleave=()=>$("tip").hidden=true;
     if(!x.outros){tr.tabIndex=0;tr.setAttribute("role","button");tr.setAttribute("aria-pressed",F[dim]===x.k);
       tr.onfocus=ev=>tip(ev,x);tr.onblur=()=>$("tip").hidden=true;
@@ -148,19 +149,19 @@ function grafico(id,dim,max){
       tr.onclick=tg;tr.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();tg();}};}
     box.append(el("span","rot",x.k),tr);
   }
-  if(!l.length)box.append(el("span","rot","—"),el("span","tot","Nenhum alerta"));
+  if(!l.length)box.append(el("span","rot","—"),el("span","tot","Nenhum destaque"));
   return l;
 }
 function tabela(id,titulo,l){
-  const t=el("table"),h=el("tr");for(const c of [titulo,"Alertas","Forte","Atenção","Informativo","Crescimento somado"])h.append(el("th",c===titulo?null:"n",c));
+  const t=el("table"),h=el("tr");for(const c of [titulo,"Destaques",NV.forte,NV.atencao,NV.informativo,"Crescimento somado"])h.append(el("th",c===titulo?null:"n",c));
   const tb=el("tbody");for(const x of l){const r=el("tr");r.append(el("td",null,x.k));for(const c of ["n",...NIVEIS])r.append(el("td","n",x[c].toLocaleString("pt-BR")));r.append(el("td","n",R(x.cresc)));tb.append(r);}
   const th=el("thead");th.append(h);t.append(th,tb);$(id).replaceChildren(t);
 }
 function painel(rows){
   const pessoas=new Set(rows.map(a=>a.nome+"|"+a.uf)).size,cr=rows.reduce((s,a)=>s+(a.cresc||0),0);
   const k=$("kpis");k.replaceChildren();
-  for(const [v,r] of [[rows.length.toLocaleString("pt-BR"),"Alertas"],[pessoas.toLocaleString("pt-BR"),"Pessoas"],
-    [rows.filter(a=>a.nivel==="forte").length.toLocaleString("pt-BR"),"Alertas fortes"],[RC(cr),"Crescimento patrimonial somado"]]){
+  for(const [v,r] of [[rows.length.toLocaleString("pt-BR"),"Destaques"],[pessoas.toLocaleString("pt-BR"),"Pessoas"],
+    [rows.filter(a=>a.nivel==="forte").length.toLocaleString("pt-BR"),"Muito acima do esperado"],[RC(cr),"Crescimento patrimonial somado"]]){
     const d=el("div","kpi");d.append(el("b",null,v),el("span",null,r));k.append(d);}
   tabela("tp","Partido",grafico("gp","partido",0));tabela("tu","UF",grafico("gu","uf",0));
   const c=$("chips");c.replaceChildren();
@@ -202,11 +203,11 @@ function leitura(){
 <p><b>Comparado aos colegas</b>: posição do crescimento entre quem teve o mesmo cargo no mesmo período. "Acima de 97% dos colegas" quer dizer que, de cada 100 colegas, 97 tiveram crescimento menor.</p>
 <p><b>Exemplo</b> (valores ilustrativos): um deputado federal recebe R$ ${x(sal)} por mês. Em 4 anos, guardando ${pct}%, poderia juntar cerca de ${R(cap)}. Se o patrimônio dele cresceu ${R(cr)}, o crescimento foi <b>10× o possível</b>.</p>
 <p><b>Níveis</b> (só para crescimento de pelo menos ${R(m.minimo)}):</p>
-<ul><li><span class="nivel forte">Forte</span>: ${VZ(m.forte.razao)} o possível ou mais <i>e</i> acima de ${m.forte.percentil}% dos colegas.</li>
-<li><span class="nivel atencao">Atenção</span>: ${VZ(m.atencao.razao)} o possível ou mais <i>e</i> acima de ${m.atencao.percentil}% dos colegas, ou acima de 98% dos colegas.</li>
-<li><span class="nivel informativo">Informativo</span>: acima de ${m.informativo.percentil}% dos colegas, sem os outros critérios.</li></ul>
+<ul><li><span class="nivel forte">${NV.forte}</span>: ${VZ(m.forte.razao)} o possível ou mais <i>e</i> acima de ${m.forte.percentil}% dos colegas.</li>
+<li><span class="nivel atencao">${NV.atencao}</span>: ${VZ(m.atencao.razao)} o possível ou mais <i>e</i> acima de ${m.atencao.percentil}% dos colegas, ou acima de 98% dos colegas.</li>
+<li><span class="nivel informativo">${NV.informativo}</span>: acima de ${m.informativo.percentil}% dos colegas, sem os outros critérios.</li></ul>
 <p><b>"Não informado"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>
-<p>Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta, por isso o alerta é um indício para acompanhar, não prova.</p>`+(BENS&&BENS.bens&&BENS.bens.length?`
+<p>Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta, por isso cada destaque é um ponto de partida para pesquisar, não uma conclusão.</p>`+(BENS&&BENS.bens&&BENS.bens.length?`
 <p><b>"Daria para comprar"</b>: o crescimento comparado ao bem mais caro desta lista que ele pagaria pelo menos uma vez. Preços de referência de ${esc(BENS.atualizado_em||"")}; podem mudar.</p>
 <ul>${BENS.bens.map(b=>`<li>${esc(b.singular)}: ${R(b.preco)} (${esc(b.referencia)})${/^https:\/\//.test(b.link||"")?` · <a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.rotulo_link||"ver")}</a>`:""}</li>`).join("")}</ul>`:"");
 }

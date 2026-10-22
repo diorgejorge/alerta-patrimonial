@@ -118,27 +118,27 @@ def test_barras_niveis():
     s = g.barras_niveis(NIV, "n")
     raiz = acessivel(s)
     tx = textos(raiz)
-    assert tx == ["Forte", "3", "Atenção", "0", "Informativo", "12"]
+    assert tx == ["Muito acima do esperado", "3", "Acima do esperado", "0", "Para conhecer", "12"]
     for k in ("forte", "atencao", "informativo"):
         assert f'class="g-barra nv-{k}"' in s
         assert f'fill="url(#g-n-niv-{k})"' in s
     assert s.count('class="g-padrao"') == 3
     zero = [el for el in raiz.iter(NS + "text") if el.text == "0"][0]
-    assert zero.get("x") == "104"  # barra minima de 2 px + 6 de folga a partir de x=96
-    assert "Atenção: 0" in raiz.find(NS + "desc").text
+    assert zero.get("x") == "184"  # barra minima de 2 px + 6 de folga a partir de x=176
+    assert "Acima do esperado: 0" in raiz.find(NS + "desc").text
 
 
 def test_barras_niveis_vazio_e_grande():
     raiz = acessivel(g.barras_niveis({}, "v"))
-    assert textos(raiz) == ["Forte", "0", "Atenção", "0", "Informativo", "0"]
+    assert textos(raiz) == ["Muito acima do esperado", "0", "Acima do esperado", "0", "Para conhecer", "0"]
     raiz = acessivel(g.barras_niveis({"forte": 12345, "atencao": None}, "w"))
     assert "12.345" in textos(raiz)
 
 
 def test_tabela_niveis():
     t = ET.fromstring(g.tabela_niveis(NIV))
-    assert t.find("caption").text == "Alertas por nível"
-    assert [th.text for th in t.iter("th")] == ["Nível", "Alertas", "Forte", "Atenção", "Informativo", "Total"]
+    assert t.find("caption").text == "Destaques por nível"
+    assert [th.text for th in t.iter("th")] == ["Nível", "Destaques", "Muito acima do esperado", "Acima do esperado", "Para conhecer", "Total"]
     assert t.find("tfoot").find("tr").find("td").text == "15"
 
 
@@ -218,7 +218,7 @@ def test_noticias_por_tema():
     s = g.noticias_por_tema(NOT, "t")
     raiz = acessivel(s)
     tx = textos(raiz)
-    assert tx.index("Político") < tx.index("Criminal")  # ordem de ROTULO_TAG
+    assert tx.index("Político") < tx.index("Segurança pública")  # ordem de ROTULO_TAG
     assert "Gestão" not in tx  # tema zerado fica de fora
     assert "3 notícias" in tx and "4 notícias" in tx
     assert "jan/2024" in tx and "mar/2024" in tx
@@ -235,7 +235,7 @@ def test_noticias_um_mes_e_meses_invalidos():
 
 def test_tabela_noticias_por_tema():
     raiz = ET.fromstring(g.tabela_noticias_por_tema(NOT))
-    assert [th.text for th in raiz.find("thead").iter("th")] == ["Mês", "Político", "Criminal", "Total"]
+    assert [th.text for th in raiz.find("thead").iter("th")] == ["Mês", "Político", "Segurança pública", "Total"]
     linhas = raiz.find("tbody").findall("tr")
     assert [l.find("th").text for l in linhas] == ["jan/2024", "fev/2024", "mar/2024"]
     assert [td.text for td in raiz.find("tfoot").iter("td")] == ["3", "4", "7"]

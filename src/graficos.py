@@ -7,10 +7,10 @@ g-barra/g-coluna nas marcas; g-tabela nas tabelas alternativas."""
 import html, math, re
 
 e = html.escape
-ROTULO_NIVEL = {"forte": "Forte", "atencao": "Atenção", "informativo": "Informativo"}
+ROTULO_NIVEL = {"forte": "Muito acima do esperado", "atencao": "Acima do esperado", "informativo": "Para conhecer"}
 ROTULO_TAG = {"politico": "Político", "eleitoral": "Eleitoral", "legislativo": "Legislativo",
               "gestao": "Gestão", "patrimonial": "Patrimonial", "judicial": "Judicial",
-              "criminal": "Criminal", "outros": "Outros"}
+              "criminal": "Segurança pública", "outros": "Outros"}
 MESES = ("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
 VAZIO_PATRIMONIO = '<p class="vazio">Sem declarações para exibir.</p>'
 VAZIO_NOTICIAS = '<p class="vazio">Ainda não há notícias classificadas.</p>'
@@ -130,9 +130,9 @@ def _niveis(contagens):
     return [(k, rot, _qtd((contagens or {}).get(k))) for k, rot in ROTULO_NIVEL.items()]
 
 
-def barras_niveis(contagens: dict, uid: str, titulo: str = "Alertas por nível") -> str:
+def barras_niveis(contagens: dict, uid: str, titulo: str = "Destaques por nível") -> str:
     p, vals = _id(uid, "niv"), _niveis(contagens)
-    W, X0, LIN, ESP, TOPO = 360, 96, 32, 20, 6
+    W, X0, LIN, ESP, TOPO = 440, 176, 32, 20, 6
     area = W - X0 - 56  # sobra espaco para o rotulo de valor na ponta
     m = max(v for _, _, v in vals) or 1
     desc = "Barras horizontais. " + "; ".join(f"{rot}: {inteiro(v)}" for _, rot, v in vals) + "."
@@ -148,9 +148,9 @@ def barras_niveis(contagens: dict, uid: str, titulo: str = "Alertas por nível")
     return "".join(partes) + "</svg>"
 
 
-def tabela_niveis(contagens: dict, titulo: str = "Alertas por nível") -> str:
+def tabela_niveis(contagens: dict, titulo: str = "Destaques por nível") -> str:
     vals = _niveis(contagens)
-    return _tabela(titulo, ("Nível", "Alertas"), [(rot, inteiro(v)) for _, rot, v in vals],
+    return _tabela(titulo, ("Nível", "Destaques"), [(rot, inteiro(v)) for _, rot, v in vals],
                    ("Total", inteiro(sum(v for _, _, v in vals))))
 
 

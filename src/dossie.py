@@ -25,8 +25,8 @@ MAX_BUSCA_EMP = 3      # empresas pesquisadas por pessoa
 MAX_PAGINA = 2_000_000  # bytes lidos de cada materia
 FALHA = "Fonte não encontrada: as fontes de notícias não responderam nesta execução."
 SEM_TEMPO = "Não informado: busca não realizada nesta execução (limite de tempo)."
-TEMAS = '(patrimônio OR investigação OR denúncia OR TCU OR "Polícia Federal" OR "Ministério Público")'
-NV = {"forte": "Forte", "atencao": "Atenção", "informativo": "Informativo"}
+TEMAS = '(patrimônio OR bens OR "declaração de bens" OR empresa OR "Tribunal de Contas" OR TCU)'
+NV = {"forte": "Muito acima do esperado", "atencao": "Acima do esperado", "informativo": "Para conhecer"}
 ONDE = {"titulo": "no título", "resumo": "no resumo", "texto": "no texto"}
 CARGOS = {"DEPUTADO": "deputado OR deputada", "SENADOR": "senador OR senadora",
           "GOVERNADOR": "governador OR governadora", "PREFEITO": "prefeito OR prefeita",
@@ -489,7 +489,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
     nome = urna or str(ult["nome"])
     vals = dict(TITULO=e(nome), NOME=e(nome), CABECALHO=cab, PERIODOS="".join(periodo(a) for a in linhas),
                 RECENTES=lista(recentes, "Nenhuma notícia recente que cite a pessoa ou empresa ligada pelo nome."),
-                PATRIMONIO=lista(patrimonio, "Nenhuma notícia sobre patrimônio ou investigações que cite a pessoa "
+                PATRIMONIO=lista(patrimonio, "Nenhuma notícia sobre patrimônio que cite a pessoa "
                                              "ou empresa ligada pelo nome."),
                 EMPRESAS=bloco_empresas(empresas), QUERY=e(q), TRANSPARENCIA=transp,  # html ja escapado (transparencia.secao)
                 COMPRA=compra(linhas[-1].get("cresc"), bens), COTA=cota,  # html ja escapado (cota.secao)

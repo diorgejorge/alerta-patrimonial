@@ -80,7 +80,7 @@ def _tabela_periodos(linhas):
                colegas(a.get("percentil")), chip_nivel(a.get("nivel"))]
         corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if 2 <= i <= 6 else ""}>{v}</td>'
                                       for i, (c, v) in enumerate(zip(cab, cel))) + "</tr>")
-    return ('<div class="tab"><table class="resp"><caption class="sr">Períodos em alerta</caption><thead><tr>'
+    return ('<div class="tab"><table class="resp"><caption class="sr">Períodos em destaque</caption><thead><tr>'
             + "".join(f'<th scope="col"{NUM if 2 <= i <= 6 else ""}>{e(c)}</th>' for i, c in enumerate(cab))
             + "</tr></thead><tbody>" + "".join(corpo) + "</tbody></table></div>")
 
@@ -91,7 +91,7 @@ def _resumo(linhas):
     kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "Não informado"), "Nível mais alto"),
             (brl(topo.get("cresc")), f"Crescimento em {topo.get('ano_ini')}–{topo.get('ano_fim')}"),
             (vezes(rz), "Maior “quantas vezes o possível”"),
-            (str(len(linhas)), "Períodos em alerta")]
+            (str(len(linhas)), "Períodos em destaque")]
     html_kpis = '<div class="kpis">' + "".join(f'<div class="card kpi"><b>{e(v)}</b><span>{e(r)}</span></div>'
                                                 for v, r in kpis) + "</div>"
     tse = next((a["link_tse"] for a in linhas if str(a.get("link_tse") or "").startswith("https://")), None)
@@ -120,7 +120,7 @@ def _noticias(linhas):
     link = (f'<p><a class="botao" href="../{e(dossie)}">Ver as notícias coletadas para esta pessoa</a></p>'
             if dossie and not re.match(r"^\s*[a-z][a-z0-9+.-]*:", dossie, re.I) else "")
     return ('<p class="vazio">As notícias com tags (político, eleitoral, legislativo, gestão, patrimonial, judicial, '
-            'criminal, outros) entram nesta aba na próxima fase.</p>' + link)
+            'segurança pública, outros) entram nesta aba na próxima fase.</p>' + link)
 
 
 def _propostas(pid):
