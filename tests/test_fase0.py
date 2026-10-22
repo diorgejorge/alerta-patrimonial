@@ -135,5 +135,22 @@ def test_limpeza_de_documentos():
     from ids import sem_documentos, OMITIDO
     t = "CPF 123.456.789-09, mascarado ***.456.789-**, CNPJ 12.345.678/0001-95 e 12345678000195"
     assert sem_documentos(t).count(OMITIDO) == 4
+    # casas decimais longas nao sao CNPJ (quebravam o JSON do painel: "razao": -49.[documento omitido])
+    assert sem_documentos('{"razao": -49.12345678901234, "cap": 243093.59999999998}') == \
+        '{"razao": -49.12345678901234, "cap": 243093.59999999998}'
     assert sem_documentos("ano 2022, eleicao 20322002026, valor R$ 1.234.567,89") == \
         "ano 2022, eleicao 20322002026, valor R$ 1.234.567,89"
+
+
+def test_varrer_preserva_decimais_e_json(tmp_path):
+    from ids import varrer, OMITIDO
+    import pipeline
+    cpf = "12345678909"
+    dados = pipeline.arredonda({"razao": -49.123456789012345, "x": [1.0000000001234567], "cpf_solto": int(cpf)})
+    assert dados["razao"] == -49.1235 and dados["x"] == [1.0]
+    p = tmp_path / "index.html"
+    p.write_text("const D=" + json.dumps({"razao": -49.12345678909123, "n": dados["cpf_solto"]}) + ";", encoding="utf-8")
+    varrer(tmp_path, cpfs=[cpf])
+    texto = p.read_text(encoding="utf-8")
+    assert "-49.12345678909123" in texto  # CPF dentro das casas decimais: intocado
+    assert texto.count(OMITIDO) == 1      # o CPF solto continua sendo removido

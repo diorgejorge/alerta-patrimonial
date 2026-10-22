@@ -347,6 +347,18 @@ def carregar_processos():
     return out
 
 
+def arredonda(v, casas=4):
+    """Floats com no maximo `casas` decimais (dict/list recursivo): JSON menor e sem sequencias longas de digitos
+    que a varredura de CPF/CNPJ poderia confundir com documento."""
+    if isinstance(v, float):
+        return round(v, casas)
+    if isinstance(v, dict):
+        return {k: arredonda(x, casas) for k, x in v.items()}
+    if isinstance(v, (list, tuple)):
+        return [arredonda(x, casas) for x in v]
+    return v
+
+
 def carregar_bens():
     """Bens de referencia (config/bens_referencia.json) para "daria para comprar N ..."; None se faltar."""
     try:
@@ -530,7 +542,7 @@ def main():
     # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
     dados["alertas"].sort(key=lambda a: (-(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
     tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
-    html_painel = tpl.replace("/*DADOS*/null", json.dumps(dados, ensure_ascii=False))
+    html_painel = tpl.replace("/*DADOS*/null", json.dumps(arredonda(dados), ensure_ascii=False))
     html_painel = html_painel.replace("/*BENS*/null", json.dumps(bens, ensure_ascii=False))
     blocos = dict(CARTOES=cartoes, **graficos_painel)
     for marca, conteudo in blocos.items():

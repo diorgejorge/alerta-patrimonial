@@ -11,7 +11,8 @@ def digest(chave, segredo):
 
 
 # CPF e CNPJ formatados ou mascarados ("***.123.456-**"), em qualquer texto que va para o site
-RE_DOC = re.compile(r"(?<![\d*])(?:[\d*]{3}\.[\d*]{3}\.[\d*]{3}-[\d*]{2}|\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}|\d{14})(?![\d*])")
+# (?<!\.) no CNPJ sem pontuacao: 14 digitos logo apos um ponto sao casas decimais (ex.: -49.12345678901234)
+RE_DOC = re.compile(r"(?<![\d*])(?:[\d*]{3}\.[\d*]{3}\.[\d*]{3}-[\d*]{2}|\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}|(?<!\.)\d{14})(?![\d*])")
 OMITIDO = "[documento omitido]"
 
 
@@ -22,7 +23,9 @@ def sem_documentos(texto):
 def varrer(pasta, cpfs=()):
     """Ultima barreira antes de publicar: troca CPF/CNPJ formatados (e os CPFs conhecidos, sem formato)
     em todos os .html/.json/.txt da pasta. Devolve quantos arquivos foram corrigidos."""
-    nus = re.compile("|".join(sorted({re.escape(c) for c in cpfs if len(c) == 11}))) if cpfs else None
+    # CPF conhecido sem formato: so como numero inteiro, nunca dentro de outro numero ou de casas decimais
+    nus = (re.compile(r"(?<![\d.])(?:" + "|".join(sorted({re.escape(c) for c in cpfs if len(c) == 11})) + r")(?!\d)")
+           if any(len(c) == 11 for c in cpfs) else None)
     n = 0
     for p in Path(pasta).rglob("*"):
         if p.suffix not in (".html", ".json", ".txt") or not p.is_file():
