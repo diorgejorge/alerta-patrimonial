@@ -71,6 +71,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <small>As sugestões são feitas pelo GitHub (é preciso ter conta), ficam públicas e só entram no site depois de revisadas.</small></section>
 <div class="barra">
 <input id="q" type="search" placeholder="Buscar por nome, cargo ou UF" aria-label="Buscar">
+<select id="cg" aria-label="Cargo"><option value="">Todos os cargos</option></select>
 <select id="nv" aria-label="Nível"><option value="">Todos os níveis</option><option value="forte">Muito acima do esperado</option><option value="atencao">Acima do esperado</option><option value="informativo">Para conhecer</option></select>
 <div id="chips" class="chips"></div>
 </div>
@@ -110,14 +111,14 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
 const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(REL(a.pagina)?` · <a class="lk" href="${esc(a.pagina)}">Dossiê</a>`:"")+(REL(a.dossie)?` · <a class="lk" href="${esc(a.dossie)}">Notícias</a>`:"");
 const NIVEIS=["forte","atencao","informativo"];
-const F={partido:"",uf:""};
+const F={partido:"",uf:"",cargo:""};
 const RC=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",notation:"compact",maximumFractionDigits:1}).format(v);
 const $=id=>document.getElementById(id);
 const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e;};
 // filtros de busca e nivel valem para tudo; cada grafico ignora o proprio filtro de dimensao
 function filtra(ign){
   const q=$("q").value.toLowerCase(),nv=$("nv").value;
-  return D.alertas.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)
+  return D.alertas.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)&&(!F.cargo||a.cargo===F.cargo)
     &&(`${a.nome} ${a.nome_urna??""} ${a.cargo} ${a.uf} ${a.partido}`.toLowerCase().includes(q)));
 }
 function agrupa(rows,dim,max){
@@ -169,13 +170,13 @@ function painel(rows){
     const d=el("div","kpi");d.append(el("b",null,v),el("span",null,r));k.append(d);}
   tabela("tp","Partido",grafico("gp","partido",0));tabela("tu","UF",grafico("gu","uf",0));
   const c=$("chips");c.replaceChildren();
-  for(const [dim,rot] of [["partido","Partido"],["uf","UF"]])if(F[dim]){const b=el("button",null,`${rot}: ${F[dim]} ×`);b.title="Remover filtro";b.onclick=()=>{F[dim]="";draw();};c.append(b);}
+  for(const [dim,rot] of [["cargo","Cargo"],["partido","Partido"],["uf","UF"]])if(F[dim]){const b=el("button",null,`${rot}: ${F[dim]} ×`);b.title="Remover filtro";b.onclick=()=>{F[dim]="";draw();};c.append(b);}
 }
 for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=el("i");i.style.background=`var(--${n==="informativo"?"info":n})`;s.append(i,NV[n]);$(id).append(s);}
 // cards em lotes de PAG (pagina leve); a tabela completa so e montada quando aberta
 const PAG=24;let ROWS=[],VIS=0;
 const CARD=a=>`<li class="card alerta"><div class="topo"><span><b>${esc(a.nome_urna||a.nome)}</b>${a.novo?' <span class="novo">novo</span>':""}<br><small>${a.ano_ini}–${a.ano_fim}${a.mencoes?` · ${a.mencoes} ${a.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span></div>
-<p class="tags">${a.outras_rendas?`<span class="tag renda" title="Declarou participação em empresas: o salário não é a única fonte de renda${a.nivel_calculado&&a.nivel_calculado!==a.nivel?`; destaque reduzido de ${NV[a.nivel_calculado]} para ${NV[a.nivel]}`:""}">Tem empresas declaradas</span>`:""}<span class="tag" title="Cargo">${esc(a.cargo||"Não informado")}</span>${a.partido?`<button type="button" class="tag" data-dim="partido" data-v="${esc(a.partido)}" title="Filtrar pelo partido ${esc(a.partido)}">${esc(a.partido)}</button>`:""}${a.uf?`<button type="button" class="tag" data-dim="uf" data-v="${esc(a.uf)}" title="Filtrar pelo estado ${esc(a.uf)}">${esc(a.uf)}</button>`:""}</p>
+<p class="tags">${a.outras_rendas?`<span class="tag renda" title="Declarou participação em empresas: o salário não é a única fonte de renda${a.nivel_calculado&&a.nivel_calculado!==a.nivel?`; destaque reduzido de ${NV[a.nivel_calculado]} para ${NV[a.nivel]}`:""}">Tem empresas declaradas</span>`:""}${a.cargo?`<button type="button" class="tag" data-dim="cargo" data-v="${esc(a.cargo)}" title="Filtrar pelo cargo ${esc(a.cargo)}">${esc(a.cargo)}</button>`:`<span class="tag">Não informado</span>`}${a.partido?`<button type="button" class="tag" data-dim="partido" data-v="${esc(a.partido)}" title="Filtrar pelo partido ${esc(a.partido)}">${esc(a.partido)}</button>`:""}${a.uf?`<button type="button" class="tag" data-dim="uf" data-v="${esc(a.uf)}" title="Filtrar pelo estado ${esc(a.uf)}">${esc(a.uf)}</button>`:""}</p>
 <p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>${COMPRA(a.cresc)}
 <dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>
 ${LK(a)?`<p class="links">${LK(a).replace(/^ · /,"")}</p>`:""}</li>`;
@@ -199,10 +200,10 @@ function tabelaToda(){
 }
 function draw(){
   const rows=filtra();painel(rows);
-  ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
-  const fl=[F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
+  $("cg").value=F.cargo;ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
+  const fl=[F.cargo&&`cargo ${F.cargo}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${D.alertas.length.toLocaleString("pt-BR")} registros`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
-  if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf="";draw();};
+  if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo="";$("cg").value="";draw();};
   document.getElementById("vz").hidden=rows.length>0;
 }
 const VZ=v=>v==null?"Não informado":v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"×";
@@ -240,6 +241,7 @@ function contrib(){
   $("contrib").hidden=false;
 }
 if(D){contrib();leitura();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
-document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;$("mais").onclick=mais;
+document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
+$("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 $("cards").onclick=ev=>{const t=ev.target.closest("button.tag");if(!t)return;F[t.dataset.dim]=t.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};$("tabela").ontoggle=tabelaToda;draw();}
 </script></body></html>
