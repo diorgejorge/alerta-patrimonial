@@ -49,10 +49,10 @@ jobs:
           for img in ("logo.png", "icone.png"):
               shutil.copyfile(f"src/{img}", f"_site/{img}")
           PY
-      - name: Contagem de acessos  # GoatCounter, sem cookies; variavel GOATCOUNTER vazia = desligada
+      - name: Contagem de acessos  # Google Analytics 4 so com consentimento; variavel GOOGLE_ANALYTICS vazia = desligada
         run: python3 src/metricas.py _site
         env:
-          GOATCOUNTER: ${{ vars.GOATCOUNTER }}
+          GOOGLE_ANALYTICS: ${{ vars.GOOGLE_ANALYTICS }}
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with: { path: _site }

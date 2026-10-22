@@ -34,12 +34,13 @@ Abra `docs/index.html` (ou `_demo/docs/index.html`) no navegador.
 4. Painel no GitHub Pages: em Settings → Pages, escolha **Source: GitHub Actions**. O workflow `pages.yml` publica `docs/` depois de cada atualização (ou manualmente em Actions → Publicar painel). Lembre que o site do Pages é **público**, mesmo com repositório privado.
 
 ## Contagem de acessos
-Desligada até ser configurada. Usa o [GoatCounter](https://www.goatcounter.com), gratuito para projetos sem fins comerciais, sem cookies e sem guardar IP (por isso não precisa de aviso de cookies):
-1. Crie uma conta no GoatCounter e escolha um código (ex.: `caramelo`, que vira `caramelo.goatcounter.com`).
-2. Em Settings → Secrets and variables → Actions → **Variables**, crie `GOATCOUNTER` com esse código (ou o endereço completo `https://.../count` de uma instalação própria). É variável, não segredo: o código aparece no site de qualquer jeito.
-3. Rode Actions → Publicar painel. O `pages.yml` (via `src/metricas.py`) põe o contador em todas as páginas e a seção "Contagem de acessos" em `privacidade.html`. Para desligar, apague a variável e publique de novo.
+Desligada até ser configurada. Usa o **Google Analytics 4**, só com consentimento: cada página mostra um aviso com "Aceitar" e "Recusar" (mesmo destaque), e o Google Analytics só carrega e grava cookies depois do "Aceitar". Anúncios, personalização de anúncios e Google Signals ficam desligados. A escolha fica no navegador e pode ser mudada na página de privacidade.
+1. Em https://analytics.google.com, crie uma propriedade e um fluxo de dados da Web com o endereço do site; copie o **ID de medição** (`G-...`).
+2. Na propriedade, em Administrador → Coleta e retenção de dados: deixe **Google Signals desativado** e a retenção em **2 meses**.
+3. Em Settings → Secrets and variables → Actions → **Variables**, crie `GOOGLE_ANALYTICS` com o ID de medição. É variável, não segredo: o ID aparece no site de qualquer jeito.
+4. Rode Actions → Publicar painel. O `pages.yml` (via `src/metricas.py`) põe o aviso em todas as páginas e a seção "Contagem de acessos" em `privacidade.html`. Para desligar, apague a variável e publique de novo.
 
-Os números ficam no painel do GoatCounter (visitas por página, origem, navegador, tela e país). Para mostrá-los ao público, o GoatCounter permite tornar o painel público nas configurações da conta.
+Como só conta quem aceita, os números ficam abaixo do total real de visitas.
 
 ## Sugestões de fontes pelo site
 O painel tem o bloco "Ajude a ampliar as fontes", que abre formulários de issue no GitHub (é preciso ter conta; a sugestão fica pública):
@@ -75,5 +76,5 @@ O registro das operações de tratamento (art. 37) é mantido pelo responsável 
 - **Base legal (LGPD, Lei 13.709/2018):** dados de acesso público tratados conforme a finalidade, a boa-fé e o interesse público de sua divulgação (art. 7º, § 3º), para finalidade nova e compatível (art. 7º, § 7º), e interesse legítimo de controle social com só os dados estritamente necessários e transparência (art. 7º, IX, e art. 10). A isenção do art. 4º, II, "a" exige fins *exclusivamente* jornalísticos e não é a base principal. Dados sensíveis (art. 5º, II, e art. 11) não são tratados: BPC (pode revelar deficiência) e PETI (crianças, art. 14) ficam de fora. A transparência ativa vem da Lei 12.527/2011 (LAI) e da Lei 9.504/1997.
 - **Transparência ao titular (arts. 9º, 18 e 41):** página `docs/privacidade.html`, preenchida com `config/privacidade.json` (controlador, contato e encarregado; **preencher antes de divulgar**).
 - **Minimização:** CPF e CNPJ só são usados em memória para consultar as fontes oficiais. O site, o JSON publicado, os nomes de arquivo, os logs e o histórico (`data/estado.json`, `data/ids.json`) usam apenas o id interno, um HMAC do identificador com o segredo `ID_SEGREDO`. Benefícios sociais só aparecem quando a pessoa é a titular; registros em que ela é representante legal de outra pessoa são descartados.
-- **Visitantes:** com a contagem de acessos ligada, o GoatCounter recebe a página aberta, a origem, o navegador, o sistema, o tamanho da tela e o país; sem cookies, sem IP guardado e sem identificar quem visita.
+- **Visitantes:** com a contagem de acessos ligada, o Google Analytics só recebe dados de quem aceitar no aviso (art. 7º, I): página aberta, origem, navegador, sistema, tela, local aproximado e um identificador em cookie. Há transferência internacional ao Google (art. 33).
 - **Direitos do titular e correções:** pedidos de correção ou de marcação de homônimo entram pelas issues do repositório e são registrados na curadoria (`config/curadoria.csv`).
