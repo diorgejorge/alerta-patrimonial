@@ -237,7 +237,10 @@ def pares(serie, regras, extras, p):
                             empresas=[str(x) for x in b["empresas"]]
                             if isinstance(b.get("empresas"), (list, tuple)) else [],
                             empresas_cnpj=list(b["empresas_cnpj"])
-                            if isinstance(b.get("empresas_cnpj"), (list, tuple)) else []))
+                            if isinstance(b.get("empresas_cnpj"), (list, tuple)) else [],
+                            # participacao em empresas no inicio ou no fim do periodo: ha outra fonte de renda
+                            outras_rendas=any(isinstance(x.get("empresas"), (list, tuple)) and len(x["empresas"]) > 0
+                                              for x in (a, b))))
     df = pd.DataFrame(out)
     if df.empty:
         return df
@@ -248,8 +251,13 @@ def pares(serie, regras, extras, p):
     pct_periodo = df.groupby(["ano_ini", "ano_fim"])["cresc"].rank(pct=True) * 100
     n = df.groupby(gk)["cresc"].transform("size")
     df["percentil"] = pct_grupo.where(n >= p["min_pares_grupo"], pct_periodo)
-    df["nivel"] = df.apply(lambda r: nivel(r, p), axis=1)
+    df["nivel_calculado"] = df.apply(lambda r: nivel(r, p), axis=1)
+    # outras rendas (empresas declaradas): o salario nao e a unica fonte, entao o destaque desce um grau
+    df["nivel"] = [REDUZ.get(n, n) if o else n for n, o in zip(df["nivel_calculado"], df["outras_rendas"])]
     return df
+
+
+REDUZ = {"forte": "atencao", "atencao": "informativo", "informativo": "informativo"}
 
 
 def nivel(r, p):
