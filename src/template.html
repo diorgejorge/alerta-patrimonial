@@ -130,7 +130,7 @@ const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a
 const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);
 const NIVEIS=["forte","atencao","informativo"];
 const F={partido:"",uf:"",cargo:"",regiao:"",conc:"",flag:""};
-const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar],renda:["Tem empresas declaradas",a=>a.outras_rendas],reu:["Responde a processo",a=>(a.processos||[]).length>0]};
+const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar],renda:["Tem empresas declaradas",a=>a.outras_rendas],reu:["Responde a processo",a=>(a.processos||[]).length>0||a.processos_reu>0]};
 const CONC_ROT={q0:"poucos",q1:"alguns",q2:"muitos",q3:"os que mais concentram"};
 const REGIOES={Norte:"AC AM AP PA RO RR TO",Nordeste:"AL BA CE MA PB PE PI RN SE","Centro-Oeste":"DF GO MS MT",Sudeste:"ES MG RJ SP",Sul:"PR RS SC"};
 const REG={BR:"Nacional",ZZ:"Exterior"};for(const [r,ufs] of Object.entries(REGIOES))for(const u of ufs.split(" "))REG[u]=r;
@@ -220,7 +220,8 @@ function QT(dim,v){
   const r=(CONC[dim].c[v]||0)/CONC[dim].max;return"q"+(r>=.75?3:r>=.5?2:r>=.25?1:0);
 }
 // processos em que a pessoa e re (lista curada por issue): tag com link para a consulta do primeiro
-const PR=a=>{const p=(a.processos||[]).filter(x=>/^https:\/\//.test(x.link||""));if(!p.length)return"";
+const PR=a=>{const p=(a.processos||[]).filter(x=>/^https:\/\//.test(x.link||""));
+  if(!p.length)return a.processos_reu>0?`<a class="tag reu" href="${esc(PROC(a))}" target="_blank" rel="noopener" title="Processos em que a pessoa está no polo passivo, com publicação no Diário de Justiça Eletrônico Nacional (CNJ), pelo nome civil completo em tribunais do estado e superiores. Pode haver homônimo: confira. Ser réu não significa condenação.">Réu em ${a.processos_reu.toLocaleString("pt-BR")} ${a.processos_reu>1?"processos":"processo"}</a>`:"";
   return`<a class="tag reu" href="${esc(p[0].link)}" target="_blank" rel="noopener" title="${esc(p.map(x=>`${x.tribunal} ${x.numero}`).join("; "))} (ser réu não significa condenação)">Responde a processo${p.length>1?` (${p.length})`:""}</a>`;};
 // cards em lotes de PAG (pagina leve); a tabela completa so e montada quando aberta
 const PAG=24;let ROWS=[],VIS=0;
@@ -278,7 +279,7 @@ function leitura(){
 <li><span class="nivel informativo">${NV.informativo}</span>: acima de ${m.informativo.percentil}% dos colegas, sem os outros critérios.</li></ul>
 <p><b>Cor das tags</b>: cargo, partido e estado ficam mais escuros (do bege ao vermelho-escuro) quanto mais destaques concentram no painel. A bolinha ao lado do partido usa uma cor aproximada da identidade visual do partido.</p>
 <p><b>Ordem</b>: primeiro quem tem mais menções na imprensa nos últimos 30 dias (Google Notícias no Brasil e Google News em inglês, só notícias que citam a pessoa pelo nome); depois, o maior crescimento do patrimônio.</p>
-<p><b>"Responde a processo"</b>: a pessoa figura como ré em processo público informado por leitores e revisado antes de entrar no site (tribunal, número e link da consulta). Ser réu não significa condenação.</p>
+<p><b>"Responde a processo"</b>: a pessoa figura como ré em processo público informado por leitores e revisado antes de entrar no site (tribunal, número e link da consulta). Sem processo informado, a tag <b>"Réu em N processos"</b> conta os processos em que a pessoa aparece no polo passivo nas publicações do Diário de Justiça Eletrônico Nacional (CNJ), a mesma base de diários usada por sites como o Escavador. A busca usa o nome civil completo e só tribunais do estado da pessoa e superiores; o diário não traz CPF, então pode haver homônimo: confira em "Conferir processos". Ser réu não significa condenação.</p>
 <p><b>"Tem empresas declaradas"</b>: a pessoa declarou ao TSE participação em empresas (quotas, ações, capital social) no início ou no fim do período. Como o salário não é a única fonte de renda, o destaque desce um grau (de "${NV.forte}" para "${NV.atencao}" e de "${NV.atencao}" para "${NV.informativo}").</p>
 <p><b>"Não informado"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>
 <p>Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta, por isso cada destaque é um ponto de partida para pesquisar, não uma conclusão.</p>`+(BENS&&BENS.bens&&BENS.bens.length?`

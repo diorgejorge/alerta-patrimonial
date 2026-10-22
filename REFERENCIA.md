@@ -29,6 +29,7 @@ O resultado é um **indício para acompanhamento, nunca prova**. Ele é publicad
 | `src/dossie.py` | Notícias (Google Notícias RSS e fontes sugeridas), filtro de menção direta e empresas extraídas dos bens. Gera `docs/dossie/`. |
 | `src/cota.py` | Cota parlamentar (CEAP da Câmara e CEAPS do Senado, arquivos anuais abertos, últimos 4 anos). Deputado federal ligado pelo CPF do TSE (só internamente); senador pelo nome. Arquivos guardados em `data/cache`. |
 | `src/empresas.py` | Empresas declaradas: atividade (CNAE), início de atividade, capital social e situação nos dados abertos do CNPJ da Receita (WebDAV público do compartilhamento `YggdBLfdninEJX9`, ~7 GB por mês). Varre os arquivos só quando muda o mês de referência ou aparece CNPJ novo, em pasta temporária, e guarda só `data/cache/cnpj_receita.json`; limite de 75 min. O CNPJ nunca vai para o site. |
+| `src/djen.py` | Processos como réu (polo passivo) nas publicações do Diário de Justiça Eletrônico Nacional (API pública do CNJ `comunicaapi.pje.jus.br`), a mesma base de diários usada pelo Escavador. Nome civil completo, nome igual no polo passivo e só tribunais do estado da pessoa e superiores (o DJEN não traz CPF). Cache mensal `data/cache/djen.json`. |
 | `src/template.html` | Painel (JS: busca, filtros por nível, partido e UF, gráficos interativos de partido e UF, "Como ler a tabela"). |
 | `src/pessoa.html` | Página da pessoa: abas Resumo, Patrimônio, Notícias, Dinheiro público e Propostas × PLs. |
 | `src/privacidade.html` | Página da LGPD, preenchida com `config/privacidade.json`. |
