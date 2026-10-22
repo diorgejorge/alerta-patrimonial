@@ -2,7 +2,7 @@ name: Publicar painel
 on:
   push:
     branches: [main]
-    paths: ["docs/**", "src/template.html", "src/estilo.css"]
+    paths: ["docs/**", "src/template.html", "src/estilo.css", "config/bens_referencia.json"]
   workflow_run:
     workflows: ["Atualizar alertas"]
     types: [completed]
@@ -33,6 +33,11 @@ jobs:
           m = re.search(r"^const D=(.*);$", pathlib.Path("docs/index.html").read_text(encoding="utf-8"), re.M)
           if m:
               html = pathlib.Path("src/template.html").read_text(encoding="utf-8").replace("/*DADOS*/null", m.group(1))
+              try:  # bens de referencia ("daria para comprar"): sempre os do config atual
+                  bens = json.loads(pathlib.Path("config/bens_referencia.json").read_text(encoding="utf-8"))
+              except (OSError, ValueError):
+                  bens = None
+              html = html.replace("/*BENS*/null", json.dumps(bens, ensure_ascii=False))
               try:
                   blocos = json.loads(pathlib.Path("docs/blocos.json").read_text(encoding="utf-8"))
               except (OSError, ValueError):

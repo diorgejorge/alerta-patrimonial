@@ -457,7 +457,25 @@ def periodo(a):
             f'<td class="nivel {e(nv)}" data-label="Nível">{e(NV.get(nv, nv))}</td></tr>')
 
 
-def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp=""):
+def compra(cresc, bens):
+    """'Com o crescimento ... daria para comprar': quantos de cada bem de referencia (config/bens_referencia.json)."""
+    if nulo(cresc) or not bens or cresc <= 0:
+        return ""
+    li = []
+    for b in sorted(bens.get("bens", []), key=lambda b: b["preco"]):
+        n = int(cresc // b["preco"])
+        qtd = f"{n:,}".replace(",", ".") if n >= 1 else f"{cresc / b['preco']:.1f}".replace(".", ",")
+        nome = b.get("plural") if n != 1 else b["singular"]
+        link = (f' · <a href="{e(b["link"])}" target="_blank" rel="noopener">{e(b.get("rotulo_link") or "ver preço")}</a>'
+                if url_ok(b.get("link")) and b["link"].startswith("https://") else "")
+        li.append(f'<li><b>{qtd}</b> {e(nome or b["singular"])}<br><small>{brl(b["preco"])} cada · '
+                  f'{e(b.get("referencia") or "")}{link}</small></li>')
+    return (f'<h3>Com o crescimento de {brl(cresc)} no período mais recente daria para comprar</h3>'
+            f'<ul class="nt">{"".join(li)}</ul><p><small>Preços de referência de {e(bens.get("atualizado_em") or "")}; '
+            f'podem mudar. {e(bens.get("aviso") or "")}</small></p>')
+
+
+def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", bens=None):
     ult = linhas[-1]  # periodo mais recente
     urna = (ult.get("nome_urna") or "").strip()
     tse = next((a["link_tse"] for a in reversed(linhas) if url_ok(a.get("link_tse"))), None)
@@ -474,6 +492,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp=""):
                 PATRIMONIO=lista(patrimonio, "Nenhuma notícia sobre patrimônio ou investigações que cite a pessoa "
                                              "ou empresa ligada pelo nome."),
                 EMPRESAS=bloco_empresas(empresas), QUERY=e(q), TRANSPARENCIA=transp,  # html ja escapado (transparencia.secao)
+                COMPRA=compra(linhas[-1].get("cresc"), bens),
                 BUSCA=e(BUSCA + urllib.parse.urlencode({"q": q, **LOCAL})), GERADO=e(gerado))
     # passada unica: texto externo ja inserido nunca e reprocessado
     return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
@@ -481,7 +500,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp=""):
 
 # ---------------------------------------------------------------- entrada
 def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, timeout=20,
-                  tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=(), transparencia=None):
+                  tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=(), transparencia=None, bens=None):
     """Gera destino/dossie/<slug>.html por pessoa (nome+UF) e devolve {indice_da_linha: "dossie/<slug>.html"}.
     Noticias so para as primeiras max_pessoas (ordem de `alertas`); as demais saem sem busca automatica.
     As buscas RSS correm numa fila por fonte (Google e fontes sugeridas em paralelo, `pausa` s entre buscas na mesma
@@ -579,7 +598,7 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
         usados.add(s)
         transp = next((transparencia[i] for i in p["idx"] if i in (transparencia or {})),
                       '<p class="vazio">Consulta ao Portal da Transparência não realizada nesta execução.</p>')
-        (pasta / f"{s}.html").write_text(pagina(tpl, p["linhas"], p["q"], rec, pat, empresas, gerado, transp),
+        (pasta / f"{s}.html").write_text(pagina(tpl, p["linhas"], p["q"], rec, pat, empresas, gerado, transp, bens),
                                          encoding="utf-8")
         for i in p["idx"]:
             indice[i] = f"dossie/{s}.html"

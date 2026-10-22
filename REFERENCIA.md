@@ -36,6 +36,7 @@ O resultado é um **indício para acompanhamento, nunca prova**. Ele é publicad
 | `config/renda_publica.csv` | Subsídio mensal por cargo e vigência. **Conferir os valores.** |
 | `config/monitorados.csv` | Lista pública vazia. **Não pôr CPF aqui**; use o segredo `MONITORADOS_CSV`. |
 | `config/fontes_noticias.csv` | Fontes de notícias aprovadas pelo site (`nome,feed,uf,issue`). |
+| `config/bens_referencia.json` | Bens de referência do "daria para comprar N …" (nome, preço, data, link oficial). Atualizar os preços à mão; o painel republica sozinho ao mudar. |
 | `config/privacidade.json` | Controlador, contato, encarregado e data. **Preencher antes de divulgar.** |
 | `data/estado.json` | Memória de alertas "novos", com chave `p0001\|2018-2022`. |
 | `data/ids.json` | HMAC → id interno. Não permite recuperar o CPF sem o segredo. |

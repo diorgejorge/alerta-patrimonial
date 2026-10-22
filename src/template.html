@@ -50,6 +50,7 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta .cresc{margin:0;display:flex;flex-direction:column}.alerta .cresc b{font-size:1.35rem;line-height:1.2;font-variant-numeric:tabular-nums}
 .alerta dl{margin:0;display:grid;gap:2px;font-size:.875rem}.alerta dl div{display:flex;justify-content:space-between;gap:10px}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.alerta .compra{margin:0;font-size:.875rem;padding:.4em .6em;border-radius:6px;background:var(--realce)}
 .alerta .links{margin:auto 0 0;font-size:.9rem}.alerta .links .lk{min-height:44px}.mais{text-align:center}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
 </style>
@@ -88,6 +89,13 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 </main>
 <script>
 const D=/*DADOS*/null;
+const BENS=/*BENS*/null;  // config/bens_referencia.json
+// o bem mais caro que o crescimento compraria pelo menos uma vez: "daria para comprar 3 picapes ..."
+function COMPRA(v){
+  const b=(BENS&&BENS.bens||[]).filter(x=>x.preco>0&&v>=x.preco).sort((x,y)=>y.preco-x.preco)[0];
+  if(!b)return"";const n=Math.floor(v/b.preco);
+  return`<p class="compra">Daria para comprar <b>${n.toLocaleString("pt-BR")}</b> ${esc(n>1?b.plural:b.singular)}${/^https:\/\//.test(b.link||"")?` · <a href="${esc(b.link)}" target="_blank" rel="noopener" title="${esc(b.referencia)}">ver preço</a>`:""}</p>`;
+}
 const R=v=>v==null?"Não informado":"R$ "+Math.round(v).toLocaleString("pt-BR");
 const NV={forte:"Forte",atencao:"Atenção",informativo:"Informativo"};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -159,7 +167,7 @@ for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=
 // cards em lotes de PAG (pagina leve); a tabela completa so e montada quando aberta
 const PAG=24;let ROWS=[],VIS=0;
 const CARD=a=>`<li class="card alerta"><div class="topo"><span><b>${esc(a.nome_urna||a.nome)}</b>${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.cargo)} · ${esc(a.partido)} · ${esc(a.uf)} · ${a.ano_ini}–${a.ano_fim}</small></span><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span></div>
-<p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>
+<p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>${COMPRA(a.cresc)}
 <dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>
 ${LK(a)?`<p class="links">${LK(a).replace(/^ · /,"")}</p>`:""}</li>`;
 function mais(){
@@ -194,7 +202,9 @@ function leitura(){
 <li><span class="nivel atencao">Atenção</span>: ${VZ(m.atencao.razao)} o possível ou mais <i>e</i> acima de ${m.atencao.percentil}% dos colegas, ou acima de 98% dos colegas.</li>
 <li><span class="nivel informativo">Informativo</span>: acima de ${m.informativo.percentil}% dos colegas, sem os outros critérios.</li></ul>
 <p><b>"Não informado"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>
-<p>Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta, por isso o alerta é um indício para acompanhar, não prova.</p>`;
+<p>Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta, por isso o alerta é um indício para acompanhar, não prova.</p>`+(BENS&&BENS.bens&&BENS.bens.length?`
+<p><b>"Daria para comprar"</b>: o crescimento comparado ao bem mais caro desta lista que ele pagaria pelo menos uma vez. Preços de referência de ${esc(BENS.atualizado_em||"")}; podem mudar.</p>
+<ul>${BENS.bens.map(b=>`<li>${esc(b.singular)}: ${R(b.preco)} (${esc(b.referencia)})${/^https:\/\//.test(b.link||"")?` · <a href="${esc(b.link)}" target="_blank" rel="noopener">${esc(b.rotulo_link||"ver")}</a>`:""}</li>`).join("")}</ul>`:"");
 }
 function contrib(){
   // repositorio: informado pelo pipeline no Actions ou deduzido do endereco usuario.github.io/repo

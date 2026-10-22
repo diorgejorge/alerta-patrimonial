@@ -297,6 +297,17 @@ def carregar_fontes():
     return out
 
 
+def carregar_bens():
+    """Bens de referencia (config/bens_referencia.json) para "daria para comprar N ..."; None se faltar."""
+    try:
+        cfg = json.loads((CFG / "bens_referencia.json").read_text(encoding="utf-8"))
+        cfg["bens"] = [b for b in cfg.get("bens", []) if float(b.get("preco") or 0) > 0 and b.get("singular")]
+        return cfg if cfg["bens"] else None
+    except (OSError, ValueError, TypeError) as ex:
+        print(f"[aviso] config/bens_referencia.json ignorado ({ex!r})", file=sys.stderr)
+        return None
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true", help="dados sinteticos para testar sem internet")
@@ -370,8 +381,9 @@ def main():
             print(f"[aviso] secao do Portal falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_sec = transparencia.NAO_DEU
         secoes.update({i: html_sec for i in q["idx"]})
+    bens = carregar_bens()
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
-                                transparencia=secoes).items():
+                                transparencia=secoes, bens=bens).items():
         dados["alertas"][i]["dossie"] = cam
 
     cartoes, graficos_painel = "", {}
@@ -386,6 +398,7 @@ def main():
     paginas.copiar_estilo(docs)
     tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     html_painel = tpl.replace("/*DADOS*/null", json.dumps(dados, ensure_ascii=False))
+    html_painel = html_painel.replace("/*BENS*/null", json.dumps(bens, ensure_ascii=False))
     blocos = dict(CARTOES=cartoes, **graficos_painel)
     for marca, conteudo in blocos.items():
         html_painel = html_painel.replace(f"<!--{marca}-->", conteudo)
