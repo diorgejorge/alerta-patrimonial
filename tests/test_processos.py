@@ -16,6 +16,7 @@ def test_validacao():
     assert ap.validar("Fulano", "MG", "TJMG", "0000001-02.2024.8.13.0024", "https://www.jusbrasil.com.br/processos/1") == ""
     assert ap.validar("Fulano", "MG", "TJMG", "AP 1044", "https://www.escavador.com/processos/1") == ""
     assert "link" in ap.validar("Fulano", "MG", "TJMG", "AP 1044", "https://escavador.com.exemplo.net/x")  # dominio falso
+    assert ap.validar("Fulano", "MG", "TJMG", "AP 1044", "https://processorapido.com/processos/x/y/") == ""
     assert "formato" in ap.validar("Fulano", "MG", "STF", "qualquer coisa", STF)
     assert "link" in ap.validar("Fulano", "MG", "STF", "AP 1044", "http://portal.stf.jus.br/x")        # sem https
     assert "link" in ap.validar("Fulano", "MG", "STF", "AP 1044", "https://exemplo.com/processo")      # outro site

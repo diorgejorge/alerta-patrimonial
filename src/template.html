@@ -125,9 +125,9 @@ const NV={forte:"Muito acima do esperado",atencao:"Acima do esperado",informativ
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
 const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(REL(a.pagina)?` · <a class="lk" href="${esc(a.pagina)}">Dossiê</a>`:"")+(REL(a.dossie)?` · <a class="lk" href="${esc(a.dossie)}">Notícias</a>`:"")
-  +` · <a class="lk" href="${esc(PROC(a))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil e no Escavador; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`;
+  +` · <a class="lk" href="${esc(PROC(a))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`;
 // busca para o proprio leitor conferir processos pelo nome (o robo nao consulta esses sites)
-const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com)`);
+const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);
 const NIVEIS=["forte","atencao","informativo"];
 const F={partido:"",uf:"",cargo:"",regiao:"",conc:"",flag:""};
 const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar],renda:["Tem empresas declaradas",a=>a.outras_rendas],reu:["Responde a processo",a=>(a.processos||[]).length>0]};
