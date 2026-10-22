@@ -1,0 +1,124 @@
+/* Estilo comum do painel e das paginas por pessoa: celular primeiro (quebras em 600 e 1024 px),
+   tema claro/escuro automatico, contraste AA, foco visivel, menos movimento e impressao. */
+:root{color-scheme:light;
+  --bg:#f7f7f5;--fg:#1d2328;--mut:#5d6870;--line:#d9dcdd;--card:#fff;--realce:#eef1f2;
+  --forte:#a3261b;--atencao:#9a5800;--info:#3d5a73;--novo:#14532d;--link:#1f5b8a;
+  /* tags (paleta categorica fixa; o rotulo de texto sempre acompanha a cor) */
+  --t-politico:#2a78d6;--t-eleitoral:#eb6834;--t-legislativo:#1baf7a;--t-gestao:#eda100;
+  --t-patrimonial:#e87ba4;--t-judicial:#008300;--t-criminal:#6250d6;--t-outros:#7a7f84}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){color-scheme:dark;
+  --bg:#14181b;--fg:#e8ebec;--mut:#a7b1b8;--line:#2e363b;--card:#1b2024;--realce:#242b30;
+  --forte:#ff8a7d;--atencao:#f0b45c;--info:#8db3d1;--novo:#7fd9a0;--link:#8cc4f0;
+  --t-politico:#3987e5;--t-eleitoral:#d95926;--t-legislativo:#199e70;--t-gestao:#c98500;
+  --t-patrimonial:#d55181;--t-judicial:#008300;--t-criminal:#9085e9;--t-outros:#9aa0a5}}
+
+*,*::before,*::after{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:16px;overflow-wrap:anywhere}
+main{max-width:1100px;margin:0 auto}
+a{color:var(--link)}
+:focus-visible{outline:3px solid var(--link);outline-offset:2px;border-radius:2px}
+h1{font-size:1.5rem;line-height:1.25;margin:.4em 0 .2em}h2{font-size:1.15rem;margin:1.4em 0 .5em}h3{font-size:1rem;margin:1.2em 0 .4em}
+small,.mut{color:var(--mut)}
+.vazio{color:var(--mut);margin:.6em 0}
+.aviso{border-left:3px solid var(--atencao);padding:.4em .9em;color:var(--mut);max-width:75ch;margin:1em 0}
+.pular{position:absolute;left:-999px}.pular:focus{left:16px;top:8px;background:var(--card);padding:.6em 1em;z-index:9}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* blocos */
+.card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px 16px}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin:12px 0}
+.kpi b{display:block;font-size:1.5rem;font-weight:600;line-height:1.2}.kpi span{color:var(--mut);font-size:.875rem}
+.grade{display:grid;gap:12px;grid-template-columns:1fr}
+.botao,.chips button,.abas [role=tab]{min-height:44px;min-width:44px;font:inherit}
+.botao{display:inline-flex;align-items:center;gap:6px;padding:.5em .9em;border:1px solid var(--line);border-radius:6px;
+  background:var(--card);color:var(--fg);text-decoration:none}
+
+/* chips de nivel e de tag: simbolo + texto, nunca so cor */
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:.875rem;font-weight:600;
+  border:1px solid currentColor;line-height:1.6}
+.chip.nv-forte{color:var(--forte)}.chip.nv-atencao{color:var(--atencao)}.chip.nv-informativo{color:var(--info)}
+.chip[class*="tag-"]{font-weight:500;color:var(--fg);border-color:var(--tc,var(--line))}
+.chip[class*="tag-"]::before{content:"";width:.6em;height:.6em;border-radius:50%;background:var(--tc,var(--mut))}  /* cor so como marcador; texto em --fg (AA) */
+.tag-politico{--tc:var(--t-politico)}.tag-eleitoral{--tc:var(--t-eleitoral)}.tag-legislativo{--tc:var(--t-legislativo)}
+.tag-gestao{--tc:var(--t-gestao)}.tag-patrimonial{--tc:var(--t-patrimonial)}.tag-judicial{--tc:var(--t-judicial)}
+.tag-criminal{--tc:var(--t-criminal)}.tag-outros{--tc:var(--t-outros)}
+
+/* avatar com iniciais (alternativa a foto) */
+.avatar{flex:none;display:inline-grid;place-items:center;width:48px;height:48px;border-radius:50%;background:var(--realce);
+  color:var(--fg);font-weight:600;font-size:1rem;border:1px solid var(--line);overflow:hidden}
+.avatar.g{width:88px;height:88px;font-size:1.6rem}.avatar img{width:100%;height:100%;object-fit:cover}
+
+/* cartoes de pessoa */
+.pessoas{display:grid;gap:10px;grid-template-columns:1fr;list-style:none;padding:0;margin:12px 0}
+.pessoa{display:flex;gap:12px;align-items:center;min-height:44px;text-decoration:none;color:inherit}
+.pessoa:hover{border-color:var(--mut)}
+.pessoa .info{flex:1;min-width:0}.pessoa .nome{font-weight:600;display:block}
+.pessoa .mini{flex:none;width:96px;color:var(--fg)}
+
+/* tabelas: no celular viram cartoes (cada celula com o rotulo da coluna) */
+.tab{border:1px solid var(--line);border-radius:8px;background:var(--card);overflow-x:auto}
+table.g-tabela{border-collapse:collapse;width:100%}table.g-tabela th,table.g-tabela td{padding:.45em .7em;border-bottom:1px solid var(--line);text-align:left}
+table.g-tabela td,table.g-tabela tfoot th{text-align:right;font-variant-numeric:tabular-nums}table.g-tabela caption{text-align:left;padding:.5em .7em;color:var(--mut)}
+table.resp{border-collapse:collapse;width:100%}
+table.resp th,table.resp td{padding:.55em .8em;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+table.resp th{font-weight:600;color:var(--mut)}.n{text-align:right;font-variant-numeric:tabular-nums}
+@media (max-width:599.98px){
+  table.resp thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  table.resp tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}
+  table.resp td{display:flex;justify-content:space-between;gap:12px;border:0;padding:.3em .8em;text-align:right}
+  table.resp td::before{content:attr(data-label);color:var(--mut);text-align:left;font-weight:500}
+  table.resp td:first-child{display:block;text-align:left;font-weight:600}table.resp td:first-child::before{content:none}
+}
+
+/* abas: sem JS tudo aparece em sequencia */
+.abas [role=tablist]{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);margin:16px 0 0;
+  scrollbar-width:thin}
+.abas [role=tab]{background:none;border:0;border-bottom:3px solid transparent;color:var(--mut);padding:.5em .9em;
+  cursor:pointer;white-space:nowrap}
+.abas [role=tab][aria-selected=true]{color:var(--fg);border-bottom-color:var(--link);font-weight:600}
+.abas [role=tabpanel]{padding-top:8px}
+
+/* cabecalho da pessoa */
+.cab{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px}
+.cab .ficha{margin:.2em 0;color:var(--mut)}
+.voltar{display:inline-flex;align-items:center;min-height:44px}
+
+/* graficos SVG (classes do src/graficos.py) */
+svg{max-width:100%;height:auto;color:var(--fg)}
+svg .g-txt{fill:var(--fg)}svg .g-mut{fill:var(--mut)}svg .g-eixo{stroke:var(--line);fill:none}
+svg polyline.g-txt,svg path.g-txt,svg line.g-txt{fill:none;stroke:var(--fg)}
+svg .nv-forte{fill:var(--forte)}svg .nv-atencao{fill:var(--atencao)}svg .nv-informativo{fill:var(--info)}
+svg .g-hachura{color:var(--card)}svg .g-padrao{opacity:.45}  /* cor da hachura vem do <pattern>, nunca dar fill ao .g-padrao */
+svg .g-coluna{fill:var(--info)}.grafico{max-width:720px}
+svg .tag-politico{fill:var(--t-politico)}svg .tag-eleitoral{fill:var(--t-eleitoral)}svg .tag-legislativo{fill:var(--t-legislativo)}
+svg .tag-gestao{fill:var(--t-gestao)}svg .tag-patrimonial{fill:var(--t-patrimonial)}svg .tag-judicial{fill:var(--t-judicial)}
+svg .tag-criminal{fill:var(--t-criminal)}svg .tag-outros{fill:var(--t-outros)}
+details.alt{margin:.4em 0 1em}details.alt summary{cursor:pointer;color:var(--link);min-height:44px;display:flex;align-items:center}
+
+/* listas de noticias / itens */
+ul.nt{list-style:none;padding:0;margin:.4em 0;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+ul.nt li{padding:.6em .9em;border-bottom:1px solid var(--line)}ul.nt li:last-child{border-bottom:0}
+
+@media (min-width:600px){
+  body{padding:24px}
+  .kpis{grid-template-columns:repeat(4,1fr)}
+  .pessoas{grid-template-columns:repeat(2,1fr)}
+  .grade.duas{grid-template-columns:repeat(2,1fr)}
+}
+@media (min-width:1024px){
+  .pessoas{grid-template-columns:repeat(3,1fr)}
+  h1{font-size:1.75rem}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media print{
+  :root{color-scheme:light}
+  body{background:#fff;color:#000;padding:0;font-size:11pt}
+  .abas [role=tablist],.voltar,.pular,.nao-imprimir,details.alt summary{display:none}
+  .abas [role=tabpanel]{display:block!important}
+  details.alt{display:block}details.alt>*{display:block}
+  .card,.tab,ul.nt{border-color:#999}
+  a{color:#000}a[href^="http"]::after{content:" (" attr(href) ")";font-size:.8em;word-break:break-all}
+  h2{break-after:avoid}tr,li,.card{break-inside:avoid}
+}
