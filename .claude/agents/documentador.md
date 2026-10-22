@@ -17,7 +17,7 @@ português, curto e direto, no mesmo estilo dos textos que já existem.
    - `"/c/Program Files/GitHub CLI/gh.exe" issue list --state all --limit 15` (issues abertas e fechadas recentes);
    - `"/c/Program Files/GitHub CLI/gh.exe" release list --limit 3` (última versão);
    - `"/c/Program Files/GitHub CLI/gh.exe" run list --limit 6` (testes e publicação passaram?).
-2. **Atualize o `REFERENCIA.md`** (raiz do repositório), mexendo só no que mudou:
+2. **Atualize o `REFERENCIA.md`** (raiz da pasta local; fica fora do git e não é público, #37), mexendo só no que mudou:
    - §2 Arquivos: módulos, configs e workflows novos ou removidos;
    - §4 Segredos e §5 Workflows: segredos, variáveis e gatilhos novos ou removidos;
    - §6 Fontes: o que foi descoberto na prática (bloqueios, limites, formatos);
@@ -31,7 +31,8 @@ português, curto e direto, no mesmo estilo dos textos que já existem.
    - `alerta-patrimonial-preferencias.md`: só se o usuário deu uma regra nova de como trabalhar;
    - não duplique o que já está no REFERENCIA.md ou no histórico do git; mantenha `MEMORY.md` com uma linha por
      arquivo.
-4. **Faça um commit só de documentação** com `git add REFERENCIA.md` e mensagem
+4. **Nunca versione o `REFERENCIA.md`** (está no `.gitignore`; não use `git add -f`). Se o ciclo mudou outro documento
+   versionado (ex.: `README.md`), faça um commit só de documentação com mensagem
    `Documenta o ciclo: <resumo>` + `Refs #N` das issues do ciclo + a linha
    `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; depois `git pull --rebase` e `git push`.
 5. **Responda** com 3 a 6 linhas: o que foi registrado, a versão atual e as pendências que continuam abertas.

@@ -59,7 +59,7 @@ Para remover uma fonte, apague a linha do CSV.
 - **Fotos:** ainda não usadas. Só entrarão de fontes oficiais (Câmara, Senado, TSE), depois de confirmados os termos de uso; até lá, avatar com iniciais.
 
 ## Privacidade, finalidade e base legal
-Detalhes, registro das operações (art. 37) e pendências: [REFERENCIA.md](REFERENCIA.md).
+O registro das operações de tratamento (art. 37) é mantido pelo responsável e fica disponível mediante solicitação.
 
 **Rascunho, precisa de revisão jurídica antes de divulgar o site.**
 - **Finalidade:** controle social e interesse público sobre a evolução patrimonial de pessoas que disputam ou exercem cargos eletivos, a partir de dados que a lei já obriga a tornar públicos. O site aponta **indícios para acompanhamento**, com os mesmos critérios para todas as pessoas, e não afirma irregularidade.
