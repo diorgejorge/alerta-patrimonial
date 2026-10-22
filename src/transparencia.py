@@ -301,6 +301,9 @@ def coletar(pessoas, tempo_max=45 * 60, chave_api=None):
     api = Api(chave_api, time.monotonic() + tempo_max)
     out = {}
     print(f"Portal da Transparencia: consultando {len(pessoas)} pessoas pela API...")
+    if api.pausa() > 0.5:
+        print("[aviso] Portal da Transparencia: fora da faixa 0h-6h (Brasilia) a API aceita menos consultas por "
+              "minuto; esta etapa leva cerca de 3x mais que na execucao agendada da madrugada.")
     for n, (k, p) in enumerate(pessoas.items(), 1):
         if n % 20 == 0:
             print(f"  {n}/{len(pessoas)} pessoas, {api.req} consultas, {api.falhas} falhas")

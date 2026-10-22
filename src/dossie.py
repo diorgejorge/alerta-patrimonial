@@ -476,7 +476,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp=""):
 
 
 # ---------------------------------------------------------------- entrada
-def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=1.0, timeout=20,
+def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, timeout=20,
                   tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=(), transparencia=None):
     """Gera destino/dossie/<slug>.html por pessoa (nome+UF) e devolve {indice_da_linha: "dossie/<slug>.html"}.
     Noticias so para as primeiras max_pessoas (ordem de `alertas`); as demais saem sem busca automatica.
