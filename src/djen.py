@@ -10,7 +10,7 @@ from pathlib import Path
 
 API = "https://comunicaapi.pje.jus.br/api/v1/comunicacao"
 UA = "alerta-patrimonial/1.0"
-POR_PAGINA, MAX_PAGINAS, PAUSA = 100, 10, 0.5
+POR_PAGINA, MAX_PAGINAS, PAUSA = 100, 10, 3.2  # o DJEN aceita 20 consultas por minuto (X-RateLimit-Limit)
 SUPERIORES = {"STF", "STJ", "TST", "TSE", "STM"}
 TRF = {**dict.fromkeys("AC AM AP BA DF GO MA MT PA PI RO RR TO".split(), "TRF1"), "RJ": "TRF2", "ES": "TRF2",
        "SP": "TRF3", "MS": "TRF3", "RS": "TRF4", "SC": "TRF4", "PR": "TRF4",
