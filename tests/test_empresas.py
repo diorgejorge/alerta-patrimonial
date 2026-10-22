@@ -6,6 +6,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import empresas  # noqa: E402
+import cifra  # noqa: E402
 
 A = "12345678000190"          # pedida, matriz
 A_FILIAL = "12345678000270"   # mesma raiz, nao pedida
@@ -47,6 +48,7 @@ ARQUIVOS = {
 def receita(monkeypatch):
     """Simula a Receita: listagem do mes e downloads geram os zips sinteticos; conta quantos grandes foram baixados."""
     chamadas = {"grandes": 0, "falhar": None}
+    monkeypatch.setenv("ID_SEGREDO", "segredo-de-teste")  # o cache so e gravado cifrado (cifra.py)
     monkeypatch.setattr(empresas, "_mes", lambda: ("2026-10", {n: 1 for n in empresas.NECESSARIOS}))
 
     def baixar(url, dest):
@@ -75,7 +77,9 @@ def test_coleta_filtra_e_usa_cache(tmp_path, receita, capsys):
                         capital=2000000.0, situacao="ativa")
     assert r[MEI]["cnae"] == "0151201" and r[MEI]["situacao"] == "inapta" and r[MEI]["capital"] == 1234.56
     assert receita["grandes"] == 20
-    salvo = json.loads((tmp_path / "cnpj_receita.json").read_text(encoding="utf-8"))
+    bruto = (tmp_path / "cnpj_receita.json").read_bytes()
+    assert bruto[:4] == cifra.MAGIA and A.encode() not in bruto  # cifrado: nenhum CNPJ legivel no arquivo
+    salvo = json.loads(cifra.ler(tmp_path / "cnpj_receita.json"))
     assert salvo["ref"] == "2026-10" and set(salvo["dados"]) == {A, MEI}
     assert B not in json.dumps(salvo) and A_FILIAL not in json.dumps(salvo)
     assert "contato@" not in json.dumps(salvo)  # contato/endereco nunca sao guardados

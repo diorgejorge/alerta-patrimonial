@@ -50,21 +50,24 @@ def test_nenhum_cpf_publicado(saida):
 
 
 def test_ids_internos(saida):
-    mapa = json.loads((saida / "data" / "ids.json").read_text())
+    import cifra
+    assert all(p.read_bytes()[:4] == cifra.MAGIA for p in (saida / "data").glob("*.json"))  # salvos cifrados
+    mapa = json.loads(cifra.ler(saida / "data" / "ids.json", "segredo-de-teste"))
     assert mapa and all(re.fullmatch(r"[0-9a-f]{24}", k) for k in mapa)
     assert all(re.fullmatch(r"p\d{4}", v) for v in mapa.values())
     assert len(set(mapa.values())) == len(mapa)
     paginas = sorted(p.name for p in (saida / "docs" / "pessoa").glob("*.html"))
     assert paginas and all(re.fullmatch(r"p\d{4}\.html", n) for n in paginas)
-    estado = json.loads((saida / "data" / "estado.json").read_text())
+    estado = json.loads(cifra.ler(saida / "data" / "estado.json", "segredo-de-teste"))
     assert estado and all(re.match(r"p\d{4}\|\d{4}-\d{4}$", k) for k in estado)
 
 
 def test_ids_estaveis(tmp_path, monkeypatch):
     rodar(tmp_path, monkeypatch, ID_SEGREDO="s1")
-    antes = json.loads((tmp_path / "data" / "ids.json").read_text())
+    import cifra
+    antes = json.loads(cifra.ler(tmp_path / "data" / "ids.json", "s1"))
     rodar(tmp_path, monkeypatch, ID_SEGREDO="s1")
-    assert json.loads((tmp_path / "data" / "ids.json").read_text()) == antes
+    assert json.loads(cifra.ler(tmp_path / "data" / "ids.json", "s1")) == antes
 
 
 class Verificador(html.parser.HTMLParser):

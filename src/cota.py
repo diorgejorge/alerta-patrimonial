@@ -3,7 +3,8 @@ da atividade parlamentar, por ano e por tipo de despesa. Fontes oficiais, arquiv
   Camara: https://www.camara.leg.br/cotas/Ano-AAAA.csv.zip (tem CPF: liga com a declaracao do TSE)
   Senado: https://www.senado.leg.br/transparencia/LAI/verba/despesa_ceaps_AAAA.csv (so o nome do senador)
 O CPF so serve para ligar as bases aqui dentro; nunca vai para o site. Fornecedores tambem nao sao exibidos."""
-import html, re, sys, unicodedata, urllib.error, urllib.request, zipfile
+import html, io, re, sys, unicodedata, urllib.error, urllib.request, zipfile
+import cifra
 from pathlib import Path
 import pandas as pd
 
@@ -27,32 +28,19 @@ def brl(v):
 
 
 def baixar(url, dest):
-    """Copia em data/cache; so baixa de novo se o servidor disser que mudou (If-Modified-Since)."""
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    marca = dest.with_suffix(dest.suffix + ".modificado")
-    cab = {"User-Agent": UA}
-    if dest.exists() and marca.exists():
-        cab["If-Modified-Since"] = marca.read_text().strip()
-    try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=cab), timeout=300) as r:
-            tmp = dest.with_suffix(".parcial")
-            with open(tmp, "wb") as f:
-                while bloco := r.read(1 << 20):
-                    f.write(bloco)
-            tmp.replace(dest)
-            if r.headers.get("Last-Modified"):
-                marca.write_text(r.headers["Last-Modified"])
-    except urllib.error.HTTPError as ex:
-        if ex.code != 304:
-            print(f"[aviso] cota parlamentar: {url} ({ex})", file=sys.stderr)
-    except Exception as ex:
-        print(f"[aviso] cota parlamentar: {url} ({ex})", file=sys.stderr)
-    return dest if dest.exists() else None
+    """Conteudo (bytes) do arquivo anual, guardado cifrado em data/cache (cifra.py); so baixa de novo se o servidor
+    disser que mudou (If-Modified-Since)."""
+    return cifra.baixar(url, dest, cab={"User-Agent": UA})
+
+
+def _bytes(x):
+    """Bytes do arquivo: aceita o conteudo ja lido ou um caminho (testes)."""
+    return bytes(x) if isinstance(x, (bytes, bytearray)) else Path(x).read_bytes()
 
 
 def ler_camara(path):
     """Linhas de despesa da Camara: cpf (so digitos), id, ano, tipo, valor liquido."""
-    with zipfile.ZipFile(path) as z:
+    with zipfile.ZipFile(io.BytesIO(_bytes(path))) as z:
         nome = next(n for n in z.namelist() if n.lower().endswith(".csv"))
         df = pd.read_csv(z.open(nome), sep=";", dtype=str, encoding="utf-8-sig", keep_default_na=False,
                          usecols=["cpf", "ideCadastro", "nuDeputadoId", "numAno", "txtDescricao", "vlrLiquido"])
@@ -65,7 +53,7 @@ def ler_camara(path):
 
 def ler_senado(path):
     """Linhas de despesa do Senado: nome do senador (normalizado), ano, tipo, valor reembolsado."""
-    bruto = path.read_bytes()
+    bruto = _bytes(path)
     txt = bruto.decode("utf-8") if bruto[:3] == b"\xef\xbb\xbf" or _utf8(bruto) else bruto.decode("latin-1")
     linhas = txt.splitlines()
     ini = next((i for i, l in enumerate(linhas[:5]) if l.startswith('"ANO"')), 0)

@@ -3,15 +3,16 @@ dos dados abertos oficiais do CNPJ da Receita Federal (arquivos mensais, CSV sem
   https://arquivos.receitafederal.gov.br/index.php/s/YggdBLfdninEJX9 (pasta AAAA-MM com Empresas0..9.zip,
   Estabelecimentos0..9.zip e Cnaes.zip; acesso por WebDAV publico em /public.php/webdav/AAAA-MM/...)
 Os arquivos grandes (~7 GB por mes) sao baixados um por vez em pasta temporaria (fora de data/cache, que vai para o
-actions/cache), lidos em blocos e apagados; so fica guardado data/cache/cnpj_receita.json com as poucas empresas
+actions/cache), lidos em blocos e apagados; so fica guardado data/cache/cnpj_receita.json (cifrado, cifra.py) com as poucas empresas
 procuradas. O CNPJ so serve para cruzar as bases aqui dentro: nunca vai para o site nem para o log.
 Faturamento nao e publico: nada aqui diz se a renda e compativel; e ponto de partida para pesquisar."""
-import base64, html, json, math, re, shutil, sys, tempfile, threading, time
+import base64, html, io, json, math, re, shutil, sys, tempfile, threading, time
 import urllib.error, urllib.parse, urllib.request, zipfile
 import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import pandas as pd
+import cifra
 
 COMPARTILHAMENTO = "YggdBLfdninEJX9"  # link publico da Receita (SERPRO+/Nextcloud)
 WEBDAV = "https://arquivos.receitafederal.gov.br/public.php/webdav/"
@@ -79,25 +80,9 @@ def _mes():
 
 
 def baixar(url, dest):
-    """Arquivo pequeno (Cnaes.zip) em data/cache; so baixa de novo se o servidor disser que mudou."""
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    marca = dest.with_suffix(dest.suffix + ".modificado")
-    cab = _cab()
-    if dest.exists() and marca.exists():
-        cab["If-Modified-Since"] = marca.read_text().strip()
-    try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=cab), timeout=120) as r:
-            tmp = dest.with_suffix(".parcial")
-            tmp.write_bytes(r.read())
-            tmp.replace(dest)
-            if r.headers.get("Last-Modified"):
-                marca.write_text(r.headers["Last-Modified"])
-    except urllib.error.HTTPError as ex:
-        if ex.code != 304:
-            _aviso(f"{url.rsplit('/', 1)[-1]} ({ex})")
-    except Exception as ex:
-        _aviso(f"{url.rsplit('/', 1)[-1]} ({ex!r})")
-    return dest if dest.exists() else None
+    """Arquivo pequeno (Cnaes.zip) em bytes, guardado cifrado em data/cache (cifra.py); so baixa de novo se o
+    servidor disser que mudou."""
+    return cifra.baixar(url, dest, cab=_cab(), timeout=120)
 
 
 def _faixa(url, dest, ini, fim):
@@ -139,7 +124,7 @@ def _baixar_grande(url, tamanho, dest):
 
 def _ler(caminho, cols):
     """Blocos (DataFrame, colunas = posicoes) do CSV dentro do zip, lido em streaming."""
-    with zipfile.ZipFile(caminho) as z:
+    with zipfile.ZipFile(io.BytesIO(caminho) if isinstance(caminho, (bytes, bytearray)) else caminho) as z:
         nome = next(n for n in z.namelist() if not n.endswith("/"))
         with z.open(nome) as f:
             try:
@@ -210,18 +195,15 @@ def _data(s):
 
 def _carregar(arq):
     try:
-        j = json.loads(arq.read_text(encoding="utf-8"))
+        j = json.loads(cifra.ler(arq) or b"{}")  # cifrado (cifra.py): tem CNPJs
         return dict(ref=j.get("ref"), procurados=set(j.get("procurados") or []), dados=j.get("dados") or {})
     except Exception:
         return dict(ref=None, procurados=set(), dados={})
 
 
 def _salvar(arq, ref, procurados, dados):
-    arq.parent.mkdir(parents=True, exist_ok=True)
-    tmp = arq.with_suffix(".parcial")
-    tmp.write_text(json.dumps(dict(ref=ref, procurados=sorted(procurados), dados=dados), ensure_ascii=False),
-                   encoding="utf-8")
-    tmp.replace(arq)
+    cifra.gravar(arq, json.dumps(dict(ref=ref, procurados=sorted(procurados), dados=dados),
+                                 ensure_ascii=False).encode())  # cifrado: tem CNPJs
 
 
 def _varrer(ref, arqs, alvo, cache):

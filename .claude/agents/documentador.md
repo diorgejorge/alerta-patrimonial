@@ -35,6 +35,9 @@ português, curto e direto, no mesmo estilo dos textos que já existem.
    `Documenta o ciclo: <resumo>` + `Refs #N` das issues do ciclo + a linha
    `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`; depois `git pull --rebase` e `git push`.
 5. **Responda** com 3 a 6 linhas: o que foi registrado, a versão atual e as pendências que continuam abertas.
+6. **Depois da sua resposta**, a sessão principal limpa o contexto da conversa (pedido do usuário em 2026-10-22):
+   por isso o `REFERENCIA.md` e a memória precisam bastar para continuar o trabalho do zero. Se faltar algo que só
+   existe na conversa (decisão, pendência, motivo), registre antes de responder.
 
 ## Regras
 

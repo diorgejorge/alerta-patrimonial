@@ -1,8 +1,9 @@
 """Identificador interno estavel por pessoa, sem CPF.
 A chave da pessoa (cpf:... ou nn:NOME|NASCIMENTO) passa por HMAC-SHA256 com o segredo ID_SEGREDO;
-so o HMAC e gravado (data/ids.json), mapeado para um codigo curto sequencial (p0001, p0002...).
+so o HMAC e gravado (data/ids.json, cifrado com cifra.py), mapeado para um codigo curto sequencial (p0001, p0002...).
 Sem o segredo nao ha como gerar ids seguros: hash simples de CPF e reversivel por forca bruta."""
 import hashlib, hmac, json, re
+import cifra
 from pathlib import Path
 
 
@@ -43,9 +44,9 @@ def varrer(pasta, cpfs=()):
 class Ids:
     def __init__(self, arquivo, segredo):
         self.arquivo, self.segredo = Path(arquivo), segredo
-        try:
-            self.mapa = json.loads(self.arquivo.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        try:  # cifrado (cifra.py); o arquivo antigo em texto puro e lido uma vez e regravado cifrado em salvar()
+            self.mapa = json.loads(cifra.ler(self.arquivo, segredo, aceitar_puro=True) or b"{}")
+        except ValueError:
             self.mapa = {}
         nums = [int(v[1:]) for v in self.mapa.values() if re.fullmatch(r"p\d+", v)]
         self.proximo = max(nums, default=0) + 1
@@ -59,5 +60,4 @@ class Ids:
         return self.mapa[h]
 
     def salvar(self):
-        self.arquivo.parent.mkdir(parents=True, exist_ok=True)
-        self.arquivo.write_text(json.dumps(self.mapa, indent=0, sort_keys=True), encoding="utf-8")
+        cifra.gravar(self.arquivo, json.dumps(self.mapa, indent=0, sort_keys=True).encode(), self.segredo)

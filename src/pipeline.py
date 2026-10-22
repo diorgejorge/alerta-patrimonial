@@ -2,7 +2,7 @@
 """Alerta patrimonial: compara o crescimento do patrimonio declarado ao TSE entre
 eleicoes com a capacidade de acumulacao estimada e com o grupo de pares.
 Resultado = INDICIO para acompanhamento, nao prova."""
-import argparse, io, json, os, re, sys, unicodedata, urllib.request, urllib.parse, zipfile
+import argparse, hashlib, io, json, os, re, sys, unicodedata, urllib.request, urllib.parse, zipfile
 import datetime as dt
 from pathlib import Path
 import pandas as pd
@@ -13,6 +13,7 @@ import exemplares
 import empresas
 from ids import Ids, varrer
 from cache import Cache
+import cifra
 import paginas
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -66,41 +67,15 @@ def link_tse(r):
 
 # ---------------------------------------------------------------- coleta TSE
 def baixar(tipo, ano):
-    """Zip do TSE em data/cache (guardado entre execucoes pelo actions/cache). Ano corrente muda:
-    pergunta ao TSE se o arquivo mudou (If-Modified-Since) e so baixa de novo se mudou."""
-    dest = CACHE / f"{tipo}_{ano}.zip"
-    if dest.exists() and ano < dt.date.today().year:
-        return dest
-    CACHE.mkdir(parents=True, exist_ok=True)
-    url = f"{BASE}/{tipo}/{tipo}_{ano}.zip"
-    marca = dest.with_suffix(".modificado")  # Last-Modified da ultima copia baixada
-    cab = {"User-Agent": "alerta-patrimonial/1.0"}
-    if dest.exists() and marca.exists():
-        cab["If-Modified-Since"] = marca.read_text().strip()
-    try:
-        req = urllib.request.Request(url, headers=cab)
-        with urllib.request.urlopen(req, timeout=300) as r:
-            tmp = dest.with_suffix(".parcial")
-            with open(tmp, "wb") as f:
-                while bloco := r.read(1 << 20):
-                    f.write(bloco)
-            tmp.replace(dest)
-            if r.headers.get("Last-Modified"):
-                marca.write_text(r.headers["Last-Modified"])
-        return dest
-    except urllib.error.HTTPError as e:
-        if e.code == 304:  # nao mudou desde a copia guardada
-            return dest
-        print(f"[aviso] {url} indisponivel: {e}", file=sys.stderr)
-        return dest if dest.exists() else None
-    except Exception as e:
-        print(f"[aviso] {url} indisponivel: {e}", file=sys.stderr)
-        return dest if dest.exists() else None
+    """Zip do TSE (bytes), guardado cifrado em data/cache (cifra.py). Anos passados nao mudam: usa a copia sem
+    acessar a rede; o ano corrente pergunta ao TSE se o arquivo mudou (If-Modified-Since)."""
+    return cifra.baixar(f"{BASE}/{tipo}/{tipo}_{ano}.zip", CACHE / f"{tipo}_{ano}.zip",
+                        perguntar=ano >= dt.date.today().year)
 
 
-def ler_zip(path):
-    """Le o CSV nacional (_BRASIL) ou, se nao houver, concatena os CSVs por UF."""
-    with zipfile.ZipFile(path) as z:
+def ler_zip(dados):
+    """Le o CSV nacional (_BRASIL) ou, se nao houver, concatena os CSVs por UF. `dados`: bytes do zip ou caminho."""
+    with zipfile.ZipFile(io.BytesIO(dados) if isinstance(dados, (bytes, bytearray)) else dados) as z:
         csvs = [n for n in z.namelist() if n.lower().endswith(".csv")]
         alvo = [n for n in csvs if "_BRASIL" in n.upper()] or csvs
         dfs = [pd.read_csv(z.open(n), sep=";", encoding="latin-1", dtype=str,
@@ -157,7 +132,7 @@ def serie_tse(anos, cache=None):
         zb, zc = baixar("bem_candidato", ano), baixar("consulta_cand", ano)
         if not zb or not zc:
             continue
-        assinatura = (VERSAO_LEITURA_TSE, int(ano), *((f.stat().st_size, int(f.stat().st_mtime)) for f in (zb, zc)))
+        assinatura = (VERSAO_LEITURA_TSE, int(ano), *(hashlib.sha256(z).hexdigest()[:16] for z in (zb, zc)))
         lido = cache.get(assinatura) if cache else None
         if lido is not None:
             print(f"TSE {ano}: declaracoes ja lidas (cache, arquivo do TSE sem mudanca).")
@@ -387,6 +362,8 @@ def main():
 
     # cache incremental entre execucoes (data/cache, actions/cache): so com ID_SEGREDO, que assina e cifra
     seg_cache = None if args.demo else os.getenv("ID_SEGREDO")
+    if seg_cache:  # tudo que fica salvo e cifrado (cifra.py): sobras em texto puro de execucoes antigas saem
+        cifra.limpar_puros(CACHE)
     caches = dict(tse=Cache(CACHE / "tse_lido.cache", 400 * 86400, seg_cache, cifrar=True),
                   portal=Cache(CACHE / "portal.cache", 7 * 86400, seg_cache, cifrar=True),
                   noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache)) if seg_cache else {}
@@ -400,8 +377,9 @@ def main():
     alertas = df[df.nivel.notna()].copy()
 
     # memoria de alertas por id interno (versoes antigas usavam o CPF na chave: sao descartadas)
-    try:
-        estado = {k: v for k, v in json.loads(estado_arq.read_text()).items() if re.match(r"p\d+\|", k)}
+    try:  # cifrado (cifra.py); o arquivo antigo em texto puro e lido uma vez e regravado cifrado no fim
+        bruto = cifra.ler(estado_arq, segredo, aceitar_puro=True) if segredo else None
+        estado = {k: v for k, v in json.loads(bruto or b"{}").items() if re.match(r"p\d+\|", k)}
     except (OSError, ValueError):
         estado = {}
     alertas["pessoa"] = alertas.chave.map(pid) if pid else None
@@ -541,7 +519,7 @@ def main():
     (docs / "index.html").write_text(html_painel, encoding="utf-8")
     if pid:
         dados_dir.mkdir(parents=True, exist_ok=True)
-        estado_arq.write_text(json.dumps({r.id: r.nivel for r in alertas.itertuples()}, ensure_ascii=False))
+        cifra.gravar(estado_arq, json.dumps({r.id: r.nivel for r in alertas.itertuples()}, ensure_ascii=False).encode(), segredo)
         pid.salvar()
 
     novos = vis[vis.novo]
