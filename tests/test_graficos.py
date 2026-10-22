@@ -109,7 +109,7 @@ def test_brl_compacto():
     assert g.brl_compacto(999_960) == "R$ 1 mi"
     assert g.brl_compacto(3_400_000_000) == "R$ 3,4 bi"
     assert g.brl_compacto(-2_500_000) == "-R$ 2,5 mi"
-    assert g.brl_compacto(float("nan")) == "—"
+    assert g.brl_compacto(float("nan")) == "Não informado"
     assert g.inteiro(12345) == "12.345"
 
 

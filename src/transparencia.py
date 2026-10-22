@@ -212,7 +212,7 @@ def recursos(api, codigo):
         return None
     por = {}
     for d in dados:
-        org = d.get("nomeOrgaoSuperior") or d.get("nomeOrgao") or "—"
+        org = d.get("nomeOrgaoSuperior") or d.get("nomeOrgao") or "Não informado"
         por[org] = por.get(org, 0.0) + _num(d.get("valor"))
     return sorted(por.items(), key=lambda kv: kv[1], reverse=True)
 
@@ -266,7 +266,7 @@ def emendas(api, nomes):
                 doc = doc[0] if doc else None
             if not isinstance(doc, dict):
                 continue
-            nome = _favorecido(doc) or "—"
+            nome = _favorecido(doc) or "Não informado"
             favs[nome] = favs.get(nome, 0.0) + _num(doc.get("valor") if doc.get("valor") is not None else doc.get("valorDocumento"))
     return dict(nome_autor=lista[0].get("nomeAutor") or "", anos=sorted(por_ano.items(), key=lambda kv: kv[0] or 0, reverse=True),
                 top=top, favorecidos=sorted(favs.items(), key=lambda kv: kv[1], reverse=True)[:MAX_FAV],
@@ -332,7 +332,7 @@ def secao(r, nome):
         return ('<p class="vazio">Não consultado: falta configurar a chave da API do Portal da Transparência '
                 '(TRANSPARENCIA_TOKEN).</p>')
     if r.get("pendente") == "tempo":
-        return '<p class="vazio">Consulta ao Portal da Transparência não realizada nesta execução (limite de tempo).</p>'
+        return '<p class="vazio"><b>Não informado</b>: consulta ao Portal da Transparência não realizada nesta execução (limite de tempo).</p>'
     if r.get("pendente"):
         return NAO_DEU
     partes = []
@@ -353,8 +353,8 @@ def secao(r, nome):
                                     f'<td class="n">{brl(v[1])}</td></tr>' for a, v in em["anos"]) + "</tbody></table></div>")
             partes.append("<p><b>Maiores emendas</b></p><ul class=\"nt\">" + "".join(
                 f'<li><a href="{_link("/emendas/consulta", codigoEmenda=d.get("codigoEmenda") or "")}"'
-                f' target="_blank" rel="noopener">{e(str(d.get("ano")))} · {e(d.get("funcao") or "—")} / {e(d.get("subfuncao") or "—")}</a>'
-                f'<br><small>{e(d.get("localidadeDoGasto") or "—")} · pago {brl(_num(d.get("valorPago")))}</small></li>'
+                f' target="_blank" rel="noopener">{e(str(d.get("ano")))} · {e(d.get("funcao") or "Não informado")} / {e(d.get("subfuncao") or "Não informado")}</a>'
+                f'<br><small>{e(d.get("localidadeDoGasto") or "Não informado")} · pago {brl(_num(d.get("valorPago")))}</small></li>'
                 for d in em["top"]) + "</ul>")
             if em["favorecidos"]:
                 partes.append(f"<p><b>Quem recebeu os pagamentos</b> (das {min(len(em['top']), MAX_DOCS_EMENDAS)} maiores emendas)</p>"
@@ -399,15 +399,15 @@ def secao(r, nome):
     return "".join(partes) or '<p class="vazio">Nada a consultar para esta pessoa.</p>'
 
 
-NAO_DEU = ('<p class="vazio"><b>Indisponível</b>: a API do Portal da Transparência não respondeu nesta execução. '
+NAO_DEU = ('<p class="vazio"><b>Fonte não encontrada</b>: a API do Portal da Transparência não respondeu nesta execução. '
            f'Consulte direto no <a href="{SITE}" target="_blank" rel="noopener">Portal da Transparência</a>.</p>')
 
 
 def _beneficio(b):
     if b["erro"]:
-        return "consta no CPF · detalhe indisponível nesta execução"
+        return "consta no CPF · detalhe: fonte não encontrada nesta execução"
     if b["total"] is None or not b["meses"]:
-        return "consta no CPF (detalhe não disponível na API)"
+        return "consta no CPF · detalhe não informado pela API"
     return f'{len(b["meses"])} mês(es), de {e(b["meses"][0])} a {e(b["meses"][-1])} · {brl(b["total"])}'
 
 

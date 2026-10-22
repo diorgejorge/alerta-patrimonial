@@ -23,8 +23,8 @@ MAX_FALHAS = 5         # falhas seguidas numa fonte: para de buscar nela (provav
 MAX_EMPRESAS = 5       # empresas exibidas por pessoa
 MAX_BUSCA_EMP = 3      # empresas pesquisadas por pessoa
 MAX_PAGINA = 2_000_000  # bytes lidos de cada materia
-FALHA = "Não foi possível buscar notícias agora."
-SEM_TEMPO = "Busca automática não realizada nesta execução (limite de tempo)."
+FALHA = "Fonte não encontrada: as fontes de notícias não responderam nesta execução."
+SEM_TEMPO = "Não informado: busca não realizada nesta execução (limite de tempo)."
 TEMAS = '(patrimônio OR investigação OR denúncia OR TCU OR "Polícia Federal" OR "Ministério Público")'
 NV = {"forte": "Forte", "atencao": "Atenção", "informativo": "Informativo"}
 ONDE = {"titulo": "no título", "resumo": "no resumo", "texto": "no texto"}
@@ -59,7 +59,7 @@ def nulo(v):
 
 
 def brl(v):
-    return "—" if nulo(v) else "R$ " + f"{v:,.0f}".replace(",", ".")
+    return "Não informado" if nulo(v) else "R$ " + f"{v:,.0f}".replace(",", ".")
 
 
 def url_ok(u):
@@ -441,9 +441,9 @@ def bloco_empresas(empresas):
 
 
 def periodo(a):
-    rz = "—" if nulo(a.get("razao")) else f"{a['razao']:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
+    rz = "Não informado" if nulo(a.get("razao")) else f"{a['razao']:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
     p = a.get("percentil")
-    pc = ("—" if nulo(p) else "o maior<br><small>do grupo</small>" if p >= 99.5
+    pc = ("Não informado" if nulo(p) else "o maior<br><small>do grupo</small>" if p >= 99.5
           else f"acima de {p:.0f}%<br><small>dos colegas</small>")  # mesmo texto do painel
     nv = a.get("nivel") or ""
     novo = ' <span class="novo">novo</span>' if a.get("novo") else ""

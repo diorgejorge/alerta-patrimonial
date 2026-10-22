@@ -13,15 +13,15 @@ e = html.escape
 
 
 def brl(v):
-    return "—" if v is None else "R$ " + f"{v:,.0f}".replace(",", ".")
+    return "Não informado" if v is None else "R$ " + f"{v:,.0f}".replace(",", ".")
 
 
 def vezes(v):
-    return "—" if v is None else f"{v:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
+    return "Não informado" if v is None else f"{v:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
 
 
 def colegas(p):
-    return "—" if p is None else "o maior do grupo" if p >= 99.5 else f"acima de {p:.0f}% dos colegas"
+    return "Não informado" if p is None else "o maior do grupo" if p >= 99.5 else f"acima de {p:.0f}% dos colegas"
 
 
 def chip_nivel(nv):
@@ -88,7 +88,7 @@ def _tabela_periodos(linhas):
 def _resumo(linhas):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("cresc") or 0))
     rz = max((a["razao"] for a in linhas if a.get("razao") is not None), default=None)
-    kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "—"), "Nível mais alto"),
+    kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "Não informado"), "Nível mais alto"),
             (brl(topo.get("cresc")), f"Crescimento em {topo.get('ano_ini')}–{topo.get('ano_fim')}"),
             (vezes(rz), "Maior “quantas vezes o possível”"),
             (str(len(linhas)), "Períodos em alerta")]
@@ -204,7 +204,7 @@ def copiar_estilo(docs):
                 CONTATO=(f'<a href="mailto:{e(contato)}">{e(contato)}</a>' if "@" in contato else e(contato)) or falta,
                 ENCARREGADO=(e(enc) + (f' · {e(cfg.get("contato_encarregado", "").strip())}'
                                         if cfg.get("contato_encarregado", "").strip() else "")) or falta,
-                ATUALIZADO=e(cfg.get("atualizado_em", "").strip() or "—"))
+                ATUALIZADO=e(cfg.get("atualizado_em", "").strip() or "Não informado"))
     tpl = (SRC / "privacidade.html").read_text(encoding="utf-8")
     (Path(docs) / "privacidade.html").write_text(re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl),
                                                  encoding="utf-8")

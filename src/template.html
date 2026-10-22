@@ -77,7 +77,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 </main>
 <script>
 const D=/*DADOS*/null;
-const R=v=>v==null?"—":"R$ "+Math.round(v).toLocaleString("pt-BR");
+const R=v=>v==null?"Não informado":"R$ "+Math.round(v).toLocaleString("pt-BR");
 const NV={forte:"Forte",atencao:"Atenção",informativo:"Informativo"};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
@@ -95,7 +95,7 @@ function filtra(ign){
 }
 function agrupa(rows,dim,max){
   const g={};
-  for(const a of rows){const k=a[dim]||"—";const o=g[k]??={k,n:0,cresc:0,forte:0,atencao:0,informativo:0};o.n++;o[a.nivel]++;o.cresc+=a.cresc||0;}
+  for(const a of rows){const k=a[dim]||"Não informado";const o=g[k]??={k,n:0,cresc:0,forte:0,atencao:0,informativo:0};o.n++;o[a.nivel]++;o.cresc+=a.cresc||0;}
   let l=Object.values(g).sort((x,y)=>y.n-x.n||y.cresc-x.cresc);
   if(max&&l.length>max){const r=l.slice(max),o={k:"Outros",outros:true,n:0,cresc:0,forte:0,atencao:0,informativo:0};
     for(const x of r)for(const c of ["n","cresc",...NIVEIS])o[c]+=x[c];l=[...l.slice(0,max),o];}
@@ -153,9 +153,9 @@ function draw(){
   if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf="";draw();};
   document.getElementById("vz").hidden=rows.length>0;
 }
-const VZ=v=>v==null?"—":v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"×";
+const VZ=v=>v==null?"Não informado":v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"×";
 // percentil no grupo de pares: 100 = o maior crescimento do grupo
-const PC=p=>p==null?"—":p>=99.5?"o maior<br><small>do grupo</small>":`acima de ${Math.round(p)}%<br><small>dos colegas</small>`;
+const PC=p=>p==null?"Não informado":p>=99.5?"o maior<br><small>do grupo</small>":`acima de ${Math.round(p)}%<br><small>dos colegas</small>`;
 function leitura(){
   const m=Object.assign({taxa:.3,minimo:100000,forte:{razao:3,percentil:95},atencao:{razao:2,percentil:90},informativo:{percentil:95}},D.metodo||{});
   const pct=Math.round(m.taxa*100),sal=46366.19,cap=sal*12*4*m.taxa,cr=cap*10,x=n=>n.toLocaleString("pt-BR");
@@ -168,7 +168,7 @@ function leitura(){
 <ul><li><span class="nivel forte">Forte</span>: ${VZ(m.forte.razao)} o possível ou mais <i>e</i> acima de ${m.forte.percentil}% dos colegas.</li>
 <li><span class="nivel atencao">Atenção</span>: ${VZ(m.atencao.razao)} o possível ou mais <i>e</i> acima de ${m.atencao.percentil}% dos colegas, ou acima de 98% dos colegas.</li>
 <li><span class="nivel informativo">Informativo</span>: acima de ${m.informativo.percentil}% dos colegas, sem os outros critérios.</li></ul>
-<p><b>"—"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>
+<p><b>"Não informado"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>
 <p>Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta, por isso o alerta é um indício para acompanhar, não prova.</p>`;
 }
 function contrib(){

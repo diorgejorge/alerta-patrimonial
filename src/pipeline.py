@@ -357,7 +357,7 @@ def main():
             cpf=r["chave"][4:] if str(r["chave"]).startswith("cpf:") else "", empresas=r.get("empresas_cnpj") or []))
         q["cargo"] += " " + str(r["cargo"])
         q["idx"].append(i)
-    try:  # o Portal nunca derruba a atualizacao: se falhar, a secao sai "Indisponivel"
+    try:  # o Portal nunca derruba a atualizacao: se falhar, a secao sai "Fonte nao encontrada"
         info = {} if args.demo else transparencia.coletar(pessoas, chave_api=os.getenv("TRANSPARENCIA_TOKEN"))
     except Exception as ex:
         print(f"[aviso] Portal da Transparencia indisponivel ({ex!r})", file=sys.stderr)

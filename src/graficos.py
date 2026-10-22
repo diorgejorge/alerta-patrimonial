@@ -34,14 +34,14 @@ def inteiro(n):
 def brl(v):
     """Valor completo: R$ 1.234.567 (sem centavos)."""
     if _nulo(v):
-        return "—"
+        return "Não informado"
     return ("-" if round(v) < 0 else "") + "R$ " + _num(abs(v))
 
 
 def brl_compacto(v):
     """R$ 950 / R$ 12,3 mil / R$ 1,2 mi / R$ 3,4 bi (uma casa abaixo de 100, nenhuma acima)."""
     if _nulo(v):
-        return "—"
+        return "Não informado"
     a = abs(float(v))
     sinal = "-" if v < 0 else ""
     for base, suf in ((1e9, "bi"), (1e6, "mi"), (1e3, "mil")):
