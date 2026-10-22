@@ -5,7 +5,7 @@
 O DJEN nao traz CPF/CNPJ das partes. Para evitar homonimos: busca pelo nome civil completo, exige o nome igual
 (sem acento/caixa) no polo passivo e so aceita tribunais do estado da pessoa (TJ, TRE, TRT, TRF da regiao) ou
 superiores (STF, STJ, TST, TSE, STM). A contagem cobre so processos com publicacao no DJEN, nao todos."""
-import datetime as dt, json, re, sys, time, unicodedata, urllib.parse, urllib.request
+import datetime as dt, json, os, re, sys, time, unicodedata, urllib.parse, urllib.request
 from pathlib import Path
 
 API = "https://comunicaapi.pje.jus.br/api/v1/comunicacao"
@@ -40,7 +40,9 @@ def tribunais(uf):
 
 
 def _pagina(nome, pagina, timeout=60):
-    url = API + "?" + urllib.parse.urlencode({"nomeParte": nome, "pagina": pagina, "itensPorPagina": POR_PAGINA})
+    # DJEN_API: ponte em Sao Paulo (ponte-djen/, Vercel gru1), porque o DJEN recusa acessos de fora do Brasil
+    base = os.environ.get("DJEN_API") or API
+    url = base + "?" + urllib.parse.urlencode({"nomeParte": nome, "pagina": pagina, "itensPorPagina": POR_PAGINA})
     with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/json"}),
                                 timeout=timeout) as r:
         return json.loads(r.read().decode("utf-8") or "{}")

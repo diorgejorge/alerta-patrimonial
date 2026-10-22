@@ -28,6 +28,7 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TRANSPARENCIA_TOKEN: ${{ secrets.TRANSPARENCIA_TOKEN }}  # chave da API do Portal da Transparencia
           ID_SEGREDO: ${{ secrets.ID_SEGREDO }}  # gera o id interno das pessoas (sem CPF)
+          DJEN_API: ${{ vars.DJEN_API }}  # ponte do DJEN em Sao Paulo (ponte-djen/); vazio = acesso direto
           MONITORADOS_CSV: ${{ secrets.MONITORADOS_CSV }}  # lista de monitorados; vazio = modo atual (200 maiores)
       - name: Salvar resultados
         run: |

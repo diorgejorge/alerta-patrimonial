@@ -1,0 +1,4 @@
+{
+  "regions": ["gru1"],
+  "ignoreCommand": "git diff HEAD^ HEAD --quiet -- ."
+}
