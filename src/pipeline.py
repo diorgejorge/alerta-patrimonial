@@ -431,6 +431,8 @@ def main():
         except Exception as ex:  # nunca derruba o painel
             print(f"[aviso] paginas por pessoa falharam ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)
+    # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
+    dados["alertas"].sort(key=lambda a: (-(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
     tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     html_painel = tpl.replace("/*DADOS*/null", json.dumps(dados, ensure_ascii=False))
     html_painel = html_painel.replace("/*BENS*/null", json.dumps(bens, ensure_ascii=False))

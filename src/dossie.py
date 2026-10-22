@@ -14,6 +14,8 @@ TPL = Path(__file__).resolve().parent / "dossie.html"
 RSS = "https://news.google.com/rss/search?"
 BUSCA = "https://news.google.com/search?"
 LOCAL = {"hl": "pt-BR", "gl": "BR", "ceid": "BR:pt-419"}
+EXTERIOR = {"hl": "en-US", "gl": "US", "ceid": "US:en"}  # Google News em ingles: imprensa internacional
+DIAS_MENCOES = 30      # "mencoes atuais": noticias dos ultimos 30 dias
 UA = "Mozilla/5.0 (compatible; alerta-patrimonial/1.0)"
 UA_NAV = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
           "Chrome/124.0 Safari/537.36")
@@ -413,6 +415,9 @@ def resolver(p, limite):
                     if m:
                         nts.append(_saida(c, onde, alvos[min(m)][3]))  # pessoa tem prioridade (vem primeiro)
                         break
+            if s == "rec":  # mencoes atuais (Brasil e exterior), antes de cortar a lista exibida
+                lim = dt.date.today() - dt.timedelta(days=DIAS_MENCOES)
+                p["mencoes"] = sum(1 for n in nts if n["data"] and n["data"] >= lim)
             out[s] = _ordenar(nts)
     p["res"] = out
 
@@ -537,6 +542,7 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
         fim = time.monotonic() + tempo_max
         ativos = [p for p in pessoas if p["n"] < max_pessoas]
         fontes = [Fonte("Google Notícias", RSS, LOCAL, UA, pausa, timeout, fim)]
+        exterior = Fonte("Google News (exterior)", RSS, EXTERIOR, UA, pausa, timeout, fim)  # so a busca pelo nome
         # fontes sugeridas pelo site (config/fontes_noticias.csv): com {q} = busca no veiculo; sem = feed geral
         extras = [Fonte(x["nome"], None, None, UA_NAV, pausa, timeout, fim, modelo=x["feed"],
                         uf=(x.get("uf") or "").upper(), max_itens=MAX_ITENS if "{q}" in x["feed"] else 200)
@@ -556,6 +562,8 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
                     if f.uf and f.uf != uf:
                         continue
                     p["fut"]["rec"].append(gerais[f] if f in gerais else f.submeter(termo))
+                p["fut"]["rec"].append(exterior.submeter(f'"{termo}" Brazil'))
+            fontes.append(exterior)  # depois de enfileirar: so entra no encerramento e no resumo do log
             print(f"Noticias: buscando para {len(ativos)} pessoas...")
             for n, p in enumerate(ativos, 1):  # conforme as buscas chegam, agenda a leitura das materias
                 if n % 20 == 0:
@@ -581,6 +589,8 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
             msg = None
         res = p.get("res") or {}
         rec = msg or res.get("rec", FALHA)
+        for i in p["idx"]:  # ordem do painel: mais mencoes atuais primeiro (pipeline)
+            alertas[i]["mencoes"] = p.get("mencoes", 0)
         pat = msg or res.get("pat", FALHA)
         emp_r = res.get("emp", FALHA)
         empresas = []
