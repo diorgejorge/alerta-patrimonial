@@ -32,6 +32,8 @@ a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 .tot{font-size:.8rem;color:var(--mut);font-variant-numeric:tabular-nums;min-width:2ch}
 .trilho:hover .st,.trilho:focus-visible .st{filter:brightness(1.15)}.bars.filtrado .trilho:not(.sel){opacity:.35}
 .trilho.outros{cursor:default}
+.bars .reg{grid-column:1/-1;justify-self:start;font:inherit;font-size:.8rem;font-weight:600;color:var(--mut);background:none;border:0;border-bottom:1px solid var(--line);padding:.6em 0 .2em;margin-top:.3em;cursor:pointer;min-height:32px;width:100%;text-align:left}
+.bars .reg:hover,.bars .reg.sel{color:var(--fg)}.bars.filtrado .reg:not(.sel){opacity:.6}
 #tip{position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.5em .75em;font-size:.85rem;box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:9;min-width:170px}
 #tip b{display:block;margin-bottom:.2em}#tip div{display:flex;justify-content:space-between;gap:14px}#tip div span:first-child{color:var(--mut)}
 #tip s{display:inline-block;width:10px;height:2px;margin-right:6px;vertical-align:middle;text-decoration:none}
@@ -78,6 +80,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <div class="barra">
 <input id="q" type="search" placeholder="Buscar por nome, cargo ou UF" aria-label="Buscar">
 <select id="cg" aria-label="Cargo"><option value="">Todos os cargos</option></select>
+<select id="rg" aria-label="Região"><option value="">Todas as regiões</option><option>Norte</option><option>Nordeste</option><option>Centro-Oeste</option><option>Sudeste</option><option>Sul</option><option>Nacional</option></select>
 <select id="nv" aria-label="Nível"><option value="">Todos os níveis</option><option value="forte">Muito acima do esperado</option><option value="atencao">Acima do esperado</option><option value="informativo">Para conhecer</option></select>
 <div id="chips" class="chips"></div>
 </div>
@@ -121,14 +124,16 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
 const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(REL(a.pagina)?` · <a class="lk" href="${esc(a.pagina)}">Dossiê</a>`:"")+(REL(a.dossie)?` · <a class="lk" href="${esc(a.dossie)}">Notícias</a>`:"");
 const NIVEIS=["forte","atencao","informativo"];
-const F={partido:"",uf:"",cargo:""};
+const F={partido:"",uf:"",cargo:"",regiao:""};
+const REGIOES={Norte:"AC AM AP PA RO RR TO",Nordeste:"AL BA CE MA PB PE PI RN SE","Centro-Oeste":"DF GO MS MT",Sudeste:"ES MG RJ SP",Sul:"PR RS SC"};
+const REG={BR:"Nacional",ZZ:"Exterior"};for(const [r,ufs] of Object.entries(REGIOES))for(const u of ufs.split(" "))REG[u]=r;
 const RC=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",notation:"compact",maximumFractionDigits:1}).format(v);
 const $=id=>document.getElementById(id);
 const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e;};
 // filtros de busca e nivel valem para tudo; cada grafico ignora o proprio filtro de dimensao
 function filtra(ign){
   const q=$("q").value.toLowerCase(),nv=$("nv").value;
-  return D.alertas.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)&&(!F.cargo||a.cargo===F.cargo)
+  return D.alertas.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)&&(ign==="uf"||!F.regiao||REG[a.uf]===F.regiao)&&(!F.cargo||a.cargo===F.cargo)
     &&(`${a.nome} ${a.nome_urna??""} ${a.cargo} ${a.uf} ${a.partido}`.toLowerCase().includes(q)));
 }
 function agrupa(rows,dim,max){
@@ -150,9 +155,17 @@ function tip(ev,x){
 }
 function grafico(id,dim,max){
   const l=agrupa(filtra(dim),dim,max),box=$(id),top=Math.max(1,...l.map(x=>x.n));
-  box.replaceChildren();box.classList.toggle("filtrado",!!F[dim]);
+  box.replaceChildren();box.classList.toggle("filtrado",!!F[dim]||(dim==="uf"&&!!F.regiao));
+  // estados agrupados por regiao (a regiao com mais destaques primeiro); o titulo da regiao filtra o painel
+  const tot={};if(dim==="uf"){for(const x of l)tot[REG[x.k]||"Não informado"]=(tot[REG[x.k]||"Não informado"]||0)+x.n;
+    l.sort((x,y)=>(tot[REG[y.k]||"Não informado"]-tot[REG[x.k]||"Não informado"])||(REG[x.k]||"").localeCompare(REG[y.k]||"")||y.n-x.n);}
+  let reg=null;
   for(const x of l){
-    const tr=el("div","trilho"+(x.outros?" outros":"")+(F[dim]===x.k?" sel":""));
+    if(dim==="uf"&&(REG[x.k]||"Não informado")!==reg){reg=REG[x.k]||"Não informado";const r=reg;
+      const b=el("button","reg"+(F.regiao===r?" sel":""),`${r} · ${tot[r].toLocaleString("pt-BR")}`);b.type="button";
+      b.title=F.regiao===r?"Remover filtro da região":`Filtrar pela região ${r}`;b.setAttribute("aria-pressed",F.regiao===r);
+      b.onclick=()=>{F.regiao=F.regiao===r?"":r;F.uf="";draw();};box.append(b);}
+    const tr=el("div","trilho"+(x.outros?" outros":"")+(F[dim]===x.k||(dim==="uf"&&!F.uf&&F.regiao&&REG[x.k]===F.regiao)?" sel":""));
     const trk=el("div","trk"),st=el("div","st");st.style.width=(x.n/top*100)+"%";
     for(const n of NIVEIS)if(x[n]){const s=el("i",n);s.style.flex=x[n]+" 1 0";st.append(s);}
     trk.append(st);tr.append(trk,el("span","tot",x.n));
@@ -180,7 +193,7 @@ function painel(rows){
     const d=el("div","kpi");d.append(el("b",null,v),el("span",null,r));k.append(d);}
   tabela("tp","Partido",grafico("gp","partido",0));tabela("tu","UF",grafico("gu","uf",0));
   const c=$("chips");c.replaceChildren();
-  for(const [dim,rot] of [["cargo","Cargo"],["partido","Partido"],["uf","UF"]])if(F[dim]){const b=el("button",null,`${rot}: ${F[dim]} ×`);b.title="Remover filtro";b.onclick=()=>{F[dim]="";draw();};c.append(b);}
+  for(const [dim,rot] of [["cargo","Cargo"],["regiao","Região"],["partido","Partido"],["uf","UF"]])if(F[dim]){const b=el("button",null,`${rot}: ${F[dim]} ×`);b.title="Remover filtro";b.onclick=()=>{F[dim]="";draw();};c.append(b);}
 }
 for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=el("i");i.style.background=`var(--${n==="informativo"?"info":n})`;s.append(i,NV[n]);$(id).append(s);}
 // cor de cada partido (aproximada da identidade visual, so como marcador; o texto fica em cor neutra)
@@ -230,10 +243,10 @@ function tabelaToda(){
 }
 function draw(){
   const rows=filtra();painel(rows);
-  $("cg").value=F.cargo;ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
-  const fl=[F.cargo&&`cargo ${F.cargo}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
+  $("cg").value=F.cargo;$("rg").value=F.regiao;ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
+  const fl=[F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${D.alertas.length.toLocaleString("pt-BR")} registros`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
-  if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo="";$("cg").value="";draw();};
+  if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo=F.regiao="";$("cg").value="";$("rg").value="";draw();};
   document.getElementById("vz").hidden=rows.length>0;
 }
 const VZ=v=>v==null?"Não informado":v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"×";
@@ -276,6 +289,7 @@ for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.childr
 for(const s of document.querySelectorAll("section.grade.duas,section[aria-labelledby=t-pessoas]"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
 if(D){contrib();leitura();exemplares();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
+$("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 $("cards").onclick=ev=>{const t=ev.target.closest("button.tag");if(!t)return;F[t.dataset.dim]=t.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};$("tabela").ontoggle=tabelaToda;draw();}
 </script></body></html>
