@@ -51,14 +51,15 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta .cresc{margin:0;display:flex;flex-direction:column}.alerta .cresc b{font-size:1.35rem;line-height:1.2;font-variant-numeric:tabular-nums}
 .alerta dl{margin:0;display:grid;gap:2px;font-size:.875rem}.alerta dl div{display:flex;justify-content:space-between;gap:10px}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-.alerta .tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
-.alerta .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
+.tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
+.legenda-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:.2em 0 .8em;font-size:.875rem}.legenda-tags .rotulo{color:var(--mut)}
+.tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
 .estrela{color:#a77d00}.alerta.exemplar{border-color:#a77d00}
-.alerta .tag.q0{background:#f6eee4;color:#3b2a20;border-color:#e3d3bf}.alerta .tag.q1{background:#eec5a8;color:#3b1d10;border-color:#dfae8c}
-.alerta .tag.q2{background:#b5432f;color:#fff;border-color:#9c3524}.alerta .tag.q3{background:#7f1d1d;color:#fff;border-color:#661515}
-.alerta .tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
-.alerta .tag.renda{background:var(--card);border-color:var(--info);color:var(--info);font-weight:600}
-.alerta button.tag{cursor:pointer}.alerta button.tag:hover{border-color:var(--mut)}
+.tag.q0{background:#f6eee4;color:#3b2a20;border-color:#e3d3bf}.tag.q1{background:#eec5a8;color:#3b1d10;border-color:#dfae8c}
+.tag.q2{background:#b5432f;color:#fff;border-color:#9c3524}.tag.q3{background:#7f1d1d;color:#fff;border-color:#661515}
+.tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
+.tag.renda{background:var(--card);border-color:var(--info);color:var(--info);font-weight:600}
+button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 .alerta .compra{margin:0;font-size:.875rem;padding:.4em .6em;border-radius:6px;background:var(--realce)}
 .alerta .links{margin:auto 0 0;font-size:.9rem}.alerta .links .lk{min-height:44px}.mais{text-align:center}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
@@ -97,6 +98,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
 <section aria-labelledby="t-pessoas"><h2 id="t-pessoas">Pessoas</h2><!--CARTOES--></section>
 <h2>Todos os destaques</h2>
+<div class="legenda-tags" aria-label="Legenda das cores das tags"><span class="rotulo">Concentração de destaques:</span><span class="tag q0">poucos</span><span class="tag q1">alguns</span><span class="tag q2">muitos</span><span class="tag q3">os que mais concentram</span><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><span class="tag"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</span><span class="tag renda">Tem empresas declaradas</span></div>
 <ul class="alertas" id="cards"></ul>
 <div id="vz" class="vazio" hidden>Nenhum destaque para este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
