@@ -13,6 +13,7 @@ import exemplares
 import empresas
 import djen
 from ids import Ids, varrer
+from cache import Cache
 import paginas
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -146,38 +147,55 @@ def empresas_por_sq(bens):
     return out, cnpjs
 
 
-def serie_tse(anos):
-    """Uma linha por pessoa e eleicao: patrimonio total declarado."""
+VERSAO_LEITURA_TSE = 1  # mude ao alterar a leitura abaixo: invalida o cache dos anos ja lidos
+
+
+def serie_tse(anos, cache=None):
+    """Uma linha por pessoa e eleicao: patrimonio total declarado.
+    `cache` (cache.Cache cifrado): o ano ja lido so e lido de novo se o zip do TSE mudar (tamanho/data)."""
     partes = []
     for ano in anos:
-        print(f"TSE {ano}: baixando e lendo declaracoes...")
         zb, zc = baixar("bem_candidato", ano), baixar("consulta_cand", ano)
         if not zb or not zc:
             continue
-        bens, cand = ler_zip(zb), ler_zip(zc)
-        bens["VR"] = dinheiro(bens["VR_BEM_CANDIDATO"])
-        pat = bens.groupby("SQ_CANDIDATO", as_index=False)["VR"].sum().rename(columns={"VR": "patrimonio"})
-        emp, emp_cnpj = empresas_por_sq(bens)
-        cand = cand.drop_duplicates("SQ_CANDIDATO").copy()
-        cand["chave"] = cand.apply(chave_pessoa, axis=1)
-        m = cand.merge(pat, on="SQ_CANDIDATO", how="inner")
-        m["ano"] = int(ano)
-        sit = m["DS_SIT_TOT_TURNO"] if "DS_SIT_TOT_TURNO" in m else pd.Series("", index=m.index)
-        m["eleito"] = sit.astype(str).str.upper().str.startswith("ELEITO")
-        col = lambda c: m[c].astype(str).str.strip() if c in m else pd.Series("", index=m.index)
-        m["sq_candidato"], m["cd_eleicao"] = col("SQ_CANDIDATO"), col("CD_ELEICAO")
-        m["sg_ue"], m["nome_urna"] = col("SG_UE"), col("NM_URNA_CANDIDATO")
-        m["suplementar"] = col("NM_TIPO_ELEICAO").map(norm).str.contains("SUPLEMENTAR")
-        m["empresas"] = m["sq_candidato"].map(lambda s: list(emp.get(s, ())))
-        m["empresas_cnpj"] = m["sq_candidato"].map(lambda s: list(emp_cnpj.get(s, ())))
-        partes.append(m.rename(columns={"NM_CANDIDATO": "nome", "DS_CARGO": "cargo",
-                                        "SG_UF": "uf", "SG_PARTIDO": "partido"})
-                       [["chave", "ano", "nome", "cargo", "uf", "partido", "eleito", "patrimonio",
-                         "sq_candidato", "cd_eleicao", "sg_ue", "nome_urna", "suplementar", "empresas",
-                         "empresas_cnpj"]])
+        assinatura = (VERSAO_LEITURA_TSE, int(ano), *((f.stat().st_size, int(f.stat().st_mtime)) for f in (zb, zc)))
+        lido = cache.get(assinatura) if cache else None
+        if lido is not None:
+            print(f"TSE {ano}: declaracoes ja lidas (cache, arquivo do TSE sem mudanca).")
+            partes.append(lido)
+            continue
+        print(f"TSE {ano}: lendo declaracoes...")
+        partes.append(_ler_ano_tse(ano, zb, zc))
+        if cache:
+            cache.set(assinatura, partes[-1])
+    if cache:
+        cache.salvar()
     if not partes:
         sys.exit("Nenhum dado do TSE disponivel. Verifique a conexao e os anos em config/parametros.json.")
     return pd.concat(partes, ignore_index=True)
+
+
+def _ler_ano_tse(ano, zb, zc):
+    """Declaracoes de bens + candidaturas de um ano -> uma linha por candidatura com o patrimonio total."""
+    bens, cand = ler_zip(zb), ler_zip(zc)
+    bens["VR"] = dinheiro(bens["VR_BEM_CANDIDATO"])
+    pat = bens.groupby("SQ_CANDIDATO", as_index=False)["VR"].sum().rename(columns={"VR": "patrimonio"})
+    emp, emp_cnpj = empresas_por_sq(bens)
+    cand = cand.drop_duplicates("SQ_CANDIDATO").copy()
+    cand["chave"] = cand.apply(chave_pessoa, axis=1)
+    m = cand.merge(pat, on="SQ_CANDIDATO", how="inner")
+    m["ano"] = int(ano)
+    sit = m["DS_SIT_TOT_TURNO"] if "DS_SIT_TOT_TURNO" in m else pd.Series("", index=m.index)
+    m["eleito"] = sit.astype(str).str.upper().str.startswith("ELEITO")
+    col = lambda c: m[c].astype(str).str.strip() if c in m else pd.Series("", index=m.index)
+    m["sq_candidato"], m["cd_eleicao"] = col("SQ_CANDIDATO"), col("CD_ELEICAO")
+    m["sg_ue"], m["nome_urna"] = col("SG_UE"), col("NM_URNA_CANDIDATO")
+    m["suplementar"] = col("NM_TIPO_ELEICAO").map(norm).str.contains("SUPLEMENTAR")
+    m["empresas"] = m["sq_candidato"].map(lambda s: list(emp.get(s, ())))
+    m["empresas_cnpj"] = m["sq_candidato"].map(lambda s: list(emp_cnpj.get(s, ())))
+    return (m.rename(columns={"NM_CANDIDATO": "nome", "DS_CARGO": "cargo", "SG_UF": "uf", "SG_PARTIDO": "partido"})
+            [["chave", "ano", "nome", "cargo", "uf", "partido", "eleito", "patrimonio", "sq_candidato",
+              "cd_eleicao", "sg_ue", "nome_urna", "suplementar", "empresas", "empresas_cnpj"]])
 
 
 def cpf_ficticio(i):
@@ -356,7 +374,12 @@ def main():
     if not pid:
         print("[aviso] sem ID_SEGREDO: paginas por pessoa e memoria de alertas novos desativadas", file=sys.stderr)
 
-    serie = serie_demo() if args.demo else serie_tse(p["anos"])
+    # cache incremental entre execucoes (data/cache, actions/cache): so com ID_SEGREDO, que assina e cifra
+    seg_cache = None if args.demo else os.getenv("ID_SEGREDO")
+    caches = dict(tse=Cache(CACHE / "tse_lido.cache", 400 * 86400, seg_cache, cifrar=True),
+                  portal=Cache(CACHE / "portal.cache", 7 * 86400, seg_cache, cifrar=True),
+                  noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache)) if seg_cache else {}
+    serie = serie_demo() if args.demo else serie_tse(p["anos"], caches.get("tse"))
     extras = {r.chave: extras_cfg.get(r.chave, extras_cfg.get("nome:" + norm(r.nome), 0.0))
               for r in serie.drop_duplicates("chave").itertuples()}
     df = pares(serie, regras, extras, p)
@@ -401,7 +424,8 @@ def main():
         q["cargo"] += " " + str(r["cargo"])
         q["idx"].append(i)
     try:  # o Portal nunca derruba a atualizacao: se falhar, a secao sai "Fonte nao encontrada"
-        info = {} if args.demo else transparencia.coletar(pessoas, chave_api=os.getenv("TRANSPARENCIA_TOKEN"))
+        info = {} if args.demo else transparencia.coletar(pessoas, chave_api=os.getenv("TRANSPARENCIA_TOKEN"),
+                                                          cache=caches.get("portal"))
     except Exception as ex:
         print(f"[aviso] Portal da Transparencia indisponivel ({ex!r})", file=sys.stderr)
         info = {k: {"pendente": "falha"} for k in pessoas}
@@ -479,7 +503,7 @@ def main():
     bens = carregar_bens()
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
                                 transparencia=secoes, bens=bens, cota=secoes_cota,
-                                receita=secoes_receita).items():
+                                receita=secoes_receita, cache=caches.get("noticias")).items():
         dados["alertas"][i]["dossie"] = cam
     # painel: quem mais gastou da cota parlamentar (entre as pessoas em destaque) e com o que
     ranking = []

@@ -291,10 +291,11 @@ def _pessoa(api, p):
     return r
 
 
-def coletar(pessoas, tempo_max=45 * 60, chave_api=None):
+def coletar(pessoas, tempo_max=45 * 60, chave_api=None, cache=None):
     """pessoas: {chave: dict(nome, nome_urna, cargo, cpf, empresas=[(nome, cnpj)])} na ordem do painel.
     Tudo pela API oficial (precisa de `chave_api`); sem chave nada e consultado.
-    Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": "tempo"}."""
+    Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": "tempo"}.
+    `cache` (cache.Cache cifrado): pessoa consultada sem falhas nos ultimos dias nao e consultada de novo."""
     if not chave_api:
         print("Portal da Transparencia: sem TRANSPARENCIA_TOKEN, nada consultado.")
         return {k: {"api": False} for k in pessoas}
@@ -307,14 +308,23 @@ def coletar(pessoas, tempo_max=45 * 60, chave_api=None):
     for n, (k, p) in enumerate(pessoas.items(), 1):
         if n % 20 == 0:
             print(f"  {n}/{len(pessoas)} pessoas, {api.req} consultas, {api.falhas} falhas")
+        guardado = cache.get(p.get("chave") or k) if cache else None
+        if guardado is not None:  # incremental: so consulta quem e novo ou venceu no cache
+            out[k] = guardado
+            continue
         if not api.ativa():
             out[k] = {"pendente": "tempo" if time.monotonic() >= api.fim else "falha"}
             continue
         try:
+            antes = api.falhas
             out[k] = _pessoa(api, p)
+            if cache and api.falhas == antes:  # so respostas completas entram no cache
+                cache.set(p.get("chave") or k, out[k])
         except Exception as ex:  # dado inesperado da API: so esta pessoa fica "indisponivel"
             print(f"[aviso] Portal da Transparencia: erro ao montar {p.get('nome')} ({ex!r})", file=sys.stderr)
             out[k] = {"pendente": "falha"}
+    if cache:
+        cache.salvar()
     print(f"Portal da Transparencia (API): {len(out)} pessoas, {api.req} consultas, {api.falhas} falhas.")
     return out
 

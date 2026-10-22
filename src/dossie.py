@@ -250,7 +250,8 @@ def itens_rss(xml, real, max_itens=MAX_ITENS):
 class Fonte:
     """Uma fonte RSS com fila propria (1 thread): pausa entre buscas, tolerancia a falhas e prazo."""
 
-    def __init__(self, nome, base, params, ua, pausa, timeout, fim, modelo=None, uf="", max_itens=MAX_ITENS):
+    def __init__(self, nome, base, params, ua, pausa, timeout, fim, modelo=None, uf="", max_itens=MAX_ITENS,
+                 cache=None):
         """`modelo`: URL de fonte sugerida, com {q} no lugar da busca (sem {q} = feed geral do veiculo)."""
         self.nome, self.base, self.params, self.ua = nome, base, params, ua
         self.pausa, self.timeout, self.fim = pausa, timeout, fim
@@ -258,12 +259,21 @@ class Fonte:
         # Google: link e redirecionamento; feed geral traz de tudo: so mencao no titulo/resumo, sem abrir a materia
         self.real = modelo is not None and "{q}" in modelo
         self.ultimo, self.req, self.falhas, self.seguidas = None, 0, 0, 0
+        self.cache, self.do_cache = cache, 0  # cache.Cache: resultado de cada busca por alguns dias
         self.pool = ThreadPoolExecutor(max_workers=1)
 
     def submeter(self, q):
         return self.pool.submit(self._buscar, q)
 
     def _buscar(self, q):
+        if self.modelo is not None:
+            url = self.modelo.replace("{q}", urllib.parse.quote_plus(q))
+        else:
+            url = self.base + urllib.parse.urlencode({"q": q, **self.params})
+        guardado = self.cache.get(url) if self.cache else None
+        if guardado is not None:  # incremental: busca feita ha poucos dias nao e repetida
+            self.do_cache += 1
+            return guardado
         if self.seguidas >= MAX_FALHAS:
             return FALHA
         if time.monotonic() > self.fim:
@@ -274,15 +284,13 @@ class Fonte:
                 time.sleep(espera)
         self.ultimo = time.monotonic()
         self.req += 1
-        if self.modelo is not None:
-            url = self.modelo.replace("{q}", urllib.parse.quote_plus(q))
-        else:
-            url = self.base + urllib.parse.urlencode({"q": q, **self.params})
         try:
             req = urllib.request.Request(url, headers={"User-Agent": self.ua, "Accept-Language": "pt-BR,pt;q=0.9"})
             with urllib.request.urlopen(req, timeout=self.timeout) as r:
                 xml = r.read(5_000_000)
             itens = itens_rss(xml, self.real, self.max_itens)
+            if self.cache:
+                self.cache.set(url, itens)
             self.seguidas = 0
             return itens
         except Exception as ex:
@@ -526,7 +534,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
 # ---------------------------------------------------------------- entrada
 def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, timeout=20,
                   tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=(), transparencia=None, bens=None, cota=None,
-                  receita=None):
+                  receita=None, cache=None):
     """Gera destino/dossie/<slug>.html por pessoa (nome+UF) e devolve {indice_da_linha: "dossie/<slug>.html"}.
     Noticias so para as primeiras max_pessoas (ordem de `alertas`); as demais saem sem busca automatica.
     As buscas RSS correm numa fila por fonte (Google e fontes sugeridas em paralelo, `pausa` s entre buscas na mesma
@@ -558,11 +566,12 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
     if buscar:
         fim = time.monotonic() + tempo_max
         ativos = [p for p in pessoas if p["n"] < max_pessoas]
-        fontes = [Fonte("Google Notícias", RSS, LOCAL, UA, pausa, timeout, fim)]
-        exterior = Fonte("Google News (exterior)", RSS, EXTERIOR, UA, pausa, timeout, fim)  # so a busca pelo nome
+        fontes = [Fonte("Google Notícias", RSS, LOCAL, UA, pausa, timeout, fim, cache=cache)]
+        exterior = Fonte("Google News (exterior)", RSS, EXTERIOR, UA, pausa, timeout, fim, cache=cache)  # so o nome
         # fontes sugeridas pelo site (config/fontes_noticias.csv): com {q} = busca no veiculo; sem = feed geral
         extras = [Fonte(x["nome"], None, None, UA_NAV, pausa, timeout, fim, modelo=x["feed"],
-                        uf=(x.get("uf") or "").upper(), max_itens=MAX_ITENS if "{q}" in x["feed"] else 200)
+                        uf=(x.get("uf") or "").upper(), max_itens=MAX_ITENS if "{q}" in x["feed"] else 200,
+                        cache=cache)
                   for x in fontes_extra]
         gerais = {f: f.submeter("") for f in extras if "{q}" not in f.modelo}  # uma leitura por execucao
         fontes += extras
@@ -595,6 +604,8 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
             paginas.shutdown(wait=False, cancel_futures=True)
             for f in fontes:
                 f.pool.shutdown(wait=False, cancel_futures=True)
+            if cache:
+                cache.salvar()
 
     usados, indice = set(), {}
     for p in pessoas:
@@ -636,6 +647,6 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
                                          encoding="utf-8")
         for i in p["idx"]:
             indice[i] = f"dossie/{s}.html"
-    st = ", ".join(f"{f.nome}: {f.req} buscas/{f.falhas} falhas" for f in fontes) or "sem buscas"
+    st = ", ".join(f"{f.nome}: {f.req} buscas/{f.falhas} falhas/{f.do_cache} do cache" for f in fontes) or "sem buscas"
     print(f"Dossies: {len(pessoas)} pessoas; {st}; {verif} materias verificadas.")
     return indice
