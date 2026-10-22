@@ -55,7 +55,7 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
 #exemplares td:nth-child(n+3),#exemplares th:nth-child(n+3){white-space:nowrap}
-.legenda-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:.2em 0 .8em;font-size:.875rem}.legenda-tags .rotulo{color:var(--mut)}
+.legenda-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:.2em 0 .8em;font-size:.875rem}.legenda-tags button[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px}.legenda-tags .rotulo{color:var(--mut)}
 .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
 .estrela{color:#a77d00}.alerta.exemplar{border-color:#a77d00}
 .tag.q0{background:#f6eee4;color:#3b2a20;border-color:#e3d3bf}.tag.q1{background:#eec5a8;color:#3b1d10;border-color:#dfae8c}
@@ -104,7 +104,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
 <section aria-labelledby="t-pessoas"><h2 id="t-pessoas">Pessoas</h2><!--CARTOES--></section>
 <h2>Todos os destaques</h2>
-<div class="legenda-tags" aria-label="Legenda das cores das tags"><span class="rotulo">Concentração de destaques:</span><span class="tag q0">poucos</span><span class="tag q1">alguns</span><span class="tag q2">muitos</span><span class="tag q3">os que mais concentram</span><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><span class="tag"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</span><span class="tag renda">Tem empresas declaradas</span><span class="tag reu">Responde a processo</span></div>
+<div class="legenda-tags" id="legenda" aria-label="Legenda das tags; clique para filtrar"><span class="rotulo">Concentração de destaques no estado:</span><button type="button" class="tag q0" data-f="conc" data-v="q0">poucos</button><button type="button" class="tag q1" data-f="conc" data-v="q1">alguns</button><button type="button" class="tag q2" data-f="conc" data-v="q2">muitos</button><button type="button" class="tag q3" data-f="conc" data-v="q3">os que mais concentram</button><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo</button></div>
 <ul class="alertas" id="cards"></ul>
 <div id="vz" class="vazio" hidden>Nenhum destaque para este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
@@ -124,9 +124,14 @@ const R=v=>v==null?"Não informado":"R$ "+Math.round(v).toLocaleString("pt-BR");
 const NV={forte:"Muito acima do esperado",atencao:"Acima do esperado",informativo:"Para conhecer"};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
-const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(REL(a.pagina)?` · <a class="lk" href="${esc(a.pagina)}">Dossiê</a>`:"")+(REL(a.dossie)?` · <a class="lk" href="${esc(a.dossie)}">Notícias</a>`:"");
+const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(REL(a.pagina)?` · <a class="lk" href="${esc(a.pagina)}">Dossiê</a>`:"")+(REL(a.dossie)?` · <a class="lk" href="${esc(a.dossie)}">Notícias</a>`:"")
+  +` · <a class="lk" href="${esc(PROC(a))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br) e no Jusbrasil; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`;
+// busca para o proprio leitor conferir processos pelo nome (o robo nao consulta esses sites)
+const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br)`);
 const NIVEIS=["forte","atencao","informativo"];
-const F={partido:"",uf:"",cargo:"",regiao:""};
+const F={partido:"",uf:"",cargo:"",regiao:"",conc:"",flag:""};
+const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar],renda:["Tem empresas declaradas",a=>a.outras_rendas],reu:["Responde a processo",a=>(a.processos||[]).length>0]};
+const CONC_ROT={q0:"poucos",q1:"alguns",q2:"muitos",q3:"os que mais concentram"};
 const REGIOES={Norte:"AC AM AP PA RO RR TO",Nordeste:"AL BA CE MA PB PE PI RN SE","Centro-Oeste":"DF GO MS MT",Sudeste:"ES MG RJ SP",Sul:"PR RS SC"};
 const REG={BR:"Nacional",ZZ:"Exterior"};for(const [r,ufs] of Object.entries(REGIOES))for(const u of ufs.split(" "))REG[u]=r;
 const RC=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",notation:"compact",maximumFractionDigits:1}).format(v);
@@ -135,7 +140,7 @@ const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt
 // filtros de busca e nivel valem para tudo; cada grafico ignora o proprio filtro de dimensao
 function filtra(ign){
   const q=$("q").value.toLowerCase(),nv=$("nv").value;
-  return D.alertas.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)&&(ign==="uf"||!F.regiao||REG[a.uf]===F.regiao)&&(!F.cargo||a.cargo===F.cargo)
+  return D.alertas.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)&&(ign==="uf"||!F.regiao||REG[a.uf]===F.regiao)&&(!F.cargo||a.cargo===F.cargo)&&(!F.conc||QT("uf",a.uf)===F.conc)&&(!F.flag||!!FLAG[F.flag][1](a))
     &&(`${a.nome} ${a.nome_urna??""} ${a.cargo} ${a.uf} ${a.partido}`.toLowerCase().includes(q)));
 }
 function agrupa(rows,dim,max){
@@ -195,6 +200,8 @@ function painel(rows){
     const d=el("div","kpi");d.append(el("b",null,v),el("span",null,r));k.append(d);}
   tabela("tp","Partido",grafico("gp","partido",0));tabela("tu","UF",grafico("gu","uf",0));
   const c=$("chips");c.replaceChildren();
+  if(F.flag){const b=el("button",null,`${FLAG[F.flag][0]} ×`);b.title="Remover filtro";b.onclick=()=>{F.flag="";draw();};c.append(b);}
+  if(F.conc){const b=el("button",null,`Concentração: ${CONC_ROT[F.conc]} ×`);b.title="Remover filtro";b.onclick=()=>{F.conc="";draw();};c.append(b);}
   for(const [dim,rot] of [["cargo","Cargo"],["regiao","Região"],["partido","Partido"],["uf","UF"]])if(F[dim]){const b=el("button",null,`${rot}: ${F[dim]} ×`);b.title="Remover filtro";b.onclick=()=>{F[dim]="";draw();};c.append(b);}
 }
 for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=el("i");i.style.background=`var(--${n==="informativo"?"info":n})`;s.append(i,NV[n]);$(id).append(s);}
@@ -248,10 +255,10 @@ function tabelaToda(){
 }
 function draw(){
   const rows=filtra();painel(rows);
-  $("cg").value=F.cargo;$("rg").value=F.regiao;ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
-  const fl=[F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
+  $("cg").value=F.cargo;$("rg").value=F.regiao;for(const b of $("legenda").querySelectorAll("button"))b.setAttribute("aria-pressed",F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
+  const fl=[F.flag&&FLAG[F.flag][0].toLowerCase(),F.conc&&`concentração ${CONC_ROT[F.conc]}`,F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${D.alertas.length.toLocaleString("pt-BR")} registros`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
-  if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo=F.regiao="";$("cg").value="";$("rg").value="";draw();};
+  if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo=F.regiao=F.conc=F.flag="";$("cg").value="";$("rg").value="";draw();};
   document.getElementById("vz").hidden=rows.length>0;
 }
 const VZ=v=>v==null?"Não informado":v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"×";
@@ -295,6 +302,7 @@ for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.childr
 for(const s of document.querySelectorAll("section.grade.duas,section[aria-labelledby=t-pessoas]"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
 if(D){contrib();leitura();exemplares();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
+$("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b)return;F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 $("cards").onclick=ev=>{const t=ev.target.closest("button.tag");if(!t)return;F[t.dataset.dim]=t.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};$("tabela").ontoggle=tabelaToda;draw();}
