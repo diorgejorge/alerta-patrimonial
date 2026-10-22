@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Grava em config/processos.csv o processo informado numa issue aprovada (rotulo "aprovada").
-O texto da issue e de terceiros: so le campos conhecidos e valida numero e link (site de tribunal *.jus.br ou
-Jusbrasil) antes de gravar. Nao abre o link (o Jusbrasil proibe robos). Escreve a resposta em resposta.md e
+O texto da issue e de terceiros: so le campos conhecidos e valida numero e link (site de tribunal *.jus.br,
+Jusbrasil ou Escavador) antes de gravar. Nao abre o link (esses sites restringem robos). Escreve a resposta em resposta.md e
 ok=true/false em $GITHUB_OUTPUT."""
 import csv, datetime as dt, json, os, re, sys, urllib.parse
 from pathlib import Path
@@ -16,13 +16,14 @@ UFS = set("AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR 
 RE_CNJ = re.compile(r"^\d{7}-\d{2}\.\d{4}\.\d\.\d{2}\.\d{4}$")
 RE_CLASSE = re.compile(r"^[A-Za-zÀ-ú]{2,12}\.?\s?\d{1,7}$")  # ex.: AP 1044, Inq 4781
 RE_DOC = re.compile(r"\d{3}\.?\d{3}\.?\d{3}-?\d{2}")  # CPF no texto: recusa
+HOSTS = {"jusbrasil.com.br", "www.jusbrasil.com.br", "escavador.com", "www.escavador.com"}  # alem de *.jus.br
 
 
 def link_ok(u):
     p = urllib.parse.urlsplit(u)
     host = p.netloc.lower().split(":")[0]
     return (p.scheme == "https" and not re.search(r"\s", u)
-            and (host.endswith(".jus.br") or host in ("jusbrasil.com.br", "www.jusbrasil.com.br")))
+            and (host.endswith(".jus.br") or host in HOSTS))
 
 
 def validar(nome, uf, tribunal, numero, link):
@@ -34,7 +35,7 @@ def validar(nome, uf, tribunal, numero, link):
     if not (RE_CNJ.match(numero) or RE_CLASSE.match(numero)):
         return f"o número `{numero}` não está no formato do CNJ (0000000-00.0000.0.00.0000) nem como classe e número (ex.: AP 1044)"
     if not link_ok(link):
-        return "o link precisa ser https e de um tribunal (*.jus.br) ou do Jusbrasil"
+        return "o link precisa ser https e de um tribunal (*.jus.br), do Jusbrasil ou do Escavador"
     return ""
 
 

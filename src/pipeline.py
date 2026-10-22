@@ -309,14 +309,14 @@ def carregar_fontes():
 
 def carregar_processos():
     """Processos em que a pessoa e re, informados e aprovados por issue (config/processos.csv).
-    Devolve {(nome normalizado, UF): [dict(tribunal, numero, link)]}; so links https de *.jus.br ou Jusbrasil."""
+    Devolve {(nome normalizado, UF): [dict(tribunal, numero, link)]}; so links https de *.jus.br, Jusbrasil ou Escavador."""
     f = CFG / "processos.csv"
     df = pd.read_csv(f, dtype=str, keep_default_na=False) if f.exists() else pd.DataFrame()
     out = {}
     for _, r in df.iterrows():
         link = r.get("link", "").strip()
         host = urllib.parse.urlsplit(link).netloc.lower()
-        if not (link.startswith("https://") and (host.endswith(".jus.br") or host in ("jusbrasil.com.br", "www.jusbrasil.com.br"))):
+        if not (link.startswith("https://") and (host.endswith(".jus.br") or host in ("jusbrasil.com.br", "www.jusbrasil.com.br", "escavador.com", "www.escavador.com"))):
             continue
         out.setdefault((norm(r.get("nome")), r.get("uf", "").strip().upper()), []).append(
             dict(tribunal=r.get("tribunal", "").strip(), numero=r.get("numero", "").strip(), link=link))

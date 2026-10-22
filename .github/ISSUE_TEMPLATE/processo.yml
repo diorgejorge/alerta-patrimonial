@@ -42,7 +42,7 @@ body:
     id: link
     attributes:
       label: Link da consulta
-      description: Página do processo no site do tribunal (*.jus.br) ou no Jusbrasil.
+      description: Página do processo no site do tribunal (*.jus.br), no Jusbrasil ou no Escavador.
       placeholder: "https://portal.stf.jus.br/processos/detalhe.asp?incidente=..."
     validations:
       required: true
