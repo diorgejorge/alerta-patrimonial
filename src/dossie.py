@@ -495,6 +495,10 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
     cab += f'<p class="ficha">{ficha}</p>'
     if tse:
         cab += f'<p class="ficha"><a href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura e bens no TSE</a></p>'
+    busca = "https://www.google.com/search?" + urllib.parse.urlencode(
+        {"q": f'"{str(ult["nome"]).strip()}" processo (site:jus.br OR site:jusbrasil.com.br)'})
+    cab += (f'<p class="ficha"><a href="{e(busca)}" target="_blank" rel="noopener">Conferir processos pelo nome</a> '
+            '<small>(busca em sites de tribunais e no Jusbrasil; confira se não é outra pessoa com o mesmo nome)</small></p>')
     procs = [x for x in (ult.get("processos") or []) if url_ok(x.get("link")) and x["link"].startswith("https://")]
     if procs:  # lista curada por issue (config/processos.csv): so tribunal, numero e link oficial
         cab += ('<p class="ficha">Responde a processo como réu: ' + " · ".join(
