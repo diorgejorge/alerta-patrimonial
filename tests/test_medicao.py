@@ -74,6 +74,8 @@ def test_cookies_so_depois_do_aceite(tmp_path, monkeypatch):
     assert h.index("localStorage.getItem('cv-medicao') === 'aceito'") < h.index("gtag('config'")
     js = (RAIZ / "src" / "medicao.js").read_text(encoding="utf-8")
     assert 'CHAVE = "cv-medicao"' in js and 'analytics_storage: "granted"' in js
+    permitir = js.split("function permitir()")[1].split("function apagarCookies()")[0]
+    assert permitir.index('"granted"') < permitir.index('"page_view"')  # a visita do aceite conta, ja com cookies
     assert "googletagmanager" not in js  # o aviso nao carrega o Google; so libera os cookies
 
 
