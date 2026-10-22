@@ -109,7 +109,6 @@ def test_paginas_da_pessoa(saida):
 def test_painel(saida):
     texto = (saida / "docs" / "index.html").read_text(encoding="utf-8")
     assert not re.search(r"<!--(CARTOES|GRAFICO_[A-Z]+)-->", texto)
-    assert 'href="pessoa/p' in texto
     assert (saida / "docs" / "estilo.css").exists()
     dados = json.loads(re.search(r"^const D=(.*);$", texto, re.M).group(1))
     assert all(a.get("pagina", "").startswith("pessoa/p") for a in dados["alertas"])

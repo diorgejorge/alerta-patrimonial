@@ -105,7 +105,6 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <details class="leitura" id="como-ler"><summary>Como ler a tabela</summary><div id="leitura"></div></details>
 <p class="contagem" id="contagem" aria-live="polite"></p>
 <section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
-<section aria-labelledby="t-pessoas"><h2 id="t-pessoas">Pessoas</h2><!--CARTOES--></section>
 <h2>Todos os destaques</h2>
 <div class="legenda-tags" id="legenda" aria-label="Legenda das tags; clique para filtrar"><span class="rotulo">Concentração de destaques no estado:</span><button type="button" class="tag q0" data-f="conc" data-v="q0">poucos</button><button type="button" class="tag q1" data-f="conc" data-v="q1">alguns</button><button type="button" class="tag q2" data-f="conc" data-v="q2">muitos</button><button type="button" class="tag q3" data-f="conc" data-v="q3">os que mais concentram</button><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo</button></div>
 <ul class="alertas" id="cards"></ul>
@@ -133,7 +132,6 @@ const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a
 const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);
 const NIVEIS=["forte","atencao","informativo"];
 const F={partido:"",uf:"",cargo:"",regiao:"",conc:"",flag:""};
-let CART=[];  // cartoes da secao "Pessoas": [li, pagina]
 const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar],renda:["Tem empresas declaradas",a=>a.outras_rendas],reu:["Responde a processo",a=>(a.processos||[]).length>0||a.processos_reu>0]};
 const CONC_ROT={q0:"poucos",q1:"alguns",q2:"muitos",q3:"os que mais concentram"};
 const REGIOES={Norte:"AC AM AP PA RO RR TO",Nordeste:"AL BA CE MA PB PE PI RN SE","Centro-Oeste":"DF GO MS MT",Sudeste:"ES MG RJ SP",Sul:"PR RS SC"};
@@ -268,7 +266,6 @@ function tabelaToda(){
 }
 function draw(){
   const rows=filtra();painel(rows);
-  {const vis=new Set(rows.map(a=>a.pagina));for(const [li,p] of CART)li.hidden=!vis.has(p);}
   $("cg").value=F.cargo;$("rg").value=F.regiao;for(const b of $("legenda").querySelectorAll("button"))b.setAttribute("aria-pressed",F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
   const fl=[F.flag&&FLAG[F.flag][0].toLowerCase(),F.conc&&`concentração ${CONC_ROT[F.conc]}`,F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${D.alertas.length.toLocaleString("pt-BR")} registros`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
@@ -311,9 +308,9 @@ function contrib(){
   $("fontes-uso").textContent="Notícias dos dossiês: Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
   $("contrib").hidden=false;
 }
-// blocos gerados a parte (graficos e cartoes de pessoas so existem com ID_SEGREDO): sem conteudo, nao aparecem
+// blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
-for(const s of document.querySelectorAll("section.grade.duas,section[aria-labelledby=t-pessoas]"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
+for(const s of document.querySelectorAll("section.grade.duas"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
 if(D){contrib();leitura();exemplares();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
 $("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b)return;F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
@@ -321,9 +318,5 @@ $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 // tags clicaveis (cards e tabela): cargo, partido e UF filtram pela dimensao; marcacoes filtram pela legenda
 const porTag=ev=>{const t=ev.target.closest("button.tag");if(!t)return;if(t.dataset.f)F[t.dataset.f]=t.dataset.v;else F[t.dataset.dim]=t.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
-// secao "Pessoas" (cartoes gerados pelo pipeline): troca o texto cargo · partido · UF pelas tags clicaveis
-CART=[...document.querySelectorAll("li.pessoa[data-pagina]")].map(li=>{const a=D.alertas.find(x=>x.pagina===li.dataset.pagina);
-  const f=li.querySelector(".ficha");if(a&&f)f.outerHTML=`<span class="tags">${TAGS(a)}</span>`;return [li,li.dataset.pagina];});
-for(const u of document.querySelectorAll("ul.pessoas"))u.onclick=porTag;
 $("cards").onclick=porTag;$("tb").onclick=porTag;$("exemplares-lista").onclick=porTag;$("tabela").ontoggle=tabelaToda;draw();}
 </script></body></html>
