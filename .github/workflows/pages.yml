@@ -2,7 +2,7 @@ name: Publicar painel
 on:
   push:
     branches: [main]
-    paths: ["docs/**", "src/template.html"]
+    paths: ["docs/**", "src/template.html", "src/estilo.css"]
   workflow_run:
     workflows: ["Atualizar alertas"]
     types: [completed]
@@ -28,12 +28,19 @@ jobs:
       - name: Montar painel
         run: |
           python3 - <<'PY'
-          import pathlib, re, shutil
+          import json, pathlib, re, shutil
           shutil.copytree("docs", "_site")
           m = re.search(r"^const D=(.*);$", pathlib.Path("docs/index.html").read_text(encoding="utf-8"), re.M)
           if m:
-              tpl = pathlib.Path("src/template.html").read_text(encoding="utf-8")
-              pathlib.Path("_site/index.html").write_text(tpl.replace("/*DADOS*/null", m.group(1)), encoding="utf-8")
+              html = pathlib.Path("src/template.html").read_text(encoding="utf-8").replace("/*DADOS*/null", m.group(1))
+              try:
+                  blocos = json.loads(pathlib.Path("docs/blocos.json").read_text(encoding="utf-8"))
+              except (OSError, ValueError):
+                  blocos = {}
+              for marca, conteudo in blocos.items():
+                  html = html.replace(f"<!--{marca}-->", conteudo)
+              pathlib.Path("_site/index.html").write_text(html, encoding="utf-8")
+          shutil.copyfile("src/estilo.css", "_site/estilo.css")
           PY
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

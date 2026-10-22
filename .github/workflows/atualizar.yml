@@ -22,8 +22,10 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TRANSPARENCIA_TOKEN: ${{ secrets.TRANSPARENCIA_TOKEN }}  # chave da API do Portal da Transparencia
+          ID_SEGREDO: ${{ secrets.ID_SEGREDO }}  # gera o id interno das pessoas (sem CPF)
+          MONITORADOS_CSV: ${{ secrets.MONITORADOS_CSV }}  # lista de monitorados; vazio = modo atual (200 maiores)
       - name: Salvar resultados
         run: |
           git config user.name "alerta-bot"; git config user.email "bot@users.noreply.github.com"
-          git add docs data/estado.json
+          git add docs data  # data/cache fica fora pelo .gitignore
           git diff --cached --quiet || (git commit -m "Atualiza alertas" && git pull --rebase -X theirs && git push)

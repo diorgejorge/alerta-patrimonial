@@ -1,3 +1,5 @@
 data/cache/
 __pycache__/
 alerta-patrimonial/
+_demo/
+.pytest_cache/

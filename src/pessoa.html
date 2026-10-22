@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Dossiê de acompanhamento patrimonial com dados públicos do TSE e do Portal da Transparência.">
+<title>__TITULO__ · Alerta patrimonial</title>
+<link rel="stylesheet" href="../estilo.css">
+</head>
+<body>
+<a class="pular" href="#conteudo">Ir para o conteúdo</a>
+<main id="conteudo">
+<a class="voltar" href="../index.html">← Voltar ao painel</a>
+__CABECALHO__
+<p class="aviso">Os alertas são indícios para acompanhamento, calculados com os mesmos critérios para todas as pessoas. Não afirmam irregularidade. Confira sempre as fontes.</p>
+<div class="abas">
+<div role="tablist" aria-label="Seções do dossiê" hidden>
+<button role="tab" id="aba-resumo" aria-controls="resumo" aria-selected="true">Resumo</button>
+<button role="tab" id="aba-patrimonio" aria-controls="patrimonio" aria-selected="false" tabindex="-1">Patrimônio</button>
+<button role="tab" id="aba-noticias" aria-controls="noticias" aria-selected="false" tabindex="-1">Notícias</button>
+<button role="tab" id="aba-dinheiro" aria-controls="dinheiro" aria-selected="false" tabindex="-1">Dinheiro público</button>
+<button role="tab" id="aba-propostas" aria-controls="propostas" aria-selected="false" tabindex="-1">Propostas × PLs</button>
+</div>
+<section role="tabpanel" id="resumo" aria-labelledby="aba-resumo"><h2>Resumo</h2>__RESUMO__</section>
+<section role="tabpanel" id="patrimonio" aria-labelledby="aba-patrimonio"><h2>Patrimônio</h2>__PATRIMONIO__</section>
+<section role="tabpanel" id="noticias" aria-labelledby="aba-noticias"><h2>Notícias</h2>__NOTICIAS__</section>
+<section role="tabpanel" id="dinheiro" aria-labelledby="aba-dinheiro"><h2>Dinheiro público</h2>
+<p class="mut">Consultado na API do Portal da Transparência. Receber recursos ou benefícios não é, por si, irregular.</p>__DINHEIRO__</section>
+<section role="tabpanel" id="propostas" aria-labelledby="aba-propostas"><h2>Propostas × PLs</h2>__PROPOSTAS__</section>
+</div>
+<p class="mut"><small>Gerado em __GERADO__. Fontes: declarações de bens e candidaturas do <a href="https://dadosabertos.tse.jus.br/">Portal de Dados Abertos do TSE</a> e <a href="https://portaldatransparencia.gov.br/">Portal da Transparência</a>.</small></p>
+</main>
+<script>
+// abas acessiveis (setas, Home/End); sem JS todas as secoes aparecem em sequencia
+(function(){
+  var lista=document.querySelector('[role=tablist]'),abas=[].slice.call(lista.querySelectorAll('[role=tab]'));
+  var paineis=abas.map(function(a){return document.getElementById(a.getAttribute('aria-controls'))});
+  function abrir(i,foco){abas.forEach(function(a,j){var s=i===j;a.setAttribute('aria-selected',s);a.tabIndex=s?0:-1;paineis[j].hidden=!s;
+    var h=paineis[j].querySelector('h2');if(h)h.className=s?'sr':'';});
+    if(foco)abas[i].focus();history.replaceState(null,'','#'+paineis[i].id);}
+  lista.hidden=false;
+  abas.forEach(function(a,i){a.addEventListener('click',function(){abrir(i)});
+    a.addEventListener('keydown',function(e){var k={ArrowRight:i+1,ArrowLeft:i-1,Home:0,End:abas.length-1}[e.key];
+      if(k===undefined)return;e.preventDefault();abrir((k+abas.length)%abas.length,true)})});
+  var ini=paineis.findIndex(function(p){return '#'+p.id===location.hash});abrir(ini<0?0:ini);
+  window.addEventListener('beforeprint',function(){paineis.forEach(function(p){p.hidden=false})});
+})();
+</script>
+</body>
+</html>

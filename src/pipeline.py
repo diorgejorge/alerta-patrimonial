@@ -2,12 +2,14 @@
 """Alerta patrimonial: compara o crescimento do patrimonio declarado ao TSE entre
 eleicoes com a capacidade de acumulacao estimada e com o grupo de pares.
 Resultado = INDICIO para acompanhamento, nao prova."""
-import argparse, json, os, re, sys, unicodedata, urllib.request, urllib.parse, zipfile
+import argparse, io, json, os, re, sys, unicodedata, urllib.request, urllib.parse, zipfile
 import datetime as dt
 from pathlib import Path
 import pandas as pd
 from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
 import transparencia
+from ids import Ids
+import paginas
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE, DOCS, CFG = ROOT / "data" / "cache", ROOT / "docs", ROOT / "config"
@@ -157,6 +159,15 @@ def serie_tse(anos):
     return pd.concat(partes, ignore_index=True)
 
 
+def cpf_ficticio(i):
+    """CPF com digitos verificadores validos, gerado a partir de i (so para o modo --demo)."""
+    base = [int(c) for c in f"{(i * 7919 + 123456789) % 10**9:09d}"]
+    for n in (9, 10):
+        d = sum(a * b for a, b in zip(base, range(n + 1, 1, -1))) * 10 % 11
+        base.append(0 if d == 10 else d)
+    return "".join(map(str, base))
+
+
 def serie_demo(seed=7):
     import random
     random.seed(seed)
@@ -166,7 +177,9 @@ def serie_demo(seed=7):
         f = random.lognormvariate(0.35, 0.35)
         if i == 1:
             f = 25.0  # caso extremo
-        linhas.append(dict(chave=f"demo:{i}", ano=2018, nome=f"PESSOA DEMO {i:03d}", cargo="DEPUTADO FEDERAL",
+        # metade com CPF ficticio (digitos validos), para os testes provarem que CPF nunca vaza
+        chave = f"cpf:{cpf_ficticio(i)}" if i % 2 == 0 else f"demo:{i}"
+        linhas.append(dict(chave=chave, ano=2018, nome=f"PESSOA DEMO {i:03d}", cargo="DEPUTADO FEDERAL",
                            uf=random.choice(["PA", "SP", "MG", "BA"]), partido="XX", eleito=True, patrimonio=base,
                            sq_candidato=None, cd_eleicao=None, sg_ue=None, nome_urna=f"DEMO {i:03d}",
                            suplementar=False, empresas=[], empresas_cnpj=[]))  # sem SQ real: link_tse fica None no demo
@@ -237,8 +250,13 @@ def nivel(r, p):
 
 # ---------------------------------------------------------------- saida
 def carregar_monitorados():
+    """Lista de monitorados: segredo MONITORADOS_CSV (lido so em memoria) ou config/monitorados.csv."""
+    texto = os.getenv("MONITORADOS_CSV", "").strip()
     f = CFG / "monitorados.csv"
-    df = pd.read_csv(f, dtype=str, keep_default_na=False) if f.exists() else pd.DataFrame()
+    if texto:
+        df = pd.read_csv(io.StringIO(texto), dtype=str, keep_default_na=False)
+    else:
+        df = pd.read_csv(f, dtype=str, keep_default_na=False) if f.exists() else pd.DataFrame()
     cpfs, nomes, extras = set(), set(), {}
     for _, r in df.iterrows():
         cpf = re.sub(r"\D", "", r.get("cpf", ""))
@@ -265,10 +283,18 @@ def carregar_fontes():
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true", help="dados sinteticos para testar sem internet")
+    ap.add_argument("--saida", help="pasta de saida (docs/ e data/ ficam dentro dela); padrao: o proprio repositorio")
     args = ap.parse_args()
+    docs, dados_dir = (Path(args.saida) / "docs", Path(args.saida) / "data") if args.saida else (DOCS, ROOT / "data")
+    estado_arq, ids_arq = dados_dir / "estado.json", dados_dir / "ids.json"
     p = json.loads((CFG / "parametros.json").read_text())
     regras = pd.read_csv(CFG / "renda_publica.csv")
     cpfs, nomes, extras_cfg = carregar_monitorados()
+    # id interno estavel (HMAC com ID_SEGREDO): unico identificador de pessoa que sai do pipeline
+    segredo = os.getenv("ID_SEGREDO") or ("demo" if args.demo else "")
+    pid = Ids(ids_arq, segredo) if segredo else None
+    if not pid:
+        print("[aviso] sem ID_SEGREDO: paginas por pessoa e memoria de alertas novos desativadas", file=sys.stderr)
 
     serie = serie_demo() if args.demo else serie_tse(p["anos"])
     extras = {r.chave: extras_cfg.get(r.chave, extras_cfg.get("nome:" + norm(r.nome), 0.0))
@@ -279,8 +305,14 @@ def main():
     df["monitorado"] = df.apply(lambda r: r.chave in cpfs or norm(r.nome) in nomes, axis=1)
     alertas = df[df.nivel.notna()].copy()
 
-    estado = json.loads(ESTADO.read_text()) if ESTADO.exists() else {}
-    alertas["id"] = alertas.chave + "|" + alertas.ano_ini.astype(str) + "-" + alertas.ano_fim.astype(str)
+    # memoria de alertas por id interno (versoes antigas usavam o CPF na chave: sao descartadas)
+    try:
+        estado = {k: v for k, v in json.loads(estado_arq.read_text()).items() if re.match(r"p\d+\|", k)}
+    except (OSError, ValueError):
+        estado = {}
+    alertas["pessoa"] = alertas.chave.map(pid) if pid else None
+    alertas["id"] = (alertas.pessoa.astype(str) + "|" + alertas.ano_ini.astype(str) + "-" + alertas.ano_fim.astype(str)
+                     if pid else None)
     alertas["novo"] = alertas.apply(lambda r: ORDEM[r.nivel] > ORDEM.get(estado.get(r.id, ""), 0), axis=1)
 
     if p["publicar_somente_monitorados"] and (cpfs or nomes):
@@ -294,7 +326,7 @@ def main():
     pub = pub.astype(object).where(pub.notna(), None)
     dados = dict(gerado_em=dt.datetime.now().strftime("%Y-%m-%d %H:%M"), universo=int(len(df)),
                  alertas=json.loads(pub.to_json(orient="records")))
-    DOCS.mkdir(exist_ok=True)
+    docs.mkdir(parents=True, exist_ok=True)
     fontes = carregar_fontes()
     dados["repo"] = os.getenv("GITHUB_REPOSITORY")  # links "sugerir fonte" do painel
     dados["metodo"] = dict(taxa=p["taxa_poupanca"], minimo=p["crescimento_minimo"], forte=p["limiar_forte"],
@@ -304,7 +336,7 @@ def main():
     pessoas = {}
     for i, r in enumerate(vis.to_dict("records")):
         q = pessoas.setdefault((norm(r["nome"]), str(r["uf"]).upper()), dict(
-            nome=r["nome"], nome_urna=txt(r.get("nome_urna")), cargo="", idx=[],
+            nome=r["nome"], nome_urna=txt(r.get("nome_urna")), cargo="", idx=[], chave=r["chave"],
             cpf=r["chave"][4:] if str(r["chave"]).startswith("cpf:") else "", empresas=r.get("empresas_cnpj") or []))
         q["cargo"] += " " + str(r["cargo"])
         q["idx"].append(i)
@@ -321,21 +353,41 @@ def main():
             print(f"[aviso] secao do Portal falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_sec = transparencia.NAO_DEU
         secoes.update({i: html_sec for i in q["idx"]})
-    for i, cam in gerar_dossies(dados["alertas"], DOCS, buscar=not args.demo, fontes_extra=fontes,
+    for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
                                 transparencia=secoes).items():
         dados["alertas"][i]["dossie"] = cam
-    tpl =(ROOT / "src" / "template.html").read_text(encoding="utf-8")
-    (DOCS / "index.html").write_text(tpl.replace("/*DADOS*/null", json.dumps(dados, ensure_ascii=False)),
-                                      encoding="utf-8")
-    ESTADO.write_text(json.dumps({r.id: r.nivel for r in alertas.itertuples()}, ensure_ascii=False))
+
+    cartoes, graficos_painel = "", {}
+    if pid:  # uma pagina por pessoa (docs/pessoa/<id>.html), so com o id interno
+        hist = {c: sorted((int(a), float(v)) for a, v in zip(g.ano, g.patrimonio))
+                for c, g in serie[serie.chave.isin(set(vis.chave))].groupby("chave")}
+        try:
+            cartoes, graficos_painel = paginas.gerar(dados["alertas"], pessoas, hist, secoes, docs,
+                                                     gerado=dados["gerado_em"])
+        except Exception as ex:  # nunca derruba o painel
+            print(f"[aviso] paginas por pessoa falharam ({ex!r})", file=sys.stderr)
+    paginas.copiar_estilo(docs)
+    tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    html_painel = tpl.replace("/*DADOS*/null", json.dumps(dados, ensure_ascii=False))
+    blocos = dict(CARTOES=cartoes, **graficos_painel)
+    for marca, conteudo in blocos.items():
+        html_painel = html_painel.replace(f"<!--{marca}-->", conteudo)
+    # blocos gerados a parte: o workflow "Publicar painel" remonta o index com o template atual
+    (docs / "blocos.json").write_text(json.dumps(blocos, ensure_ascii=False), encoding="utf-8")
+    (docs / "index.html").write_text(html_painel, encoding="utf-8")
+    if pid:
+        dados_dir.mkdir(parents=True, exist_ok=True)
+        estado_arq.write_text(json.dumps({r.id: r.nivel for r in alertas.itertuples()}, ensure_ascii=False))
+        pid.salvar()
 
     novos = vis[vis.novo]
     resumo = f"Alerta patrimonial {dados['gerado_em']}: {len(vis)} alertas visiveis, {len(novos)} novos."
     for r in novos.head(15).itertuples():
         resumo += f"\n- [{r.nivel}] {r.nome} ({r.cargo}/{r.uf}) {r.ano_ini}->{r.ano_fim}: +R$ {r.cresc:,.0f}"
-    (DOCS / "digest.txt").write_text(resumo, encoding="utf-8")
+    (docs / "digest.txt").write_text(resumo, encoding="utf-8")
     print(resumo)
-    avisar(resumo if len(novos) else None)
+    if not args.demo:
+        avisar(resumo if len(novos) else None)
 
 
 def avisar(texto):

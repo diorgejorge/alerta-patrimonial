@@ -1,0 +1,194 @@
+"""Pagina por pessoa (docs/pessoa/<id>.html) e blocos da visao geral (cartoes e graficos SVG).
+So usa o id interno (p0001...): CPF, chave e CNPJ nunca entram no HTML."""
+import csv, html, json, re, shutil
+from pathlib import Path
+import graficos
+
+SRC = Path(__file__).resolve().parent
+ROOT = SRC.parent
+ORDEM = {"forte": 3, "atencao": 2, "informativo": 1}
+SIMBOLO = {"forte": "▲", "atencao": "◆", "informativo": "●"}  # forma alem da cor
+NUM = ' class="n"'  # colunas numericas (alinhadas a direita)
+e = html.escape
+
+
+def brl(v):
+    return "—" if v is None else "R$ " + f"{v:,.0f}".replace(",", ".")
+
+
+def vezes(v):
+    return "—" if v is None else f"{v:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
+
+
+def colegas(p):
+    return "—" if p is None else "o maior do grupo" if p >= 99.5 else f"acima de {p:.0f}% dos colegas"
+
+
+def chip_nivel(nv):
+    if not nv:
+        return ""
+    return (f'<span class="chip nv-{e(nv)}"><span aria-hidden="true">{SIMBOLO.get(nv, "")}</span>'
+            f'Nível {e(graficos.ROTULO_NIVEL.get(nv, nv))}</span>')
+
+
+def iniciais(nome):
+    ps = [w for w in re.findall(r"[A-Za-zÀ-ÿ]+", nome or "") if len(w) > 2] or (nome or "?").split()
+    return ((ps[0][0] + (ps[-1][0] if len(ps) > 1 else "")) if ps else "?").upper()
+
+
+def avatar(nome, grande=False):
+    """Iniciais; fotos oficiais entram depois de confirmados os termos de uso."""
+    return f'<span class="avatar{" g" if grande else ""}" aria-hidden="true">{e(iniciais(nome))}</span>'
+
+
+def _alt(tabela):
+    return f'<details class="alt"><summary>Ver dados em tabela</summary><div class="tab">{tabela}</div></details>'
+
+
+# ---------------------------------------------------------------- dados das fases seguintes (leitores)
+def ler_jsonl(caminho):
+    """Linhas de um .jsonl (propostas, noticias...); arquivo ausente ou linha ruim = ignorado."""
+    out = []
+    try:
+        for linha in Path(caminho).read_text(encoding="utf-8").splitlines():
+            try:
+                out.append(json.loads(linha))
+            except ValueError:
+                continue
+    except OSError:
+        pass
+    return out
+
+
+def ler_vinculos(caminho=ROOT / "config" / "vinculos.csv"):
+    """Vinculos proposta x proposicao aprovados manualmente (fase 4): so status 'aprovado' e exibido."""
+    try:
+        with open(caminho, encoding="utf-8", newline="") as f:
+            return [r for r in csv.DictReader(f) if (r.get("status") or "").strip().lower() == "aprovado"]
+    except OSError:
+        return []
+
+
+# ---------------------------------------------------------------- pagina da pessoa
+def _tabela_periodos(linhas):
+    cab = ["Período", "Cargo", "Patrimônio no início", "Patrimônio no fim", "Crescimento",
+           "Poderia juntar com o salário", "Quantas vezes o possível", "Comparado aos colegas", "Nível"]
+    corpo = []
+    for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0)):
+        cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(a.get("cargo") or ""), brl(a.get("pat_ini")),
+               brl(a.get("pat_fim")), brl(a.get("cresc")), brl(a.get("cap")), vezes(a.get("razao")),
+               colegas(a.get("percentil")), chip_nivel(a.get("nivel"))]
+        corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if 2 <= i <= 6 else ""}>{v}</td>'
+                                      for i, (c, v) in enumerate(zip(cab, cel))) + "</tr>")
+    return ('<div class="tab"><table class="resp"><caption class="sr">Períodos em alerta</caption><thead><tr>'
+            + "".join(f'<th scope="col"{NUM if 2 <= i <= 6 else ""}>{e(c)}</th>' for i, c in enumerate(cab))
+            + "</tr></thead><tbody>" + "".join(corpo) + "</tbody></table></div>")
+
+
+def _resumo(linhas):
+    topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("cresc") or 0))
+    rz = max((a["razao"] for a in linhas if a.get("razao") is not None), default=None)
+    kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "—"), "Nível mais alto"),
+            (brl(topo.get("cresc")), f"Crescimento em {topo.get('ano_ini')}–{topo.get('ano_fim')}"),
+            (vezes(rz), "Maior “quantas vezes o possível”"),
+            (str(len(linhas)), "Períodos em alerta")]
+    html_kpis = '<div class="kpis">' + "".join(f'<div class="card kpi"><b>{e(v)}</b><span>{e(r)}</span></div>'
+                                                for v, r in kpis) + "</div>"
+    tse = next((a["link_tse"] for a in linhas if str(a.get("link_tse") or "").startswith("https://")), None)
+    links = (f'<p><a class="botao" href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura e bens no TSE</a></p>'
+             if tse else "")
+    return (html_kpis + _tabela_periodos(linhas) + links +
+            '<p class="mut"><small><a href="../index.html#como-ler">O que significam estas colunas?</a></small></p>')
+
+
+def _patrimonio(hist, linhas, uid):
+    graf = graficos.patrimonio(hist, uid=uid)
+    alt = _alt(graficos.tabela_patrimonio(hist)) if hist else ""
+    emps = next((a.get("empresas") for a in linhas if a.get("empresas")), []) or []
+    bloco = ""
+    if emps:
+        bloco = ("<h3>Empresas citadas na declaração de bens</h3><ul class=\"nt\">"
+                 + "".join(f"<li>{e(x)}</li>" for x in emps) + "</ul>"
+                 "<p class=\"mut\"><small>Extraídas automaticamente da descrição dos bens declarados ao TSE; a lista pode "
+                 "estar incompleta.</small></p>")
+    return (graf + alt + bloco + '<p class="mut"><small>Valores declarados pelo custo histórico, não pelo valor de mercado. '
+            "Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta.</small></p>")
+
+
+def _noticias(linhas):
+    dossie = next((a.get("dossie") for a in linhas if a.get("dossie")), None)
+    link = (f'<p><a class="botao" href="../{e(dossie)}">Ver as notícias coletadas para esta pessoa</a></p>'
+            if dossie and not re.match(r"^\s*[a-z][a-z0-9+.-]*:", dossie, re.I) else "")
+    return ('<p class="vazio">As notícias com tags (político, eleitoral, legislativo, gestão, patrimonial, judicial, '
+            'criminal, outros) entram nesta aba na próxima fase.</p>' + link)
+
+
+def _propostas(pid):
+    props = [x for x in ler_jsonl(ROOT / "data" / "propostas.jsonl") if x.get("pessoa") == pid]
+    vinc = [v for v in ler_vinculos() if v.get("pessoa") == pid]
+    if not props and not vinc:
+        return ('<p class="vazio">Ainda não há propostas de plano de governo nem proposições vinculadas a esta pessoa. '
+                "Os vínculos só aparecem depois de revisados manualmente.</p>")
+    return f'<p class="mut">{len(props)} propostas registradas; {len(vinc)} vínculos aprovados.</p>'
+
+
+def _cabecalho(a, nome):
+    urna = (a.get("nome_urna") or "").strip()
+    ficha = " · ".join(e(str(x)) for x in (a.get("cargo"), a.get("partido"), a.get("uf")) if x)
+    return (f'<header class="cab">{avatar(urna or nome, grande=True)}<div><h1>{e(nome)}</h1>'
+            + (f'<p class="ficha">Nome de urna: <strong>{e(urna)}</strong></p>' if urna and urna.upper() != nome.upper() else "")
+            + f'<p class="ficha">{ficha}</p>{chip_nivel(a.get("nivel"))}</div></header>')
+
+
+def pagina(tpl, pid, linhas, hist, dinheiro, gerado):
+    topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
+    nome = str(topo.get("nome") or "")
+    vals = dict(TITULO=e((topo.get("nome_urna") or nome).strip()), CABECALHO=_cabecalho(topo, nome),
+                RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"), NOTICIAS=_noticias(linhas),
+                DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
+                PROPOSTAS=_propostas(pid), GERADO=e(gerado))
+    return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
+
+
+# ---------------------------------------------------------------- visao geral
+def cartao(pid, linhas, hist):
+    topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("cresc") or 0))
+    nome = (topo.get("nome_urna") or topo.get("nome") or "").strip()
+    ficha = " · ".join(e(str(x)) for x in (topo.get("cargo"), topo.get("partido"), topo.get("uf")) if x)
+    mini = graficos.mini_patrimonio(hist, uid=f"mn-{pid}")
+    return (f'<li><a class="card pessoa" href="pessoa/{e(pid)}.html">{avatar(nome)}'
+            f'<span class="info"><span class="nome">{e(nome)}</span><small>{ficha}</small><br>{chip_nivel(topo.get("nivel"))}</span>'
+            f'<span class="mini">{mini}</span></a></li>')
+
+
+def gerar(alertas, pessoas, hist, secoes, docs, gerado):
+    """Escreve docs/pessoa/<id>.html e devolve (html dos cartoes, {marca: html dos graficos do painel})."""
+    pasta = Path(docs) / "pessoa"
+    pasta.mkdir(parents=True, exist_ok=True)
+    for f in pasta.glob("*.html"):
+        f.unlink()
+    tpl = (SRC / "pessoa.html").read_text(encoding="utf-8")
+    itens = []
+    for q in pessoas.values():
+        linhas = [alertas[i] for i in q["idx"]]
+        pid = linhas[0].get("pessoa")
+        if not pid or not re.fullmatch(r"p\d+", str(pid)):
+            continue
+        h = hist.get(q["chave"], [])
+        (pasta / f"{pid}.html").write_text(pagina(tpl, pid, linhas, h, secoes.get(q["idx"][0]), gerado), encoding="utf-8")
+        for i in q["idx"]:
+            alertas[i]["pagina"] = f"pessoa/{pid}.html"
+        itens.append((max(ORDEM.get(a.get("nivel"), 0) for a in linhas), max(a.get("cresc") or 0 for a in linhas),
+                      cartao(pid, linhas, h)))
+    itens.sort(key=lambda t: (t[0], t[1]), reverse=True)
+    cartoes = '<ul class="pessoas">' + "".join(t[2] for t in itens) + "</ul>" if itens else ""
+    cont = {n: sum(1 for a in alertas if a.get("nivel") == n) for n in ("forte", "atencao", "informativo")}
+    temas = {}  # fase 1: {tag: {"AAAA-MM": n}} a partir de data/noticias.jsonl
+    graf = dict(GRAFICO_NIVEIS=graficos.barras_niveis(cont, uid="pn") + _alt(graficos.tabela_niveis(cont)),
+                GRAFICO_TEMAS=graficos.noticias_por_tema(temas, uid="pt")
+                + (_alt(graficos.tabela_noticias_por_tema(temas)) if temas else ""))
+    return cartoes, graf
+
+
+def copiar_estilo(docs):
+    shutil.copyfile(SRC / "estilo.css", Path(docs) / "estilo.css")

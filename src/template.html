@@ -5,16 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Alerta patrimonial</title>
+<meta name="description" content="Painel de alertas patrimoniais com dados públicos do TSE: indícios para acompanhamento, não prova.">
+<link rel="stylesheet" href="estilo.css">
 <style>
-:root{--bg:#f7f7f5;--fg:#1d2328;--mut:#5d6870;--line:#d9dcdd;--card:#fff;--forte:#a3261b;--atencao:#b86a00;--info:#3d5a73;--novo:#14532d}
-@media (prefers-color-scheme:dark){:root{--bg:#14181b;--fg:#e8ebec;--mut:#9aa5ac;--line:#2e363b;--card:#1b2024;--forte:#ff8a7d;--atencao:#f0b45c;--info:#8db3d1;--novo:#7fd9a0}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:16px 16px 40px}
 main{max-width:1100px;margin:0 auto}h1{font-size:1.6rem;margin:.6em 0 .2em}
 .aviso{border-left:3px solid var(--atencao);padding:.4em .9em;color:var(--mut);max-width:75ch;margin:1em 0}
 .barra{display:flex;gap:10px;flex-wrap:wrap;margin:1em 0}input,select{font:inherit;padding:.45em .7em;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--fg)}
-input{flex:1;min-width:200px}.tab{overflow-x:auto;border:1px solid var(--line);background:var(--card)}
-table{border-collapse:collapse;width:100%;min-width:820px}th,td{padding:.55em .8em;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
-th{font-weight:600;color:var(--mut);white-space:nowrap}td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+input,select{min-height:44px}input{flex:1 1 200px;min-width:0}
+.lk{display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
 .nivel{font-weight:600}.forte{color:var(--forte)}.atencao{color:var(--atencao)}.informativo{color:var(--info)}.novo{color:var(--novo);font-weight:600}
 small{color:var(--mut)}.vazio{padding:2em;color:var(--mut)}
 a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
@@ -72,14 +70,18 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <div id="tip" role="tooltip" hidden></div>
 <details class="leitura" id="como-ler"><summary>Como ler a tabela</summary><div id="leitura"></div></details>
 <p class="contagem" id="contagem" aria-live="polite"></p>
-<div class="tab"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table><div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div></div>
+<section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Alertas por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
+<section aria-labelledby="t-pessoas"><h2 id="t-pessoas">Pessoas</h2><!--CARTOES--></section>
+<h2>Todos os períodos em alerta</h2>
+<div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table><div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div></div>
 </main>
 <script>
 const D=/*DADOS*/null;
 const R=v=>v==null?"—":"R$ "+Math.round(v).toLocaleString("pt-BR");
 const NV={forte:"Forte",atencao:"Atenção",informativo:"Informativo"};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(a.dossie&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(a.dossie)?` · <a href="${esc(a.dossie)}">Dossiê</a>`:"");
+const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
+const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(REL(a.pagina)?` · <a class="lk" href="${esc(a.pagina)}">Dossiê</a>`:"")+(REL(a.dossie)?` · <a class="lk" href="${esc(a.dossie)}">Notícias</a>`:"");
 const NIVEIS=["forte","atencao","informativo"];
 const F={partido:"",uf:""};
 const RC=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",notation:"compact",maximumFractionDigits:1}).format(v);
@@ -145,7 +147,7 @@ function painel(rows){
 for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=el("i");i.style.background=`var(--${n==="informativo"?"info":n})`;s.append(i,NV[n]);$(id).append(s);}
 function draw(){
   const rows=filtra();painel(rows);
-  document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></td><td>${esc(a.cargo)}</td><td>${a.ano_ini}–${a.ano_fim}</td><td class="n">${R(a.pat_ini)}</td><td class="n">${R(a.pat_fim)}</td><td class="n">${R(a.cresc)}</td><td class="n">${R(a.cap)}</td><td class="n">${VZ(a.razao)}</td><td class="n">${PC(a.percentil)}</td><td class="nivel ${a.nivel}">${NV[a.nivel]}</td></tr>`).join("");
+  document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td data-label="Nome"><span>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></span></td><td data-label="Cargo"><span>${esc(a.cargo)}</span></td><td data-label="Período"><span>${a.ano_ini}–${a.ano_fim}</span></td><td class="n" data-label="Patrimônio no início"><span>${R(a.pat_ini)}</span></td><td class="n" data-label="Patrimônio no fim"><span>${R(a.pat_fim)}</span></td><td class="n" data-label="Crescimento"><span>${R(a.cresc)}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${R(a.cap)}</span></td><td class="n" data-label="Quantas vezes o possível"><span>${VZ(a.razao)}</span></td><td class="n" data-label="Comparado aos colegas"><span>${PC(a.percentil)}</span></td><td class="nivel ${a.nivel}" data-label="Nível"><span>${NV[a.nivel]}</span></td></tr>`).join("");
   const fl=[F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${D.alertas.length.toLocaleString("pt-BR")} registros`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
   if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf="";draw();};
