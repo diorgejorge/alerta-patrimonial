@@ -3,7 +3,7 @@ da atividade parlamentar, por ano e por tipo de despesa. Fontes oficiais, arquiv
   Camara: https://www.camara.leg.br/cotas/Ano-AAAA.csv.zip (tem CPF: liga com a declaracao do TSE)
   Senado: https://www.senado.leg.br/transparencia/LAI/verba/despesa_ceaps_AAAA.csv (so o nome do senador)
 O CPF so serve para ligar as bases aqui dentro; nunca vai para o site. Fornecedores tambem nao sao exibidos."""
-import html, io, re, sys, unicodedata, urllib.error, urllib.request, zipfile
+import html, re, sys, unicodedata, urllib.error, urllib.request, zipfile
 from pathlib import Path
 import pandas as pd
 
@@ -69,7 +69,18 @@ def ler_senado(path):
     txt = bruto.decode("utf-8") if bruto[:3] == b"\xef\xbb\xbf" or _utf8(bruto) else bruto.decode("latin-1")
     linhas = txt.splitlines()
     ini = next((i for i, l in enumerate(linhas[:5]) if l.startswith('"ANO"')), 0)
-    df = pd.read_csv(io.StringIO("\n".join(linhas[ini:])), sep=";", dtype=str, keep_default_na=False)
+    # separa pelos delimitadores '";"' em vez de um leitor CSV: o arquivo tem aspas soltas dentro do detalhamento
+    # (o pandas parava em "EOF inside string") e quebras de linha dentro de campos (juntadas ate fechar a linha)
+    cab = linhas[ini].strip().strip('"').split('";"')
+    regs, buf = [], ""
+    for l in linhas[ini + 1:]:
+        buf = f"{buf}\n{l}" if buf else l
+        if buf.count('";"') >= len(cab) - 1 and buf.rstrip().endswith('"'):
+            campos = buf.strip().strip('"').split('";"')
+            if len(campos) == len(cab):
+                regs.append(campos)
+            buf = ""
+    df = pd.DataFrame(regs, columns=cab)
     return pd.DataFrame(dict(nome=df["SENADOR"].map(norm), ano=pd.to_numeric(df["ANO"], errors="coerce"),
                              tipo=df["TIPO_DESPESA"].str.strip().str.replace(r",\s*compreendendo.*$", "", regex=True),
                              valor=pd.to_numeric(df["VALOR_REEMBOLSADO"].str.replace(".", "", regex=False)
