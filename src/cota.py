@@ -94,26 +94,56 @@ def _resumo(df):
                 tipos=[(str(t), float(v)) for t, v in tipos.items()])
 
 
+_BASES = {}
+
+
+def bases(anos, cache):
+    """Despesas de todos os deputados (Camara) e senadores (Senado) nos anos pedidos, lidas uma vez por execucao.
+    Devolve (camara, senado, fontes); camara/senado vazios se o arquivo nao veio."""
+    chave = (tuple(anos), str(cache))
+    if chave in _BASES:
+        return _BASES[chave]
+    cache = Path(cache)
+    ok, dep, sen = {"camara": False, "senado": False}, [], []
+    for ano in anos:
+        z = baixar(CAMARA.format(ano=ano), cache / f"ceap_camara_{ano}.zip")
+        if z:
+            try:
+                dep.append(ler_camara(z))
+                ok["camara"] = True
+            except Exception as ex:
+                print(f"[aviso] cota parlamentar: Camara {ano} ilegivel ({ex!r})", file=sys.stderr)
+        f = baixar(SENADO.format(ano=ano), cache / f"ceaps_senado_{ano}.csv")
+        if f:
+            try:
+                sen.append(ler_senado(f))
+                ok["senado"] = True
+            except Exception as ex:
+                print(f"[aviso] cota parlamentar: Senado {ano} ilegivel ({ex!r})", file=sys.stderr)
+    vazio = pd.DataFrame(columns=["cpf", "id", "nome", "ano", "tipo", "valor"])
+    _BASES[chave] = (pd.concat(dep, ignore_index=True) if dep else vazio,
+                     pd.concat(sen, ignore_index=True) if sen else vazio, ok)
+    return _BASES[chave]
+
+
+def medias(anos, cache):
+    """Gasto medio da cota por parlamentar no periodo: {"camara": R$, "senado": R$}; None se o arquivo nao veio."""
+    dep, sen, ok = bases(anos, cache)
+    m = lambda df, por: float(df.dropna(subset=["valor"]).groupby(por)["valor"].sum().mean())
+    return {"camara": m(dep, "cpf") if ok["camara"] and len(dep) else None,
+            "senado": m(sen, "nome") if ok["senado"] and len(sen) else None}
+
+
 def coletar(pessoas, anos, cache):
     """pessoas: {chave: dict(nome, nome_urna, cargo, cpf)}. Devolve {chave: resumo} so para quem tem despesa,
     e {"_fontes": {"camara": bool, "senado": bool}} dizendo se cada arquivo foi lido."""
-    cache = Path(cache)
     alvo_dep = {k: p for k, p in pessoas.items() if "DEPUTADO FEDERAL" in norm(p.get("cargo")) and p.get("cpf")}
     alvo_sen = {k: p for k, p in pessoas.items() if "SENADOR" in norm(p.get("cargo"))}
     out, ok = {}, {"camara": False, "senado": False}
-    if alvo_dep:
-        partes = []
-        for ano in anos:
-            z = baixar(CAMARA.format(ano=ano), cache / f"ceap_camara_{ano}.zip")
-            if z:
-                try:
-                    d = ler_camara(z)
-                    partes.append(d[d["cpf"].isin({p["cpf"] for p in alvo_dep.values()})])
-                    ok["camara"] = True
-                except Exception as ex:
-                    print(f"[aviso] cota parlamentar: Camara {ano} ilegivel ({ex!r})", file=sys.stderr)
-        if partes:
-            dep = pd.concat(partes, ignore_index=True)
+    if alvo_dep or alvo_sen:
+        dep, sen, ok = bases(anos, cache)
+        if alvo_dep and len(dep):
+            dep = dep[dep["cpf"].isin({p["cpf"] for p in alvo_dep.values()})]
             for k, p in alvo_dep.items():
                 d = dep[dep["cpf"] == p["cpf"]]
                 r = _resumo(d)
@@ -121,25 +151,14 @@ def coletar(pessoas, anos, cache):
                     ids = d["id"][d["id"] != ""]
                     r.update(casa="camara", link=LINK_CAMARA.format(id=ids.iloc[-1]) if len(ids) else LINK_CAMARA_GERAL)
                     out[k] = r
-    if alvo_sen:
-        partes = []
-        for ano in anos:
-            f = baixar(SENADO.format(ano=ano), cache / f"ceaps_senado_{ano}.csv")
-            if f:
-                try:
-                    partes.append(ler_senado(f))
-                    ok["senado"] = True
-                except Exception as ex:
-                    print(f"[aviso] cota parlamentar: Senado {ano} ilegivel ({ex!r})", file=sys.stderr)
-        if partes:
-            sen = pd.concat(partes, ignore_index=True)
+        if alvo_sen and len(sen):
             for k, p in alvo_sen.items():
                 nomes = {norm(p.get("nome_urna")), norm(p.get("nome"))} - {""}
                 r = _resumo(sen[sen["nome"].isin(nomes)])
                 if r:
                     r.update(casa="senado", link=LINK_SENADO)
                     out[k] = r
-    out["_fontes"] = ok
+    out["_fontes"] = dict(ok)
     n = len(out) - 1
     print(f"Cota parlamentar: {len(alvo_dep)} deputados federais e {len(alvo_sen)} senadores procurados, {n} com despesas.")
     return out

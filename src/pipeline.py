@@ -9,6 +9,7 @@ import pandas as pd
 from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
 import transparencia
 import cota
+import exemplares
 from ids import Ids, varrer
 import paginas
 
@@ -405,6 +406,17 @@ def main():
             print(f"[aviso] secao da cota falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_cota = '<p class="vazio"><b>Não informado</b>.</p>'
         secoes_cota.update({i: html_cota for i in q["idx"]})
+    # parlamentares exemplares (estrela): patrimonio compativel, cota abaixo da media e sem sancoes
+    try:
+        exemplares_, estrelas = ([], set()) if args.demo else exemplares.calcular(
+            df, range(hoje - 3, hoje + 1), CACHE, os.getenv("TRANSPARENCIA_TOKEN"))
+    except Exception as ex:
+        print(f"[aviso] parlamentares exemplares indisponiveis ({ex!r})", file=sys.stderr)
+        exemplares_, estrelas = [], set()
+    dados["exemplares"] = exemplares_
+    for i, ch in enumerate(vis["chave"]):
+        if ch in estrelas:
+            dados["alertas"][i]["exemplar"] = True
     bens = carregar_bens()
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
                                 transparencia=secoes, bens=bens, cota=secoes_cota).items():

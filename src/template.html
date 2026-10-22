@@ -53,6 +53,7 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .alerta .tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
 .alerta .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
+.estrela{color:#a77d00}.alerta.exemplar{border-color:#a77d00}
 .alerta .tag.q0{background:#f6eee4;color:#3b2a20;border-color:#e3d3bf}.alerta .tag.q1{background:#eec5a8;color:#3b1d10;border-color:#dfae8c}
 .alerta .tag.q2{background:#b5432f;color:#fff;border-color:#9c3524}.alerta .tag.q3{background:#7f1d1d;color:#fff;border-color:#661515}
 .alerta .tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
@@ -83,6 +84,9 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <div class="card"><h2>Destaques por partido</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gp"></div><div class="leg" id="lg1"></div></div>
 <div class="card"><h2>Destaques por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
 </section>
+<section id="exemplares" hidden><h2><span class="estrela" aria-hidden="true">★</span> Parlamentares exemplares</h2>
+<p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência.</p>
+<ol class="alertas" id="exemplares-lista"></ol></section>
 <section id="cota" hidden><h2>Quem mais gastou da cota parlamentar</h2>
 <p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: total gasto da cota para o exercício da atividade parlamentar (CEAP) nos últimos quatro anos e os maiores tipos de despesa. Usar a cota faz parte do mandato; os dados ajudam a conhecer como ela é usada.</p>
 <ol class="alertas" id="cota-lista"></ol></section>
@@ -192,11 +196,21 @@ function QT(dim,v){
 }
 // cards em lotes de PAG (pagina leve); a tabela completa so e montada quando aberta
 const PAG=24;let ROWS=[],VIS=0;
-const CARD=a=>`<li class="card alerta"><div class="topo"><span><b>${esc(a.nome_urna||a.nome)}</b>${a.novo?' <span class="novo">novo</span>':""}<br><small>${a.ano_ini}–${a.ano_fim}${a.mencoes?` · ${a.mencoes} ${a.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span></div>
+const CARD=a=>`<li class="card alerta${a.exemplar?" exemplar":""}"><div class="topo"><span><b>${a.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> `:""}${esc(a.nome_urna||a.nome)}</b>${a.novo?' <span class="novo">novo</span>':""}<br><small>${a.ano_ini}–${a.ano_fim}${a.mencoes?` · ${a.mencoes} ${a.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span></div>
 <p class="tags">${a.outras_rendas?`<span class="tag renda" title="Declarou participação em empresas: o salário não é a única fonte de renda${a.nivel_calculado&&a.nivel_calculado!==a.nivel?`; destaque reduzido de ${NV[a.nivel_calculado]} para ${NV[a.nivel]}`:""}">Tem empresas declaradas</span>`:""}${a.cargo?`<button type="button" class="tag ${QT("cargo",a.cargo)}" data-dim="cargo" data-v="${esc(a.cargo)}" title="Filtrar pelo cargo ${esc(a.cargo)}">${esc(a.cargo)}</button>`:`<span class="tag">Não informado</span>`}${a.partido?`<button type="button" class="tag ${QT("partido",a.partido)}" data-dim="partido" data-v="${esc(a.partido)}" title="Filtrar pelo partido ${esc(a.partido)}">${PD(a.partido)}${esc(a.partido)}</button>`:""}${a.uf?`<button type="button" class="tag ${QT("uf",a.uf)}" data-dim="uf" data-v="${esc(a.uf)}" title="Filtrar pelo estado ${esc(a.uf)}">${esc(a.uf)}</button>`:""}</p>
 <p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>${COMPRA(a.cresc)}
 <dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>
 ${LK(a)?`<p class="links">${LK(a).replace(/^ · /,"")}</p>`:""}</li>`;
+function exemplares(){
+  const l=D.exemplares||[];if(!l.length)return;
+  const RS=v=>"R$ "+Math.round(v).toLocaleString("pt-BR");
+  $("exemplares-lista").innerHTML=l.map(x=>`<li class="card alerta exemplar"><div class="topo"><span><b><span class="estrela" title="Parlamentar exemplar">★</span> ${esc(x.nome)}</b><br><small>${x.ano_ini}–${x.ano_fim}</small></span></div>
+<p class="tags"><span class="tag ${QT("cargo",x.cargo)}">${esc(x.cargo||"Não informado")}</span>${x.partido?`<span class="tag ${QT("partido",x.partido)}">${PD(x.partido)}${esc(x.partido)}</span>`:""}${x.uf?`<span class="tag ${QT("uf",x.uf)}">${esc(x.uf)}</span>`:""}</p>
+<dl><div><dt>Crescimento do patrimônio</dt><dd>${R(x.cresc)}</dd></div><div><dt>Poderia juntar com o salário</dt><dd>${R(x.cap)}</dd></div>
+<div><dt>Cota parlamentar (4 anos)</dt><dd>${RS(x.cota)}</dd></div><div><dt>Média do cargo</dt><dd>${RS(x.cota_media)}</dd></div><div><dt>Sanções</dt><dd>nenhuma</dd></div></dl>
+${/^https:\/\//.test(x.link||"")?`<p class="links"><a class="lk" href="${esc(x.link)}" target="_blank" rel="noopener">Site oficial</a></p>`:""}</li>`).join("");
+  $("exemplares").hidden=false;
+}
 function cota(){
   const l=D.cota||[];if(!l.length)return;
   const RS=v=>"R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -258,7 +272,7 @@ function contrib(){
   $("fontes-uso").textContent="Notícias dos dossiês: Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
   $("contrib").hidden=false;
 }
-if(D){contrib();leitura();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();exemplares();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 $("cards").onclick=ev=>{const t=ev.target.closest("button.tag");if(!t)return;F[t.dataset.dim]=t.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};$("tabela").ontoggle=tabelaToda;draw();}
