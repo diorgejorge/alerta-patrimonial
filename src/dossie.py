@@ -507,12 +507,6 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
         {"q": f'"{str(ult["nome"]).strip()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)'})
     cab += (f'<p class="ficha"><a href="{e(busca)}" target="_blank" rel="noopener">Conferir processos pelo nome</a> '
             '<small>(busca em sites de tribunais, no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome)</small></p>')
-    n_reu = ult.get("processos_reu") or 0
-    if n_reu:  # contagem do DJEN (CNJ) pelo nome civil completo nos tribunais do estado e superiores (djen.py)
-        cab += (f'<p class="ficha">Réu em {n_reu} processo{"s" if n_reu > 1 else ""} com publicação no '
-                '<a href="https://comunica.pje.jus.br/consulta" target="_blank" rel="noopener">Diário de Justiça '
-                'Eletrônico Nacional</a> <small>(busca pelo nome; pode haver homônimo; ser réu não significa '
-                'condenação)</small></p>')
     procs = [x for x in (ult.get("processos") or []) if url_ok(x.get("link")) and x["link"].startswith("https://")]
     if procs:  # lista curada por issue (config/processos.csv): so tribunal, numero e link oficial
         cab += ('<p class="ficha">Responde a processo como réu: ' + " · ".join(

@@ -11,7 +11,6 @@ import transparencia
 import cota
 import exemplares
 import empresas
-import djen
 from ids import Ids, varrer
 from cache import Cache
 import paginas
@@ -495,16 +494,6 @@ def main():
             print(f"[aviso] secao de empresas falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_rec = ""
         secoes_receita.update({i: html_rec for i in q["idx"]})
-    # quantos processos cada pessoa tem como re: publicacoes do DJEN (CNJ), nome civil completo + tribunais do estado
-    try:
-        reu = {} if args.demo else djen.contar({k: dict(nome=q["nome"], uf=k[1]) for k, q in pessoas.items()}, CACHE)
-    except Exception as ex:
-        print(f"[aviso] DJEN indisponivel ({ex!r})", file=sys.stderr)
-        reu = {}
-    for k, q in pessoas.items():
-        if reu.get(k):
-            for i in q["idx"]:
-                dados["alertas"][i]["processos_reu"] = reu[k]
     # processos em que a pessoa e re (lista curada por issue): casa pelo nome civil ou de urna + UF
     processos = carregar_processos()
     for a in dados["alertas"]:
