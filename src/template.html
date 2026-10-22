@@ -53,7 +53,10 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .alerta .tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
 .alerta .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
-.alerta .tag.renda{border-color:var(--info);color:var(--info);font-weight:600}
+.alerta .tag.q0{background:#f6eee4;color:#3b2a20;border-color:#e3d3bf}.alerta .tag.q1{background:#eec5a8;color:#3b1d10;border-color:#dfae8c}
+.alerta .tag.q2{background:#b5432f;color:#fff;border-color:#9c3524}.alerta .tag.q3{background:#7f1d1d;color:#fff;border-color:#661515}
+.alerta .tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
+.alerta .tag.renda{background:var(--card);border-color:var(--info);color:var(--info);font-weight:600}
 .alerta button.tag{cursor:pointer}.alerta button.tag:hover{border-color:var(--mut)}
 .alerta .compra{margin:0;font-size:.875rem;padding:.4em .6em;border-radius:6px;background:var(--realce)}
 .alerta .links{margin:auto 0 0;font-size:.9rem}.alerta .links .lk{min-height:44px}.mais{text-align:center}
@@ -173,10 +176,24 @@ function painel(rows){
   for(const [dim,rot] of [["cargo","Cargo"],["partido","Partido"],["uf","UF"]])if(F[dim]){const b=el("button",null,`${rot}: ${F[dim]} ×`);b.title="Remover filtro";b.onclick=()=>{F[dim]="";draw();};c.append(b);}
 }
 for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=el("i");i.style.background=`var(--${n==="informativo"?"info":n})`;s.append(i,NV[n]);$(id).append(s);}
+// cor de cada partido (aproximada da identidade visual, so como marcador; o texto fica em cor neutra)
+const COR_PARTIDO={PT:"#c8102e",PL:"#1f4e9c",PP:"#0b6bb5",MDB:"#1b8a3e",PSDB:"#0057a8",PSD:"#f2a900",UNIÃO:"#123f8c",
+  PDT:"#e31e24",PODE:"#2aa84a",AVANTE:"#f07d00",PSB:"#f4c400",REPUBLICANOS:"#00599c",PSC:"#1a9b46",PRTB:"#138a3b",
+  NOVO:"#f47920",SOLIDARIEDADE:"#f58220",CIDADANIA:"#e5007e",PATRIOTA:"#00843d",REDE:"#00a19a",PTB:"#1d1d1b",PRD:"#00529b",
+  DEMOCRATA:"#0b4ea2",DEM:"#0b4ea2",PV:"#2e9a3a",PSL:"#1b5ea8",PROS:"#f39200",PMB:"#7b2d8b",DC:"#1b6fb5",AGIR:"#e94e1b",
+  PSOL:"#f9c300",PCdoB:"#da251d",MOBILIZA:"#0067b1"};
+const PD=p=>COR_PARTIDO[p]?`<i class="cor" style="background:${COR_PARTIDO[p]}" aria-hidden="true"></i>`:"";
+// intensidade da tag pela concentracao de destaques (todo o painel): q3 = os que mais concentram (vermelho-escuro)
+const CONC={};
+function QT(dim,v){
+  if(!v||!D)return"";
+  if(!CONC[dim]){const c={};for(const a of D.alertas)if(a[dim])c[a[dim]]=(c[a[dim]]||0)+1;CONC[dim]={c,max:Math.max(1,...Object.values(c))};}
+  const r=(CONC[dim].c[v]||0)/CONC[dim].max;return"q"+(r>=.75?3:r>=.5?2:r>=.25?1:0);
+}
 // cards em lotes de PAG (pagina leve); a tabela completa so e montada quando aberta
 const PAG=24;let ROWS=[],VIS=0;
 const CARD=a=>`<li class="card alerta"><div class="topo"><span><b>${esc(a.nome_urna||a.nome)}</b>${a.novo?' <span class="novo">novo</span>':""}<br><small>${a.ano_ini}–${a.ano_fim}${a.mencoes?` · ${a.mencoes} ${a.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span></div>
-<p class="tags">${a.outras_rendas?`<span class="tag renda" title="Declarou participação em empresas: o salário não é a única fonte de renda${a.nivel_calculado&&a.nivel_calculado!==a.nivel?`; destaque reduzido de ${NV[a.nivel_calculado]} para ${NV[a.nivel]}`:""}">Tem empresas declaradas</span>`:""}${a.cargo?`<button type="button" class="tag" data-dim="cargo" data-v="${esc(a.cargo)}" title="Filtrar pelo cargo ${esc(a.cargo)}">${esc(a.cargo)}</button>`:`<span class="tag">Não informado</span>`}${a.partido?`<button type="button" class="tag" data-dim="partido" data-v="${esc(a.partido)}" title="Filtrar pelo partido ${esc(a.partido)}">${esc(a.partido)}</button>`:""}${a.uf?`<button type="button" class="tag" data-dim="uf" data-v="${esc(a.uf)}" title="Filtrar pelo estado ${esc(a.uf)}">${esc(a.uf)}</button>`:""}</p>
+<p class="tags">${a.outras_rendas?`<span class="tag renda" title="Declarou participação em empresas: o salário não é a única fonte de renda${a.nivel_calculado&&a.nivel_calculado!==a.nivel?`; destaque reduzido de ${NV[a.nivel_calculado]} para ${NV[a.nivel]}`:""}">Tem empresas declaradas</span>`:""}${a.cargo?`<button type="button" class="tag ${QT("cargo",a.cargo)}" data-dim="cargo" data-v="${esc(a.cargo)}" title="Filtrar pelo cargo ${esc(a.cargo)}">${esc(a.cargo)}</button>`:`<span class="tag">Não informado</span>`}${a.partido?`<button type="button" class="tag ${QT("partido",a.partido)}" data-dim="partido" data-v="${esc(a.partido)}" title="Filtrar pelo partido ${esc(a.partido)}">${PD(a.partido)}${esc(a.partido)}</button>`:""}${a.uf?`<button type="button" class="tag ${QT("uf",a.uf)}" data-dim="uf" data-v="${esc(a.uf)}" title="Filtrar pelo estado ${esc(a.uf)}">${esc(a.uf)}</button>`:""}</p>
 <p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>${COMPRA(a.cresc)}
 <dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>
 ${LK(a)?`<p class="links">${LK(a).replace(/^ · /,"")}</p>`:""}</li>`;
@@ -184,7 +201,7 @@ function cota(){
   const l=D.cota||[];if(!l.length)return;
   const RS=v=>"R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
   $("cota-lista").innerHTML=l.map((c,i)=>`<li class="card alerta"><div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
-<p class="tags"><span class="tag">${esc(c.cargo||"Não informado")}</span>${c.partido?`<span class="tag">${esc(c.partido)}</span>`:""}<span class="tag">${esc(c.uf)}</span></p>
+<p class="tags"><span class="tag ${QT("cargo",c.cargo)}">${esc(c.cargo||"Não informado")}</span>${c.partido?`<span class="tag ${QT("partido",c.partido)}">${PD(c.partido)}${esc(c.partido)}</span>`:""}<span class="tag ${QT("uf",c.uf)}">${esc(c.uf)}</span></p>
 <p class="cresc"><small>Total gasto da cota</small><b>${RS(c.total)}</b></p>
 <dl>${(c.tipos||[]).map(t=>`<div><dt>${esc(t.tipo)}</dt><dd>${RS(t.valor)}</dd></div>`).join("")}</dl>
 <p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
@@ -221,6 +238,7 @@ function leitura(){
 <ul><li><span class="nivel forte">${NV.forte}</span>: ${VZ(m.forte.razao)} o possível ou mais <i>e</i> acima de ${m.forte.percentil}% dos colegas.</li>
 <li><span class="nivel atencao">${NV.atencao}</span>: ${VZ(m.atencao.razao)} o possível ou mais <i>e</i> acima de ${m.atencao.percentil}% dos colegas, ou acima de 98% dos colegas.</li>
 <li><span class="nivel informativo">${NV.informativo}</span>: acima de ${m.informativo.percentil}% dos colegas, sem os outros critérios.</li></ul>
+<p><b>Cor das tags</b>: cargo, partido e estado ficam mais escuros (do bege ao vermelho-escuro) quanto mais destaques concentram no painel. A bolinha ao lado do partido usa uma cor aproximada da identidade visual do partido.</p>
 <p><b>Ordem</b>: primeiro quem tem mais menções na imprensa nos últimos 30 dias (Google Notícias no Brasil e Google News em inglês, só notícias que citam a pessoa pelo nome); depois, o maior crescimento do patrimônio.</p>
 <p><b>"Tem empresas declaradas"</b>: a pessoa declarou ao TSE participação em empresas (quotas, ações, capital social) no início ou no fim do período. Como o salário não é a única fonte de renda, o destaque desce um grau (de "${NV.forte}" para "${NV.atencao}" e de "${NV.atencao}" para "${NV.informativo}").</p>
 <p><b>"Não informado"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>
