@@ -55,6 +55,7 @@ Para remover uma fonte, apague a linha do CSV.
 ## Fontes
 - **TSE, Portal de Dados Abertos:** candidaturas (`consulta_cand_*`) e declarações de bens (`bem_candidato_*`). Link para a página de cada candidatura no DivulgaCandContas.
 - **Portal da Transparência (só pela API oficial):** emendas de autoria e documentos de pagamento, benefícios sociais pagos ao CPF da própria pessoa, sanções (CEIS, CNEP, CEAF, CEPIM), recursos federais recebidos pela pessoa e pelas empresas declaradas.
+- **Câmara dos Deputados e Senado Federal (dados abertos):** cota parlamentar e projetos (PL, PLP e PEC) apresentados e aprovados nos últimos quatro anos, como autor ou coautor; selo **Mão na massa** para os 10% de cada casa com mais projetos aprovados. Link para a lista de cada parlamentar no site oficial.
 - **Notícias:** RSS do Google Notícias e de veículos sugeridos e aprovados. Só metadados (título, veículo, data, link); nunca texto, imagem ou resumo das matérias.
 - **Fotos:** ainda não usadas. Só entrarão de fontes oficiais (Câmara, Senado, TSE), depois de confirmados os termos de uso; até lá, avatar com iniciais.
 

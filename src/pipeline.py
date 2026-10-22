@@ -9,6 +9,7 @@ import pandas as pd
 from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
 import transparencia
 import cota
+import projetos
 import exemplares
 import empresas
 from ids import Ids, varrer
@@ -441,6 +442,23 @@ def main():
             print(f"[aviso] secao da cota falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_cota = '<p class="vazio"><b>Não informado</b>.</p>'
         secoes_cota.update({i: html_cota for i in q["idx"]})
+    # projetos apresentados e aprovados (Camara: arquivos abertos; Senado: API) e o selo "Mao na massa"
+    try:
+        proj = {} if args.demo else projetos.coletar(pessoas, range(hoje - 3, hoje + 1), CACHE)
+    except Exception as ex:
+        print(f"[aviso] projetos de lei indisponiveis ({ex!r})", file=sys.stderr)
+        proj = {}
+    secoes_proj = {}
+    for k, q in pessoas.items():
+        try:
+            html_proj = projetos.secao(proj.get(k), q["cargo"], proj.get("_fontes"))
+        except Exception as ex:
+            print(f"[aviso] secao de projetos falhou para {q['nome']} ({ex!r})", file=sys.stderr)
+            html_proj = '<p class="vazio"><b>Não informado</b>.</p>'
+        secoes_proj.update({i: html_proj for i in q["idx"]})
+        if (proj.get(k) or {}).get("selo"):
+            for i in q["idx"]:
+                dados["alertas"][i]["selo"] = True
     # parlamentares exemplares (estrela): patrimonio compativel, cota abaixo da media e sem sancoes
     try:
         exemplares_, estrelas = ([], set()) if args.demo else exemplares.calcular(
@@ -482,7 +500,7 @@ def main():
     bens = carregar_bens()
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
                                 transparencia=secoes, bens=bens, cota=secoes_cota,
-                                receita=secoes_receita, cache=caches.get("noticias")).items():
+                                receita=secoes_receita, cache=caches.get("noticias"), projetos=secoes_proj).items():
         dados["alertas"][i]["dossie"] = cam
     # painel: quem mais gastou da cota parlamentar (entre as pessoas em destaque) e com o que
     ranking = []
@@ -495,6 +513,16 @@ def main():
                                 tipos=[dict(tipo=t, valor=round(v, 2)) for t, v in r["tipos"][:3]],
                                 link=r["link"], dossie=a.get("dossie")))
     dados["cota"] = sorted(ranking, key=lambda x: -x["total"])[:10]
+    # painel: quem mais apresentou e aprovou projetos (entre as pessoas em destaque)
+    ranking = []
+    for k, q in pessoas.items():
+        r = proj.get(k)
+        if r and r["apresentados"]:
+            a = dados["alertas"][q["idx"][0]]
+            ranking.append(dict(nome=q["nome_urna"] or q["nome"], cargo=a.get("cargo"), partido=a.get("partido"),
+                                uf=k[1], apresentados=r["apresentados"], aprovados=r["aprovados"], selo=r["selo"],
+                                de=r["de"], ate=r["ate"], link=r["link"], dossie=a.get("dossie")))
+    dados["projetos"] = sorted(ranking, key=lambda x: (-x["aprovados"], -x["apresentados"]))[:10]
 
     cartoes, graficos_painel = "", {}
     if pid:  # uma pagina por pessoa (docs/pessoa/<id>.html), so com o id interno

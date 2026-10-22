@@ -62,6 +62,7 @@ table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-sp
 .legenda-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:.2em 0 .8em;font-size:.875rem}.legenda-tags button[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px}.legenda-tags .rotulo{color:var(--mut)}
 .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
 .estrela{color:#a77d00}.alerta.exemplar{border-color:#a77d00}
+.tag.selo{background:var(--ouro);color:var(--tinta);border:2px solid var(--tinta);font-weight:700}
 .tag.q0{background:#f6eee4;color:#3b2a20;border-color:#e3d3bf}.tag.q1{background:#eec5a8;color:#3b1d10;border-color:#dfae8c}
 .tag.q2{background:#b5432f;color:#fff;border-color:#9c3524}.tag.q3{background:#7f1d1d;color:#fff;border-color:#661515}
 .tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
@@ -99,6 +100,9 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <section id="exemplares" hidden><h2><span class="estrela" aria-hidden="true">★</span> Parlamentares exemplares</h2>
 <p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência.</p>
 <div class="tab"><table class="resp"><caption class="sr">Parlamentares exemplares</caption><thead><tr><th>Nome</th><th>Cargo</th><th>Partido</th><th>UF</th><th>Período</th><th class="n">Crescimento do patrimônio</th><th class="n">Poderia juntar com o salário</th><th class="n">Cota parlamentar (4 anos)</th><th class="n">Média do cargo</th><th>Fonte</th></tr></thead><tbody id="exemplares-lista"></tbody></table></div></section>
+<section id="projetos" hidden><h2><span aria-hidden="true">🐾</span> Quem mais propôs e aprovou projetos</h2>
+<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: projetos de lei, de lei complementar e propostas de emenda à Constituição (PL, PLP e PEC) apresentados nos últimos quatro anos como autor ou coautor, e quantos viraram norma jurídica. O selo <b>Mão na massa</b> vai para quem está entre os 10% da sua casa com mais projetos aprovados. Quantidade não mede a qualidade das propostas. Fontes: dados abertos da Câmara dos Deputados e do Senado Federal.</p>
+<ol class="alertas" id="projetos-lista"></ol></section>
 <section id="cota" hidden><h2>Quem mais gastou da cota parlamentar</h2>
 <p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: total gasto da cota para o exercício da atividade parlamentar (CEAP) nos últimos quatro anos e os maiores tipos de despesa. Usar a cota faz parte do mandato; os dados ajudam a conhecer como ela é usada.</p>
 <ol class="alertas" id="cota-lista"></ol></section>
@@ -108,7 +112,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <p class="contagem" id="contagem" aria-live="polite"></p>
 <section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
 <h2>Todos os destaques</h2>
-<div class="legenda-tags" id="legenda" aria-label="Legenda das tags; clique para filtrar"><span class="rotulo">Concentração de destaques no estado:</span><button type="button" class="tag q0" data-f="conc" data-v="q0">poucos</button><button type="button" class="tag q1" data-f="conc" data-v="q1">alguns</button><button type="button" class="tag q2" data-f="conc" data-v="q2">muitos</button><button type="button" class="tag q3" data-f="conc" data-v="q3">os que mais concentram</button><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo</button></div>
+<div class="legenda-tags" id="legenda" aria-label="Legenda das tags; clique para filtrar"><span class="rotulo">Concentração de destaques no estado:</span><button type="button" class="tag q0" data-f="conc" data-v="q0">poucos</button><button type="button" class="tag q1" data-f="conc" data-v="q1">alguns</button><button type="button" class="tag q2" data-f="conc" data-v="q2">muitos</button><button type="button" class="tag q3" data-f="conc" data-v="q3">os que mais concentram</button><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button><button type="button" class="tag selo" data-f="flag" data-v="selo"><span aria-hidden="true">🐾</span> Mão na massa</button><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo</button></div>
 <ul class="alertas" id="cards"></ul>
 <div id="vz" class="vazio" hidden>O Caramelo não farejou nenhum destaque com este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
@@ -135,7 +139,7 @@ const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a
 const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);
 const NIVEIS=["forte","atencao","informativo"];
 const F={partido:"",uf:"",cargo:"",regiao:"",conc:"",flag:""};
-const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar],renda:["Tem empresas declaradas",a=>a.outras_rendas],reu:["Responde a processo",a=>(a.processos||[]).length>0]};
+const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar],selo:["Mão na massa",a=>a.selo],renda:["Tem empresas declaradas",a=>a.outras_rendas],reu:["Responde a processo",a=>(a.processos||[]).length>0]};
 const CONC_ROT={q0:"poucos",q1:"alguns",q2:"muitos",q3:"os que mais concentram"};
 const REGIOES={Norte:"AC AM AP PA RO RR TO",Nordeste:"AL BA CE MA PB PE PI RN SE","Centro-Oeste":"DF GO MS MT",Sudeste:"ES MG RJ SP",Sul:"PR RS SC"};
 const REG={BR:"Nacional",ZZ:"Exterior"};for(const [r,ufs] of Object.entries(REGIOES))for(const u of ufs.split(" "))REG[u]=r;
@@ -231,6 +235,7 @@ const PR=a=>{const p=(a.processos||[]).filter(x=>/^https:\/\//.test(x.link||""))
 // tags de uma pessoa (cards e tabela): marcacoes + cargo, partido e UF com a cor da concentracao; todas filtram
 const BT=(cls,attrs,title,txt)=>`<button type="button" class="tag ${cls}" ${attrs} title="${esc(title)}">${txt}</button>`;
 const TAGS=a=>(a.exemplar?BT("","data-f=\"flag\" data-v=\"exemplar\"","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções. Clique para ver só os exemplares",'<span class="estrela" aria-hidden="true">★</span> exemplar'):"")
+  +(a.selo?BT("selo","data-f=\"flag\" data-v=\"selo\"","Mão na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",'<span aria-hidden="true">🐾</span> Mão na massa'):"")
   +PR(a)
   +(a.outras_rendas?BT("renda","data-f=\"flag\" data-v=\"renda\"",`Declarou participação em empresas: o salário não é a única fonte de renda${a.nivel_calculado&&a.nivel_calculado!==a.nivel?`; destaque reduzido de ${NV[a.nivel_calculado]} para ${NV[a.nivel]}`:""}. Clique para ver só quem tem empresas`,"Tem empresas declaradas"):"")
   +(a.cargo?BT(QT("cargo",a.cargo),`data-dim="cargo" data-v="${esc(a.cargo)}"`,`Filtrar pelo cargo ${a.cargo}`,esc(a.cargo)):`<span class="tag">Não informado</span>`)
@@ -258,6 +263,14 @@ function cota(){
 <dl>${(c.tipos||[]).map(t=>`<div><dt>${esc(t.tipo)}</dt><dd>${RS(t.valor)}</dd></div>`).join("")}</dl>
 <p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
   $("cota").hidden=false;
+}
+function projetos(){
+  const l=D.projetos||[];if(!l.length)return;
+  $("projetos-lista").innerHTML=l.map((c,i)=>`<li class="card alerta"><div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
+<p class="tags">${c.selo?'<span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados"><span aria-hidden="true">🐾</span> Mão na massa</span>':""}<span class="tag ${QT("cargo",c.cargo)}">${esc(c.cargo||"Não informado")}</span>${c.partido?`<span class="tag ${QT("partido",c.partido)}">${PD(c.partido)}${esc(c.partido)}</span>`:""}<span class="tag ${QT("uf",c.uf)}">${esc(c.uf)}</span></p>
+<dl><div><dt>Projetos apresentados</dt><dd>${c.apresentados.toLocaleString("pt-BR")}</dd></div><div><dt>Aprovados (viraram norma jurídica)</dt><dd>${c.aprovados.toLocaleString("pt-BR")}</dd></div></dl>
+<p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Ver a lista no site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
+  $("projetos").hidden=false;
 }
 function mais(){
   const ate=Math.min(ROWS.length,VIS+PAG);$("cards").insertAdjacentHTML("beforeend",ROWS.slice(VIS,ate).map(CARD).join(""));VIS=ate;
@@ -314,7 +327,7 @@ function contrib(){
 // blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
 for(const s of document.querySelectorAll("section.grade.duas"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
-if(D){contrib();leitura();exemplares();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();exemplares();projetos();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
 $("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b)return;F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
