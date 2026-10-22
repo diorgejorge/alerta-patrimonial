@@ -52,6 +52,7 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta dl{margin:0;display:grid;gap:2px;font-size:.875rem}.alerta dl div{display:flex;justify-content:space-between;gap:10px}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
+#exemplares td:nth-child(n+3),#exemplares th:nth-child(n+3){white-space:nowrap}
 .legenda-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:.2em 0 .8em;font-size:.875rem}.legenda-tags .rotulo{color:var(--mut)}
 .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
 .estrela{color:#a77d00}.alerta.exemplar{border-color:#a77d00}
@@ -87,7 +88,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 </section>
 <section id="exemplares" hidden><h2><span class="estrela" aria-hidden="true">★</span> Parlamentares exemplares</h2>
 <p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência.</p>
-<ol class="alertas" id="exemplares-lista"></ol></section>
+<div class="tab"><table class="resp"><caption class="sr">Parlamentares exemplares</caption><thead><tr><th>Nome</th><th>Cargo</th><th>Partido</th><th>UF</th><th>Período</th><th class="n">Crescimento do patrimônio</th><th class="n">Poderia juntar com o salário</th><th class="n">Cota parlamentar (4 anos)</th><th class="n">Média do cargo</th><th>Fonte</th></tr></thead><tbody id="exemplares-lista"></tbody></table></div></section>
 <section id="cota" hidden><h2>Quem mais gastou da cota parlamentar</h2>
 <p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: total gasto da cota para o exercício da atividade parlamentar (CEAP) nos últimos quatro anos e os maiores tipos de despesa. Usar a cota faz parte do mandato; os dados ajudam a conhecer como ela é usada.</p>
 <ol class="alertas" id="cota-lista"></ol></section>
@@ -206,11 +207,7 @@ ${LK(a)?`<p class="links">${LK(a).replace(/^ · /,"")}</p>`:""}</li>`;
 function exemplares(){
   const l=D.exemplares||[];if(!l.length)return;
   const RS=v=>"R$ "+Math.round(v).toLocaleString("pt-BR");
-  $("exemplares-lista").innerHTML=l.map(x=>`<li class="card alerta exemplar"><div class="topo"><span><b><span class="estrela" title="Parlamentar exemplar">★</span> ${esc(x.nome)}</b><br><small>${x.ano_ini}–${x.ano_fim}</small></span></div>
-<p class="tags"><span class="tag ${QT("cargo",x.cargo)}">${esc(x.cargo||"Não informado")}</span>${x.partido?`<span class="tag ${QT("partido",x.partido)}">${PD(x.partido)}${esc(x.partido)}</span>`:""}${x.uf?`<span class="tag ${QT("uf",x.uf)}">${esc(x.uf)}</span>`:""}</p>
-<dl><div><dt>Crescimento do patrimônio</dt><dd>${R(x.cresc)}</dd></div><div><dt>Poderia juntar com o salário</dt><dd>${R(x.cap)}</dd></div>
-<div><dt>Cota parlamentar (4 anos)</dt><dd>${RS(x.cota)}</dd></div><div><dt>Média do cargo</dt><dd>${RS(x.cota_media)}</dd></div><div><dt>Sanções</dt><dd>nenhuma</dd></div></dl>
-${/^https:\/\//.test(x.link||"")?`<p class="links"><a class="lk" href="${esc(x.link)}" target="_blank" rel="noopener">Site oficial</a></p>`:""}</li>`).join("");
+  $("exemplares-lista").innerHTML=l.map(x=>`<tr><td data-label="Nome"><span><span class="estrela" title="Parlamentar exemplar">★</span> <b>${esc(x.nome)}</b></span></td><td data-label="Cargo"><span>${esc(x.cargo||"Não informado")}</span></td><td data-label="Partido"><span>${PD(x.partido)}${esc(x.partido||"Não informado")}</span></td><td data-label="UF"><span>${esc(x.uf||"Não informado")}</span></td><td data-label="Período"><span>${x.ano_ini}–${x.ano_fim}</span></td><td class="n" data-label="Crescimento do patrimônio"><span>${R(x.cresc)}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${R(x.cap)}</span></td><td class="n" data-label="Cota parlamentar (4 anos)"><span>${RS(x.cota)}</span></td><td class="n" data-label="Média do cargo"><span>${RS(x.cota_media)}</span></td><td data-label="Fonte"><span>${/^https:\/\//.test(x.link||"")?`<a class="lk" href="${esc(x.link)}" target="_blank" rel="noopener">Site oficial</a>`:"Não informado"}</span></td></tr>`).join("");
   $("exemplares").hidden=false;
 }
 function cota(){
