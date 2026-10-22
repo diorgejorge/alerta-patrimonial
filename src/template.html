@@ -50,7 +50,7 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta .topo>span:first-child{flex:1 1 12ch;overflow-wrap:normal}
 .alerta .cresc{margin:0;display:flex;flex-direction:column}.alerta .cresc b{font-size:1.35rem;line-height:1.2;font-variant-numeric:tabular-nums}
 .alerta dl{margin:0;display:grid;gap:2px;font-size:.875rem}.alerta dl div{display:flex;justify-content:space-between;gap:10px}
-.alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .alerta .tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
 .alerta .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
 .alerta button.tag{cursor:pointer}.alerta button.tag:hover{border-color:var(--mut)}
@@ -78,6 +78,9 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <div class="card"><h2>Destaques por partido</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gp"></div><div class="leg" id="lg1"></div></div>
 <div class="card"><h2>Destaques por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
 </section>
+<section id="cota" hidden><h2>Quem mais gastou da cota parlamentar</h2>
+<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: total gasto da cota para o exercício da atividade parlamentar (CEAP) nos últimos quatro anos e os maiores tipos de despesa. Usar a cota faz parte do mandato; os dados ajudam a conhecer como ela é usada.</p>
+<ol class="alertas" id="cota-lista"></ol></section>
 <details class="dados"><summary>Ver dados dos gráficos em tabela</summary><div class="graf"><div class="tab" id="tp"></div><div class="tab" id="tu"></div></div></details>
 <div id="tip" role="tooltip" hidden></div>
 <details class="leitura" id="como-ler"><summary>Como ler a tabela</summary><div id="leitura"></div></details>
@@ -175,6 +178,16 @@ const CARD=a=>`<li class="card alerta"><div class="topo"><span><b>${esc(a.nome_u
 <p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>${COMPRA(a.cresc)}
 <dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>
 ${LK(a)?`<p class="links">${LK(a).replace(/^ · /,"")}</p>`:""}</li>`;
+function cota(){
+  const l=D.cota||[];if(!l.length)return;
+  const RS=v=>"R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  $("cota-lista").innerHTML=l.map((c,i)=>`<li class="card alerta"><div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
+<p class="tags"><span class="tag">${esc(c.cargo||"Não informado")}</span>${c.partido?`<span class="tag">${esc(c.partido)}</span>`:""}<span class="tag">${esc(c.uf)}</span></p>
+<p class="cresc"><small>Total gasto da cota</small><b>${RS(c.total)}</b></p>
+<dl>${(c.tipos||[]).map(t=>`<div><dt>${esc(t.tipo)}</dt><dd>${RS(t.valor)}</dd></div>`).join("")}</dl>
+<p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
+  $("cota").hidden=false;
+}
 function mais(){
   const ate=Math.min(ROWS.length,VIS+PAG);$("cards").insertAdjacentHTML("beforeend",ROWS.slice(VIS,ate).map(CARD).join(""));VIS=ate;
   const r=ROWS.length-VIS;$("mais").hidden=r<=0;$("mais").textContent=`Mostrar mais ${Math.min(r,PAG)} (faltam ${r.toLocaleString("pt-BR")})`;
@@ -223,7 +236,7 @@ function contrib(){
   $("fontes-uso").textContent="Notícias dos dossiês: Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
   $("contrib").hidden=false;
 }
-if(D){contrib();leitura();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;$("mais").onclick=mais;
 $("cards").onclick=ev=>{const t=ev.target.closest("button.tag");if(!t)return;F[t.dataset.dim]=t.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};$("tabela").ontoggle=tabelaToda;draw();}
 </script></body></html>

@@ -37,6 +37,33 @@
       "referencia": "70 m² × R$ 9.673/m², preço médio do Índice FipeZAP (fev/2026)",
       "link": "https://downloads.fipe.org.br/indices/fipezap/fipezap-202602-residencial-venda.pdf",
       "rotulo_link": "Índice FipeZAP (Fipe)"
+    },
+    {
+      "id": "ilha-pescaria",
+      "singular": "ilha particular em Guaratuba (PR), a Ilha da Pescaria",
+      "plural": "ilhas particulares do porte da Ilha da Pescaria, em Guaratuba (PR)",
+      "preco": 25000000,
+      "referencia": "anunciada por R$ 25 milhões, segundo a imprensa (2026)",
+      "link": "https://gmconline.com.br/noticias/parana/ilha-particular-no-parana-com-vista-privilegiada-e-colocada-a-venda-por-r-25-milhoes-veja-como-e-o-local/",
+      "rotulo_link": "Reportagem sobre o anúncio (GMC Online)"
+    },
+    {
+      "id": "iate-azimut",
+      "singular": "iate Azimut Grande 25 Metri, fabricado em Itajaí (SC)",
+      "plural": "iates Azimut Grande 25 Metri, fabricados em Itajaí (SC)",
+      "preco": 45000000,
+      "referencia": "a partir de R$ 45 milhões, segundo a imprensa (2026)",
+      "link": "https://exame.com/negocios/gigante-dos-mares-ja-vendeu-10-iates-de-r-45-mi-no-brasil-em-apenas-18-meses/",
+      "rotulo_link": "Reportagem (Exame)"
+    },
+    {
+      "id": "ilha-porcos-grandes",
+      "singular": "Ilha dos Porcos Grandes, em Angra dos Reis (RJ)",
+      "plural": "ilhas do porte da Ilha dos Porcos Grandes, em Angra dos Reis (RJ)",
+      "preco": 550000000,
+      "referencia": "anunciada por R$ 550 milhões, segundo a imprensa (2026); valores variam entre as fontes",
+      "link": "https://acritica.com/trends/ilha-mais-cara-da-america-latina-e-colocada-a-venda-no-brasil-por-r-550-milhoes/",
+      "rotulo_link": "Reportagem sobre o anúncio (A Crítica)"
     }
   ]
 }

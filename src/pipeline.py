@@ -401,6 +401,17 @@ def main():
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
                                 transparencia=secoes, bens=bens, cota=secoes_cota).items():
         dados["alertas"][i]["dossie"] = cam
+    # painel: quem mais gastou da cota parlamentar (entre as pessoas em destaque) e com o que
+    ranking = []
+    for k, q in pessoas.items():
+        r = ceap.get(k)
+        if r:
+            a = dados["alertas"][q["idx"][0]]
+            ranking.append(dict(nome=q["nome_urna"] or q["nome"], cargo=a.get("cargo"), partido=a.get("partido"),
+                                uf=k[1], total=round(r["total"], 2), de=r["anos"][0][0], ate=r["anos"][-1][0],
+                                tipos=[dict(tipo=t, valor=round(v, 2)) for t, v in r["tipos"][:3]],
+                                link=r["link"], dossie=a.get("dossie")))
+    dados["cota"] = sorted(ranking, key=lambda x: -x["total"])[:10]
 
     cartoes, graficos_painel = "", {}
     if pid:  # uma pagina por pessoa (docs/pessoa/<id>.html), so com o id interno
