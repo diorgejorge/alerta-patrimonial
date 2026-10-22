@@ -59,8 +59,11 @@ Para remover uma fonte, apague a linha do CSV.
 - **Fotos:** ainda não usadas. Só entrarão de fontes oficiais (Câmara, Senado, TSE), depois de confirmados os termos de uso; até lá, avatar com iniciais.
 
 ## Privacidade, finalidade e base legal
+Detalhes, registro das operações (art. 37) e pendências: [REFERENCIA.md](REFERENCIA.md).
+
 **Rascunho, precisa de revisão jurídica antes de divulgar o site.**
 - **Finalidade:** controle social e interesse público sobre a evolução patrimonial de pessoas que disputam ou exercem cargos eletivos, a partir de dados que a lei já obriga a tornar públicos. O site aponta **indícios para acompanhamento**, com os mesmos critérios para todas as pessoas, e não afirma irregularidade.
-- **Base legal (LGPD, Lei 13.709/2018):** dados tornados manifestamente públicos pelo titular ou publicados por órgãos públicos por força de lei (art. 7º, §§ 3º, 4º e 7º), com tratamento compatível com a finalidade da publicação original. Se o projeto tiver caráter jornalístico, também o art. 4º, II, "a". A transparência ativa vem da Lei 12.527/2011 (LAI) e da Lei 9.504/1997 (declaração de bens dos candidatos).
+- **Base legal (LGPD, Lei 13.709/2018):** dados de acesso público tratados conforme a finalidade, a boa-fé e o interesse público de sua divulgação (art. 7º, § 3º), para finalidade nova e compatível (art. 7º, § 7º), e interesse legítimo de controle social com só os dados estritamente necessários e transparência (art. 7º, IX, e art. 10). A isenção do art. 4º, II, "a" exige fins *exclusivamente* jornalísticos e não é a base principal. Dados sensíveis (art. 5º, II, e art. 11) não são tratados: BPC (pode revelar deficiência) e PETI (crianças, art. 14) ficam de fora. A transparência ativa vem da Lei 12.527/2011 (LAI) e da Lei 9.504/1997.
+- **Transparência ao titular (arts. 9º, 18 e 41):** página `docs/privacidade.html`, preenchida com `config/privacidade.json` (controlador, contato e encarregado; **preencher antes de divulgar**).
 - **Minimização:** CPF e CNPJ só são usados em memória para consultar as fontes oficiais. O site, o JSON publicado, os nomes de arquivo, os logs e o histórico (`data/estado.json`, `data/ids.json`) usam apenas o id interno, um HMAC do identificador com o segredo `ID_SEGREDO`. Benefícios sociais só aparecem quando a pessoa é a titular; registros em que ela é representante legal de outra pessoa são descartados.
 - **Direitos do titular e correções:** pedidos de correção ou de marcação de homônimo entram pelas issues do repositório e são registrados na curadoria (`config/curadoria.csv`).

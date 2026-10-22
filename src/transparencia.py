@@ -2,8 +2,8 @@
 Todas as consultas usam so a API oficial (api.portaldatransparencia.gov.br, chave em TRANSPARENCIA_TOKEN);
 o site aparece apenas como link para leitura humana.
 - Emendas parlamentares de que a pessoa e autora e quem recebeu os pagamentos.
-- Beneficios sociais pagos ao CPF da pessoa (BPC, Bolsa Familia, Auxilio Emergencial/Brasil, Garantia-Safra, PETI,
-  Seguro-Defeso, Auxilio Reconstrucao). So como titular: registros de representados/dependentes sao descartados.
+- Beneficios pagos ao CPF da pessoa (Bolsa Familia, Auxilio Emergencial/Brasil, Garantia-Safra, Seguro-Defeso,
+  Auxilio Reconstrucao). BPC e PETI ficam de fora (dado sensivel / criancas, LGPD arts. 11 e 14). So como titular: registros de representados/dependentes sao descartados.
 - Sancoes (CEIS, CNEP, CEAF, CEPIM) da pessoa e das empresas.
 - Recursos federais recebidos pelo CPF da pessoa e pelo CNPJ das empresas declaradas ao TSE.
 CPF/CNPJ so vao na consulta ao Portal; nunca aparecem na pagina."""
@@ -114,14 +114,14 @@ class Api:
         return out
 
 # flag de /pessoa-fisica -> (nome, caminho, parametro do CPF)
+# LGPD art. 5o, II e art. 11: BPC (pode revelar deficiencia = dado de saude) e PETI (envolve criancas, art. 14)
+# ficam de fora: dado sensivel nao pode ser tratado por legitimo interesse. Nem sao consultados.
 BENEFICIOS = [
-    ("favorecidoBpc", "BPC (Benefício de Prestação Continuada)", "/bpc-por-cpf-ou-nis", "codigo"),
     ("favorecidoBolsaFamilia", "Bolsa Família", "/bolsa-familia-sacado-por-cpf-ou-nis", "codigo"),
     ("favorecidoNovoBolsaFamilia", "Novo Bolsa Família", "/novo-bolsa-familia-sacado-por-cpf-ou-nis", "codigo"),
     ("auxilioEmergencial", "Auxílio Emergencial", "/auxilio-emergencial-por-cpf-ou-nis", "codigoBeneficiario"),
     ("favorecidoAuxilioBrasil", "Auxílio Brasil", "/auxilio-brasil-sacado-por-cpf-ou-nis", "codigo"),
     ("favorecidoSafra", "Garantia-Safra", "/safra-codigo-por-cpf-ou-nis", "codigo"),
-    ("favorecidoPeti", "PETI", "/peti-por-cpf-ou-nis", "codigo"),
     ("favorecidoSeguroDefeso", "Seguro-Defeso", "/seguro-defeso-codigo", "codigo"),
     ("favorecidoAuxilioReconstrucao", "Auxílio Reconstrução", None, None),
 ]
@@ -234,7 +234,7 @@ def _favorecido(doc):
     if isinstance(f, dict):
         f = f.get("nome") or f.get("razaoSocialReceita") or f.get("nomeFantasiaReceita")
     nome = doc.get("nomeFavorecido") or f or ""
-    return re.sub(r"^[\d./-]+\s*-\s*", "", str(nome)).strip()
+    return re.sub(r"^[\d*./-]+\s*-\s*", "", str(nome)).strip()  # tira CPF/CNPJ do inicio (inclusive mascarado)
 
 
 def emendas(api, nomes):
@@ -368,8 +368,8 @@ def secao(r, nome):
         if pf is None:
             partes.append(NAO_DEU)
         elif not pf["beneficios"]:
-            partes.append('<p class="vazio">Nenhum benefício social registrado no CPF (BPC, Bolsa Família, '
-                          'Auxílio Emergencial, Auxílio Brasil, Garantia-Safra, PETI, Seguro-Defeso, Auxílio Reconstrução).</p>')
+            partes.append('<p class="vazio">Nenhum benefício registrado no CPF (Bolsa Família, Novo Bolsa Família, '
+                          'Auxílio Emergencial, Auxílio Brasil, Garantia-Safra, Seguro-Defeso, Auxílio Reconstrução).</p>')
         else:
             partes.append('<ul class="nt">' + "".join(f"<li><b>{e(b['nome'])}</b><br><small>{_beneficio(b)}</small></li>"
                                                       for b in pf["beneficios"]) + "</ul>")

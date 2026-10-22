@@ -191,4 +191,20 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado):
 
 
 def copiar_estilo(docs):
+    """estilo.css e a pagina de privacidade (LGPD arts. 9, 18 e 41), com os dados de config/privacidade.json."""
     shutil.copyfile(SRC / "estilo.css", Path(docs) / "estilo.css")
+    try:
+        cfg = json.loads((ROOT / "config" / "privacidade.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        cfg = {}
+    falta = "Ainda não informado. Preencha <code>config/privacidade.json</code> antes de divulgar o site."
+    contato = cfg.get("contato", "").strip()
+    enc = cfg.get("encarregado", "").strip()
+    vals = dict(CONTROLADOR=e(cfg.get("controlador", "").strip()) or falta,
+                CONTATO=(f'<a href="mailto:{e(contato)}">{e(contato)}</a>' if "@" in contato else e(contato)) or falta,
+                ENCARREGADO=(e(enc) + (f' · {e(cfg.get("contato_encarregado", "").strip())}'
+                                        if cfg.get("contato_encarregado", "").strip() else "")) or falta,
+                ATUALIZADO=e(cfg.get("atualizado_em", "").strip() or "—"))
+    tpl = (SRC / "privacidade.html").read_text(encoding="utf-8")
+    (Path(docs) / "privacidade.html").write_text(re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl),
+                                                 encoding="utf-8")

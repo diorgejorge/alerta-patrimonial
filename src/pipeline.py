@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
 import transparencia
-from ids import Ids
+from ids import Ids, varrer
 import paginas
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -385,6 +385,10 @@ def main():
     for r in novos.head(15).itertuples():
         resumo += f"\n- [{r.nivel}] {r.nome} ({r.cargo}/{r.uf}) {r.ano_ini}->{r.ano_fim}: +R$ {r.cresc:,.0f}"
     (docs / "digest.txt").write_text(resumo, encoding="utf-8")
+    # ultima barreira: nenhum CPF/CNPJ sai no site, mesmo que venha dentro de um texto de fonte externa
+    n = varrer(docs, cpfs=[q["cpf"] for q in pessoas.values() if q.get("cpf")])
+    if n:
+        print(f"[aviso] CPF/CNPJ removido de {n} arquivo(s) antes de publicar", file=sys.stderr)
     print(resumo)
     if not args.demo:
         avisar(resumo if len(novos) else None)

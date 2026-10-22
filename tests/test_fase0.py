@@ -122,3 +122,18 @@ def test_trava_com_lista(tmp_path, monkeypatch):
     dados = json.loads(re.search(r"^const D=(.*);$", texto, re.M).group(1))
     assert {a["nome"] for a in dados["alertas"]} <= {"PESSOA DEMO 001"}
     assert len(list((tmp_path / "docs" / "pessoa").glob("*.html"))) <= 1
+
+
+def test_sem_documentos_formatados(saida):
+    from ids import RE_DOC
+    for p in arquivos(saida / "docs"):
+        if p.suffix in (".html", ".json", ".txt"):
+            assert not RE_DOC.search(p.read_text(encoding="utf-8", errors="ignore")), f"CPF/CNPJ em {p.name}"
+
+
+def test_limpeza_de_documentos():
+    from ids import sem_documentos, OMITIDO
+    t = "CPF 123.456.789-09, mascarado ***.456.789-**, CNPJ 12.345.678/0001-95 e 12345678000195"
+    assert sem_documentos(t).count(OMITIDO) == 4
+    assert sem_documentos("ano 2022, eleicao 20322002026, valor R$ 1.234.567,89") == \
+        "ano 2022, eleicao 20322002026, valor R$ 1.234.567,89"

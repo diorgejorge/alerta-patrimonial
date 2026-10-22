@@ -10,6 +10,33 @@ def digest(chave, segredo):
     return hmac.new(segredo.encode(), str(chave).encode(), hashlib.sha256).hexdigest()[:24]
 
 
+# CPF e CNPJ formatados ou mascarados ("***.123.456-**"), em qualquer texto que va para o site
+RE_DOC = re.compile(r"(?<![\d*])(?:[\d*]{3}\.[\d*]{3}\.[\d*]{3}-[\d*]{2}|\d{2}\.\d{3}\.\d{3}/\d{4}-\d{2}|\d{14})(?![\d*])")
+OMITIDO = "[documento omitido]"
+
+
+def sem_documentos(texto):
+    return RE_DOC.sub(OMITIDO, texto)
+
+
+def varrer(pasta, cpfs=()):
+    """Ultima barreira antes de publicar: troca CPF/CNPJ formatados (e os CPFs conhecidos, sem formato)
+    em todos os .html/.json/.txt da pasta. Devolve quantos arquivos foram corrigidos."""
+    nus = re.compile("|".join(sorted({re.escape(c) for c in cpfs if len(c) == 11}))) if cpfs else None
+    n = 0
+    for p in Path(pasta).rglob("*"):
+        if p.suffix not in (".html", ".json", ".txt") or not p.is_file():
+            continue
+        txt = p.read_text(encoding="utf-8", errors="ignore")
+        novo = sem_documentos(txt)
+        if nus:
+            novo = nus.sub(OMITIDO, novo)
+        if novo != txt:
+            p.write_text(novo, encoding="utf-8")
+            n += 1
+    return n
+
+
 class Ids:
     def __init__(self, arquivo, segredo):
         self.arquivo, self.segredo = Path(arquivo), segredo
