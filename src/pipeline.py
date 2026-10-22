@@ -523,7 +523,7 @@ def main():
         pid.salvar()
 
     novos = vis[vis.novo]
-    resumo = f"Patrimonio declarado em foco {dados['gerado_em']}: {len(vis)} destaques, {len(novos)} novos."
+    resumo = f"Caramelo Vasculha {dados['gerado_em']}: {len(vis)} destaques, {len(novos)} novos."
     for r in novos.head(15).itertuples():
         resumo += f"\n- [{r.nivel}] {r.nome} ({r.cargo}/{r.uf}) {r.ano_ini}->{r.ano_fim}: +R$ {r.cresc:,.0f}"
     (docs / "digest.txt").write_text(resumo, encoding="utf-8")

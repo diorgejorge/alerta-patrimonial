@@ -193,8 +193,10 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado):
 
 
 def copiar_estilo(docs):
-    """estilo.css e a pagina de privacidade (LGPD arts. 9, 18 e 41), com os dados de config/privacidade.json."""
+    """estilo.css, logo e a pagina de privacidade (LGPD arts. 9, 18 e 41), com os dados de config/privacidade.json."""
     shutil.copyfile(SRC / "estilo.css", Path(docs) / "estilo.css")
+    for img in ("logo.png", "icone.png"):  # marca do Caramelo Vasculha
+        shutil.copyfile(SRC / img, Path(docs) / img)
     try:
         cfg = json.loads((ROOT / "config" / "privacidade.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):

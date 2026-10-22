@@ -2,7 +2,7 @@ name: Publicar painel
 on:
   push:
     branches: [main]
-    paths: ["docs/**", "src/template.html", "src/estilo.css", "config/bens_referencia.json"]
+    paths: ["docs/**", "src/template.html", "src/estilo.css", "src/logo.png", "src/icone.png", "config/bens_referencia.json"]
   workflow_run:
     workflows: ["Atualizar alertas"]
     types: [completed]
@@ -46,6 +46,8 @@ jobs:
                   html = html.replace(f"<!--{marca}-->", conteudo)
               pathlib.Path("_site/index.html").write_text(html, encoding="utf-8")
           shutil.copyfile("src/estilo.css", "_site/estilo.css")
+          for img in ("logo.png", "icone.png"):
+              shutil.copyfile(f"src/{img}", f"_site/{img}")
           PY
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

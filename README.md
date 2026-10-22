@@ -1,4 +1,4 @@
-# Alerta patrimonial
+# Caramelo Vasculha (alerta patrimonial)
 
 Compara, para cada pessoa, o patrimônio declarado ao TSE entre duas eleições consecutivas com:
 1. a **capacidade de acumulação estimada** (subsídio como eleito × taxa de poupança + renda extra informada), e

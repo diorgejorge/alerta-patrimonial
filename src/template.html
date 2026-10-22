@@ -4,21 +4,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title>Patrimônio declarado em foco</title>
+<title>Caramelo Vasculha · patrimônio declarado em foco</title>
 <meta name="description" content="Evolução do patrimônio declarado ao TSE por quem disputa ou exerce cargo eletivo: dados públicos como ponto de partida para pesquisar.">
+<link rel="icon" type="image/png" href="icone.png">
+<link rel="apple-touch-icon" href="logo.png">
 <link rel="stylesheet" href="estilo.css">
 <style>
-main{max-width:1100px;margin:0 auto}h1{font-size:1.6rem;margin:.6em 0 .2em}
-.aviso{border-left:3px solid var(--atencao);padding:.4em .9em;color:var(--mut);max-width:75ch;margin:1em 0}
-.barra{display:flex;gap:10px;flex-wrap:wrap;margin:1em 0}input,select{font:inherit;padding:.45em .7em;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--fg)}
+main{max-width:1100px;margin:0 auto}
+.barra{display:flex;gap:10px;flex-wrap:wrap;margin:1em 0}input,select{font:inherit;padding:.45em .7em;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg)}input:focus,select:focus{border-color:var(--caramelo)}
 input,select{min-height:44px}input{flex:1 1 200px;min-width:0}
 .lk{display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
 .nivel{font-weight:600}.forte{color:var(--forte)}.atencao{color:var(--atencao)}.informativo{color:var(--info)}.novo{color:var(--novo);font-weight:600}
 small{color:var(--mut)}.vazio{padding:2em;color:var(--mut)}
 a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:1em 0}
-.kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.8em 1em}
-.kpi b{display:block;font-size:1.6rem;font-weight:600;line-height:1.2}.kpi span{color:var(--mut);font-size:.85rem}
+.kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.8em 1em;box-shadow:3px 3px 0 var(--sombra)}
+.kpi b{display:block;font-family:var(--fonte-marca);font-size:1.6rem;font-weight:800;line-height:1.2;color:var(--titulo)}.kpi span{color:var(--mut);font-size:.85rem}
 .graf{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px;margin:1em 0;align-items:start}
 .card h2{font-size:1rem;margin:0}.card p{margin:.1em 0 .6em;color:var(--mut);font-size:.85rem}
 .leg{display:flex;gap:14px;flex-wrap:wrap;color:var(--mut);font-size:.85rem;margin:.6em 0 0}
@@ -34,18 +35,18 @@ a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 .trilho.outros{cursor:default}
 .bars .reg{grid-column:1/-1;justify-self:start;font:inherit;font-size:.8rem;font-weight:600;color:var(--mut);background:none;border:0;border-bottom:1px solid var(--line);padding:.6em 0 .2em;margin-top:.3em;cursor:pointer;min-height:32px;width:100%;text-align:left}
 .bars .reg:hover,.bars .reg.sel{color:var(--fg)}.bars.filtrado .reg:not(.sel){opacity:.6}
-#tip{position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.5em .75em;font-size:.85rem;box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:9;min-width:170px}
+#tip{position:fixed;pointer-events:none;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.5em .75em;font-size:.85rem;box-shadow:0 4px 14px rgba(0,0,0,.18);z-index:9;min-width:170px}
 #tip b{display:block;margin-bottom:.2em}#tip div{display:flex;justify-content:space-between;gap:14px}#tip div span:first-child{color:var(--mut)}
 #tip s{display:inline-block;width:10px;height:2px;margin-right:6px;vertical-align:middle;text-decoration:none}
-.chips{display:flex;gap:8px;flex-wrap:wrap}.chips button{font:inherit;font-size:.85rem;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);cursor:pointer}
-.contrib{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.8em 1em;margin:1em 0}
+.chips{display:flex;gap:8px;flex-wrap:wrap}.chips button{font:inherit;font-size:.85rem;padding:.3em .7em;border:2px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);cursor:pointer}
+.contrib{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.8em 1em;margin:1em 0;box-shadow:3px 3px 0 var(--sombra)}
 .contrib h2{font-size:1rem;margin:0 0 .3em}.contrib p{margin:.3em 0}.acoes{display:flex;gap:8px;flex-wrap:wrap}
-.acoes a{display:inline-block;padding:.35em .8em;border:1px solid var(--line);border-radius:4px;text-decoration:none;font-size:.9rem}
-.acoes a:hover{background:var(--bg)}
-details.leitura{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:.6em 1em;margin:0 0 1em}
+.acoes a{display:inline-block;padding:.35em .8em;border:2px solid var(--caramelo);border-radius:999px;text-decoration:none;font-size:.9rem;font-weight:600}
+.acoes a:hover{background:var(--realce)}
+details.leitura{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.6em 1em;margin:0 0 1em}
 details.leitura summary{cursor:pointer;font-weight:600}details.leitura p,details.leitura ul{max-width:80ch;margin:.5em 0}
 th small{font-weight:400}td.n small{color:var(--mut)}
-.contagem{margin:.4em 0;color:var(--mut)}.contagem button{font:inherit;font-size:.85rem;margin-left:6px;padding:.15em .6em;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--fg);cursor:pointer}
+.contagem{margin:.4em 0;color:var(--mut)}.contagem button{font:inherit;font-size:.85rem;margin-left:6px;padding:.15em .6em;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);cursor:pointer}
 .alertas{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));list-style:none;padding:0;margin:.6em 0}
 .alerta{display:flex;flex-direction:column;gap:.5em;content-visibility:auto;contain-intrinsic-size:auto 230px}
 .alerta .topo{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 8px;align-items:flex-start}.alerta .chip{flex:none}
@@ -68,13 +69,13 @@ table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-sp
 @media (prefers-color-scheme:dark){.tag.reu{--c:#c4a8ff}}
 .tag.renda{background:var(--card);border-color:var(--info);color:var(--info);font-weight:600}
 button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
-.alerta .compra{margin:0;font-size:.875rem;padding:.4em .6em;border-radius:6px;background:var(--realce)}
+.alerta .compra{margin:0;font-size:.875rem;padding:.4em .6em;border-radius:10px;background:var(--realce)}
 .alerta .links{margin:auto 0 0;font-size:.9rem}.alerta .links .lk{min-height:44px}.mais{text-align:center}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
 </style>
 </head>
 <body><main>
-<h1>Patrimônio declarado em foco</h1>
+<header class="marca"><img src="logo.png" alt="" width="84" height="84"><div><h1>Caramelo Vasculha</h1><p class="lema">Farejando o patrimônio declarado de quem disputa ou exerce cargo eletivo.</p></div></header>
 <small id="meta"></small>
 <p class="aviso">Os dados mostram diferenças entre o crescimento do patrimônio declarado e o que o salário do cargo permitiria. Há várias explicações possíveis; use como ponto de partida para pesquisar. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
 <p class="fonte">Fonte: declarações de bens e candidaturas do <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">Portal de Dados Abertos do TSE</a>. Para conferir a declaração de cada pessoa, consulte o <a href="https://divulgacandcontas.tse.jus.br/" target="_blank" rel="noopener">DivulgaCandContas</a>. <a href="privacidade.html">Privacidade e seus direitos</a>.</p>
@@ -108,10 +109,11 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <h2>Todos os destaques</h2>
 <div class="legenda-tags" id="legenda" aria-label="Legenda das tags; clique para filtrar"><span class="rotulo">Concentração de destaques no estado:</span><button type="button" class="tag q0" data-f="conc" data-v="q0">poucos</button><button type="button" class="tag q1" data-f="conc" data-v="q1">alguns</button><button type="button" class="tag q2" data-f="conc" data-v="q2">muitos</button><button type="button" class="tag q3" data-f="conc" data-v="q3">os que mais concentram</button><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo</button></div>
 <ul class="alertas" id="cards"></ul>
-<div id="vz" class="vazio" hidden>Nenhum destaque para este filtro.</div>
+<div id="vz" class="vazio" hidden>O Caramelo não farejou nenhum destaque com este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
 <details class="dados" id="tabela"><summary>Ver todos em tabela</summary>
 <div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Tags <small>(clique para filtrar)</small></th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table></div></details>
+<p class="rodape"><span aria-hidden="true">🐾</span> O Caramelo fareja os dados públicos; quem confere e tira as conclusões é você.</p>
 </main>
 <script>
 const D=/*DADOS*/null;

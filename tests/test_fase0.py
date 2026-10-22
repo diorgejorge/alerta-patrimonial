@@ -113,6 +113,8 @@ def test_painel(saida):
     texto = (saida / "docs" / "index.html").read_text(encoding="utf-8")
     assert not re.search(r"<!--(CARTOES|GRAFICO_[A-Z]+)-->", texto)
     assert (saida / "docs" / "estilo.css").exists()
+    assert (saida / "docs" / "logo.png").exists() and (saida / "docs" / "icone.png").exists()
+    assert "Caramelo Vasculha" in texto
     dados = json.loads(re.search(r"^const D=(.*);$", texto, re.M).group(1))
     assert all(a.get("pagina", "").startswith("pessoa/p") for a in dados["alertas"])
     assert not any("chave" in a or "empresas_cnpj" in a for a in dados["alertas"])
