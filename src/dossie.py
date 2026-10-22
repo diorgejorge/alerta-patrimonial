@@ -475,7 +475,7 @@ def compra(cresc, bens):
             f'podem mudar. {e(bens.get("aviso") or "")}</small></p>')
 
 
-def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", bens=None):
+def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", bens=None, cota=""):
     ult = linhas[-1]  # periodo mais recente
     urna = (ult.get("nome_urna") or "").strip()
     tse = next((a["link_tse"] for a in reversed(linhas) if url_ok(a.get("link_tse"))), None)
@@ -492,7 +492,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
                 PATRIMONIO=lista(patrimonio, "Nenhuma notícia sobre patrimônio ou investigações que cite a pessoa "
                                              "ou empresa ligada pelo nome."),
                 EMPRESAS=bloco_empresas(empresas), QUERY=e(q), TRANSPARENCIA=transp,  # html ja escapado (transparencia.secao)
-                COMPRA=compra(linhas[-1].get("cresc"), bens),
+                COMPRA=compra(linhas[-1].get("cresc"), bens), COTA=cota,  # html ja escapado (cota.secao)
                 BUSCA=e(BUSCA + urllib.parse.urlencode({"q": q, **LOCAL})), GERADO=e(gerado))
     # passada unica: texto externo ja inserido nunca e reprocessado
     return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
@@ -500,7 +500,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
 
 # ---------------------------------------------------------------- entrada
 def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, timeout=20,
-                  tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=(), transparencia=None, bens=None):
+                  tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=(), transparencia=None, bens=None, cota=None):
     """Gera destino/dossie/<slug>.html por pessoa (nome+UF) e devolve {indice_da_linha: "dossie/<slug>.html"}.
     Noticias so para as primeiras max_pessoas (ordem de `alertas`); as demais saem sem busca automatica.
     As buscas RSS correm numa fila por fonte (Google e fontes sugeridas em paralelo, `pausa` s entre buscas na mesma
@@ -598,7 +598,8 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
         usados.add(s)
         transp = next((transparencia[i] for i in p["idx"] if i in (transparencia or {})),
                       '<p class="vazio">Consulta ao Portal da Transparência não realizada nesta execução.</p>')
-        (pasta / f"{s}.html").write_text(pagina(tpl, p["linhas"], p["q"], rec, pat, empresas, gerado, transp, bens),
+        cota_p = next((cota[i] for i in p["idx"] if i in (cota or {})), "")
+        (pasta / f"{s}.html").write_text(pagina(tpl, p["linhas"], p["q"], rec, pat, empresas, gerado, transp, bens, cota_p),
                                          encoding="utf-8")
         for i in p["idx"]:
             indice[i] = f"dossie/{s}.html"

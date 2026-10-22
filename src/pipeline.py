@@ -8,6 +8,7 @@ from pathlib import Path
 import pandas as pd
 from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
 import transparencia
+import cota
 from ids import Ids, varrer
 import paginas
 
@@ -381,9 +382,24 @@ def main():
             print(f"[aviso] secao do Portal falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_sec = transparencia.NAO_DEU
         secoes.update({i: html_sec for i in q["idx"]})
+    # cota parlamentar (Camara/Senado, arquivos abertos anuais); o CPF so liga as bases, nao sai daqui
+    hoje = dt.date.today().year
+    try:
+        ceap = {} if args.demo else cota.coletar(pessoas, range(hoje - 3, hoje + 1), CACHE)
+    except Exception as ex:
+        print(f"[aviso] cota parlamentar indisponivel ({ex!r})", file=sys.stderr)
+        ceap = {}
+    secoes_cota = {}
+    for k, q in pessoas.items():
+        try:
+            html_cota = cota.secao(ceap.get(k), q["cargo"], ceap.get("_fontes"))
+        except Exception as ex:
+            print(f"[aviso] secao da cota falhou para {q['nome']} ({ex!r})", file=sys.stderr)
+            html_cota = '<p class="vazio"><b>Não informado</b>.</p>'
+        secoes_cota.update({i: html_cota for i in q["idx"]})
     bens = carregar_bens()
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
-                                transparencia=secoes, bens=bens).items():
+                                transparencia=secoes, bens=bens, cota=secoes_cota).items():
         dados["alertas"][i]["dossie"] = cam
 
     cartoes, graficos_painel = "", {}
