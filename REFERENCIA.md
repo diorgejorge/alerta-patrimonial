@@ -1,7 +1,7 @@
 # Alerta patrimonial: documento de referência
 
 Base de consulta do projeto: o que existe, como funciona, o que foi decidido e o que falta.
-Atualizado em 2026-10-22 (até a v0.1.40, issue #33). Repositório: `github.com/diorgejorge/alerta-patrimonial`. Site: `diorgejorge.github.io/alerta-patrimonial`, com o nome **"Patrimônio declarado em foco"** (desde 2026-10-22, #7).
+Atualizado em 2026-10-22 (até a v0.1.42, issue #34). Repositório: `github.com/diorgejorge/alerta-patrimonial`. Site: `diorgejorge.github.io/alerta-patrimonial`, com o nome **"Patrimônio declarado em foco"** (desde 2026-10-22, #7).
 
 ---
 
@@ -30,7 +30,8 @@ O resultado é um **destaque para conhecer e pesquisar nas fontes oficiais, nunc
 | `src/cota.py` | Cota parlamentar (CEAP da Câmara e CEAPS do Senado, arquivos anuais abertos, últimos 4 anos), lida uma vez por execução. Deputado federal ligado pelo CPF do TSE (só internamente); senador pelo nome. Arquivos guardados em `data/cache` (If-Modified-Since). Leitor próprio para o CSV do Senado com aspas soltas (#31). |
 | `src/exemplares.py` | Estrela de "parlamentar exemplar" (deputado federal e senador) no período mais recente, com os três critérios: crescimento dentro do que o salário permitiria, cota abaixo da média do cargo nos últimos 4 anos e nenhum registro no CEIS, CNEP ou CEAF. Sem dado para algum critério, não há estrela (#15). |
 | `src/empresas.py` | Empresas declaradas: atividade (CNAE), início de atividade, capital social e situação nos dados abertos do CNPJ da Receita (WebDAV público do compartilhamento `YggdBLfdninEJX9`, ~7 GB por mês). Varre os arquivos só quando muda o mês de referência ou aparece CNPJ novo, em pasta temporária, e guarda só `data/cache/cnpj_receita.json`; limite de 75 min. O faturamento não é público, então o dossiê não afirma compatibilidade com o crescimento. O CNPJ nunca vai para o site (#13). |
-| `src/cache.py` | Cache incremental entre execuções em `data/cache` (só com `ID_SEGREDO`, que assina e cifra): `tse_lido.cache` (cada ano já lido, até o zip do TSE mudar), `portal.cache` (cada pessoa por 7 dias, cifrado; só respostas sem falha) e `noticias.cache` (cada busca por 3 dias). Chaves são HMAC, sem nome nem CPF. Arquivo adulterado ou de outro segredo é descartado (#26). |
+| `src/cache.py` | Cache incremental entre execuções em `data/cache` (só com `ID_SEGREDO`, que assina e cifra): `tse_lido.cache` (cada ano já lido, até o zip do TSE mudar), `portal.cache` (cada pessoa por 7 dias, cifrado; só respostas sem falha) e `noticias.cache` (cada busca por 3 dias). Chaves são HMAC, sem nome nem CPF. Arquivo adulterado ou de outro segredo é descartado (#26). A cifra é a de `src/cifra.py` (#34). |
+| `src/cifra.py` | **Tudo que o pipeline salva fica cifrado e assinado** (#34): fluxo SHAKE-256 com chave derivada do `ID_SEGREDO` (XOR) + HMAC-SHA256 sobre o cifrado; formato `APC1` (4) + HMAC (32) + nonce (16) + dados. Vale para `data/ids.json`, `data/estado.json` e todo o `data/cache` (zips do TSE, Câmara, Senado, Cnaes, `cnpj_receita.json`, caches portal/tse_lido/notícias). `baixar()` guarda a data do If-Modified-Since em `<arquivo>.modificado` (não é dado pessoal). Arquivo antigo em texto puro: ids e estado são lidos uma vez e regravados cifrados; os do cache são apagados (`limpar_puros`) e baixados de novo. Sem `ID_SEGREDO` nada é gravado. Outro segredo ou arquivo alterado: erro, o arquivo é descartado. |
 | `src/template.html` | Painel (JS): busca; filtros por nível, cargo, partido, estado e região, todos como chip removível; cards com tags clicáveis (cargo, partido com bolinha da cor do partido, estado; escala do bege ao vermelho-escuro pela concentração de destaques), estrela de exemplar, "Tem empresas declaradas", "Responde a processo", menções na imprensa e link "Conferir processos"; legenda das tags como botões de filtro; gráfico de estados agrupado por região; tabela de exemplares; quem mais gastou da cota; tabela completa com coluna "Tags"; "Como ler a tabela". Blocos sem conteúdo ficam escondidos. |
 | `src/pessoa.html` | Página da pessoa: abas Resumo, Patrimônio, Notícias, Dinheiro público e Propostas × PLs. |
 | `src/privacidade.html` | Página da LGPD, preenchida com `config/privacidade.json`. |
@@ -43,16 +44,16 @@ O resultado é um **destaque para conhecer e pesquisar nas fontes oficiais, nunc
 | `config/bens_referencia.json` | Bens de referência do "daria para comprar N …" (nome, preço, data, link oficial): carro popular, picape, casa do MCMV faixa 3, apartamento de 70 m² (FipeZAP) e bens fora do comum (ilha em Guaratuba, iate Azimut, Ilha dos Porcos Grandes). Atualizar os preços à mão; o painel republica sozinho ao mudar. |
 | `config/processos.csv` | Processos em que a pessoa é ré (`nome,uf,tribunal,numero,link,issue,incluido_em`). Entram só por issue "[Processo]" aprovada (rótulo `aprovada`, workflow `processos.yml`); link só https de `*.jus.br`, Jusbrasil, Escavador ou Processo Rápido (o robô não abre o link). Remover a linha quando o processo terminar. **Não há contagem automática de processos** (#31). |
 | `config/privacidade.json` | Controlador, contato, encarregado e data. **Preencher antes de divulgar.** |
-| `data/estado.json` | Memória de destaques "novos", com chave `p0001\|2018-2022`. |
-| `data/ids.json` | HMAC → id interno. Não permite recuperar o CPF sem o segredo. |
+| `data/estado.json` | Memória de destaques "novos", com chave `p0001\|2018-2022`. Cifrado (`src/cifra.py`, #34). |
+| `data/ids.json` | HMAC → id interno. Não permite recuperar o CPF sem o segredo. Cifrado (`src/cifra.py`, #34). As cópias atuais no git ainda estão em texto puro até a próxima execução do pipeline regravá-las. |
 | `.github/ISSUE_TEMPLATE/` | Formulários `fonte-noticias.yml`, `fonte-dados.yml` e `processo.yml` (pessoa, UF, tribunal, número e link, sem CPF). |
 | `.github/scripts/` | `aprovar_fonte.py` e `aprovar_processo.py`: leem só campos conhecidos da issue e validam antes de gravar. |
 | `.claude/agents/documentador.md` | Agente que atualiza este documento e a memória da sessão ao fim de cada ciclo (#33). |
-| `tests/` | `test_fase0.py` (pipeline `--demo`, rede bloqueada, inclui o caso da varredura com casas decimais), `test_graficos.py`, `test_bens.py`, `test_cache.py`, `test_cota.py`, `test_empresas.py`, `test_exemplares.py`, `test_outras_rendas.py`, `test_processos.py`. |
+| `tests/` | `test_fase0.py` (pipeline `--demo`, rede bloqueada, inclui o caso da varredura com casas decimais), `test_graficos.py`, `test_bens.py`, `test_cache.py`, `test_cifra.py`, `test_cota.py`, `test_empresas.py`, `test_exemplares.py`, `test_outras_rendas.py`, `test_processos.py`. |
 
 ## 3. Fluxo de uma atualização
 
-1. **TSE**: baixa `consulta_cand_<ano>.zip` e `bem_candidato_<ano>.zip` (CDN `cdn.tse.jus.br/estatistica/sead/odsele`). Zips guardados em `data/cache`; só baixa de novo se o TSE disser que mudou (If-Modified-Since).
+1. **TSE**: baixa `consulta_cand_<ano>.zip` e `bem_candidato_<ano>.zip` (CDN `cdn.tse.jus.br/estatistica/sead/odsele`). Zips guardados cifrados em `data/cache`; só baixa de novo se o TSE disser que mudou (If-Modified-Since).
    - Chave da pessoa: `cpf:<CPF>`. Se o CPF vier mascarado, `nn:<NOME>|<NASCIMENTO>`.
 2. **Pares de eleições**: calcula crescimento, capacidade, razão ("quantas vezes o possível"), percentil e nível. Nome interno → nome no site:
    - `forte` → **"Muito acima do esperado"**: razão ≥ 3 e percentil ≥ 95.
@@ -61,7 +62,7 @@ O resultado é um **destaque para conhecer e pesquisar nas fontes oficiais, nunc
    - Só entram crescimentos de pelo menos R$ 100 mil.
    - **Empresas declaradas** ao TSE no início ou no fim do período reduzem o nível um grau (o menor se mantém); o nível antes da redução fica em `nivel_calculado` e aparece na explicação (#10).
 3. **Quem aparece**: com `MONITORADOS_CSV`, só os monitorados. Sem ele, os 200 maiores destaques (modo atual, escolhido pelo usuário).
-4. **Id interno** por pessoa (`ID_SEGREDO`). Sem o segredo não há páginas por pessoa, cache incremental nem memória de "novos".
+4. **Id interno** por pessoa (`ID_SEGREDO`). Sem o segredo não há páginas por pessoa, cache incremental nem memória de "novos", e nada é gravado em `data/` (tudo que é salvo é cifrado com ele, #34).
 5. **Portal da Transparência (API)**: no máximo 45 min. Uma falha vira "Fonte não encontrada" no site e não derruba nada.
 6. **Cota parlamentar** (Câmara e Senado) e **exemplares** (estrela, com consulta de sanções ao Portal).
 7. **Empresas (Receita)**: só para as empresas declaradas pelas pessoas em destaque.
@@ -75,7 +76,7 @@ O resultado é um **destaque para conhecer e pesquisar nas fontes oficiais, nunc
 
 | Segredo | Para quê | Situação |
 |---|---|---|
-| `ID_SEGREDO` | Gera o id interno sem expor CPF e assina/cifra o cache. Texto aleatório longo; **não trocar nem apagar** (os ids mudariam e o cache seria descartado). | Criado em 2026-10-22 (valor aleatório, não guardado fora do GitHub). |
+| `ID_SEGREDO` | Gera o id interno sem expor CPF e cifra/assina tudo que é salvo (`data/ids.json`, `data/estado.json`, `data/cache`, #34). Texto aleatório longo; **não trocar nem apagar** (ids, estado e cache ficariam ilegíveis e seriam perdidos). Sem ele nada é gravado. | Criado em 2026-10-22 (valor aleatório, não guardado fora do GitHub). |
 | `TRANSPARENCIA_TOKEN` | Chave da API do Portal (cadastro em `portaldatransparencia.gov.br/api-de-dados/cadastrar-email`). | Criado (2026-10-21). |
 | `MONITORADOS_CSV` | Lista `nome,cpf,renda_extra_mensal`, lida só em memória. | Opcional, não criado. Vazio = modo atual. |
 | `TELEGRAM_TOKEN`, `TELEGRAM_CHAT_ID` | Resumo semanal. | Opcional, não criados. |
@@ -137,7 +138,7 @@ Execução manual: **Actions → Atualizar alertas → Run workflow**. **Não us
 | Direitos do titular | art. 18 | Listados na página de privacidade, com canal de pedido. |
 | Registro das operações | art. 37 | Seção 8 deste documento. |
 | Encarregado com identidade e contato públicos | art. 41, § 1º | Campo em `config/privacidade.json`. **Preencher** ou verificar dispensa para agente de pequeno porte em norma da ANPD. |
-| Segurança | art. 46 | Segredos no cofre do Actions, varredura automática de CPF/CNPJ, cache cifrado, testes. |
+| Segurança | art. 46 | Segredos no cofre do Actions, varredura automática de CPF/CNPJ, **todos os dados salvos cifrados e assinados** (`src/cifra.py`, #34), testes. |
 | Isenção jornalística | art. 4º, II, "a" | Vale só para fins **exclusivamente** jornalísticos. **Não** é a base principal aqui. |
 
 Pontos para revisão jurídica:
@@ -150,12 +151,12 @@ Pontos para revisão jurídica:
 
 | Operação | Dados | Fonte | Onde fica | Retenção |
 |---|---|---|---|---|
-| Coleta de candidaturas e bens | nome, nome de urna, CPF, nascimento, cargo, partido, UF, bens | TSE (dados abertos) | Cache só no executor do Actions (`data/cache/`, não versionado) | Durante a execução e no `actions/cache` |
+| Coleta de candidaturas e bens | nome, nome de urna, CPF, nascimento, cargo, partido, UF, bens | TSE (dados abertos) | Cache só no executor do Actions (`data/cache/`, não versionado, cifrado) | Durante a execução e no `actions/cache` |
 | Cálculo de destaques | valores declarados, cargo, período | derivado | `docs/index.html` (sem CPF) | Até a próxima atualização |
-| Id interno | HMAC da chave | derivado | `data/ids.json` | Enquanto houver acompanhamento |
+| Id interno | HMAC da chave | derivado | `data/ids.json` (cifrado) | Enquanto houver acompanhamento |
 | Consulta ao Portal | CPF/CNPJ (em memória), emendas, benefícios, sanções, recursos | API do Portal | `docs/pessoa/`, `docs/dossie/` (sem CPF/CNPJ); `portal.cache` cifrado | Até a próxima atualização; cache 7 dias |
-| Cota parlamentar | total por ano e tipos de despesa (sem fornecedores) | Câmara e Senado (dados abertos) | `docs/dossie/`, painel; arquivos em `data/cache` | Até a próxima atualização |
-| Empresas declaradas | CNPJ (só interno), atividade, início, capital, situação | Receita (dados abertos CNPJ) | `data/cache/cnpj_receita.json` (não versionado); dossiê sem CNPJ | Até mudar o mês de referência |
+| Cota parlamentar | total por ano e tipos de despesa (sem fornecedores) | Câmara e Senado (dados abertos) | `docs/dossie/`, painel; arquivos em `data/cache` (cifrados) | Até a próxima atualização |
+| Empresas declaradas | CNPJ (só interno), atividade, início, capital, situação | Receita (dados abertos CNPJ) | `data/cache/cnpj_receita.json` (não versionado, cifrado); dossiê sem CNPJ | Até mudar o mês de referência |
 | Processos informados | nome, UF, tribunal, número, link, issue | Issues "[Processo]" aprovadas | `config/processos.csv`, painel e dossiê | Até o processo terminar |
 | Notícias | título, veículo, data, link | Google, fontes aprovadas | `docs/dossie/`, `noticias.cache` (3 dias) (fase 1: `data/noticias.jsonl`) | Enquanto houver acompanhamento |
 | Sugestões de fontes | nome do veículo, URL, usuário do GitHub | Issues do repositório | GitHub | Conforme o GitHub |
@@ -182,6 +183,8 @@ Pontos para revisão jurídica:
 - 2026-10-22: **nada pode depender de rodar algo no PC do usuário**; tudo roda no GitHub.
 - 2026-10-22 (#31): **processos**: só a lista curada por issue + o link "Conferir processos", **sem contagem automática**. Motivo: o DJEN recusa o GitHub fora do Brasil; o usuário recusou a ponte na Vercel e a API paga do Escavador.
 - 2026-10-22 (#32): seção **"Pessoas" removida** do painel (repetia os cards; a página da pessoa segue pelo link "Dossiê").
+- 2026-10-22 (#33): **depois que o documentador termina, a sessão principal limpa o contexto da conversa**; este documento e a memória precisam bastar para retomar do zero.
+- 2026-10-22 (#34): **"os dados salvos devem ser criptografados"**: tudo que o pipeline grava (`data/ids.json`, `data/estado.json`, `data/cache`) passa por `src/cifra.py`.
 - 2026-10-22 (#23, #24, #31): sites que proíbem robôs (Escavador, Jusbrasil, Processo Rápido) **só como link aberto por pessoas**; o robô nunca os consulta.
 
 ## 10. Fases
@@ -200,10 +203,11 @@ Pontos para revisão jurídica:
 
 ## 11. Pendências abertas
 
-1. **CPFs no histórico do git**: versões antigas de `data/estado.json` (commit `e249e44` e outros do bot) têm cerca de 1.173 CPFs num repositório **público**. O arquivo atual foi zerado. Apagar do histórico exige reescrita e force push (ação destrutiva), **só com autorização do usuário**. Depois, pedir ao suporte do GitHub a limpeza de cache.
+1. **Dados em texto puro no histórico do git**: versões antigas de `data/estado.json` (commit `e249e44` e outros do bot) têm cerca de 1.173 CPFs num repositório **público**; as versões antigas de `data/ids.json` e `data/estado.json` anteriores à cifra (#34) também estão em texto puro. O arquivo atual foi zerado e passa a ser gravado cifrado. Apagar do histórico exige reescrita e force push (ação destrutiva), **só com autorização do usuário**. Depois, pedir ao suporte do GitHub a limpeza de cache.
 2. **Preencher `config/privacidade.json`** (controlador, contato, encarregado) antes de divulgar.
 3. **Conferir na próxima execução de "Atualizar alertas"** (a de 2026-10-22 04:26 UTC foi a primeira com o cache, "0 do cache"):
-   - se o cache incremental (#26) é aproveitado (TSE, Portal, notícias com acertos no log) e se a execução fica mais curta;
+   - a cifra (#34): o cache antigo em texto puro é apagado e tudo é baixado de novo (TSE, Câmara, Senado, varredura da Receita), então essa execução será mais lenta uma vez; `data/ids.json` e `data/estado.json` devem sair regravados cifrados (começam com `APC1`) e os ids `p0001…` devem se manter;
+   - se o cache incremental (#26) é aproveitado a partir da execução seguinte (TSE, Portal, notícias com acertos no log) e se ela fica mais curta;
    - os cards, as tags, a estrela e a tabela de exemplares com dados reais depois das correções #27 a #32;
    - a razão do exemplar que foi corrigida à mão para `-49.0` em `docs/index.html` (e890a67) deve voltar recalculada;
    - a cota dos senadores de 2025 completa (leitor novo do CSV do Senado).
@@ -221,6 +225,8 @@ Pontos para revisão jurídica:
 
 ## 13. Histórico de ciclos
 
+- 2026-10-22 · v0.1.42 · #34 Dados salvos cifrados — `src/cifra.py` cifra e assina `data/ids.json`, `data/estado.json` e todo o `data/cache`; texto puro antigo é regravado ou apagado.
+- 2026-10-22 · v0.1.41 · #1–#33 Documentação do ciclo — REFERENCIA.md e memória atualizados pelo documentador.
 - 2026-10-22 · v0.1.40 · #33 Agente documentador — `.claude/agents/documentador.md` mantém este documento e a memória após cada ciclo.
 - 2026-10-22 · v0.1.39 · #31 Processos sem contagem automática — saem `src/djen.py`, a ponte na Vercel e a tag "Réu em N processos"; ficam a lista curada e "Conferir processos".
 - 2026-10-22 · v0.1.38 · #31 Ponte do DJEN na Vercel — tentativa de contornar o 403 do DJEN por São Paulo; desfeita na v0.1.39 por decisão do usuário.
