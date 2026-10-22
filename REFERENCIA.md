@@ -75,6 +75,9 @@ O resultado é um **indício para acompanhamento, nunca prova**. Ele é publicad
 | `pages.yml` | Após "Atualizar alertas", push em `docs/`, `src/template.html` ou `src/estilo.css`, e manual | Remonta o `index.html` com o template atual + dados + `blocos.json` e publica. |
 | `fontes.yml` | Rótulo `aprovada` numa issue "[Fonte de notícias]" | Testa o feed, grava em `config/fontes_noticias.csv` e responde e fecha a issue. |
 | `testes.yml` | Push em `src/`, `tests/` ou `config/`, PR e manual | `pytest` (sem rede) e Lighthouse no celular (360 px). Acessibilidade ≥ 90 bloqueia; desempenho ≥ 90 só avisa. |
+| `versao.yml` | Todo push na `main` | Cria a tag `vX.Y.Z` (patch +1, começa em `v0.1.0`) e uma release com a mensagem do commit. Commits do bot (`GITHUB_TOKEN`) não disparam workflows, então não geram versão. |
+
+**Fluxo de trabalho:** cada solicitação vira uma issue no GitHub; o commit que a resolve cita `Closes #N` (ou `Refs #N`) e gera uma versão nova.
 
 Execução manual: **Actions → Atualizar alertas → Run workflow**. **Não usar "Re-run"** de uma execução antiga, porque ela roda o código antigo.
 

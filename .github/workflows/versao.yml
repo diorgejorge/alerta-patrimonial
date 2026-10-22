@@ -1,0 +1,28 @@
+name: Versão
+# cada commit na main vira uma versão: tag vX.Y.Z (patch +1) e release com a mensagem do commit
+on:
+  push:
+    branches: [main]
+permissions:
+  contents: write
+concurrency: { group: versao, cancel-in-progress: false }
+jobs:
+  versao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with: { fetch-depth: 0 }
+      - name: Cria tag e release
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          if git tag --points-at HEAD | grep -q '^v'; then echo "commit já versionado"; exit 0; fi
+          ultima=$(git tag -l 'v*' --sort=-v:refname | head -n1)
+          if [ -z "$ultima" ]; then nova=v0.1.0; else
+            IFS=. read -r maior menor patch <<< "${ultima#v}"
+            nova="v$maior.$menor.$((patch + 1))"
+          fi
+          git tag "$nova" "$GITHUB_SHA"
+          git push origin "$nova"
+          git log -1 --format=%B "$GITHUB_SHA" > notas.md
+          gh release create "$nova" --title "$nova" --notes-file notas.md
