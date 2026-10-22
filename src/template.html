@@ -54,7 +54,10 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta dl{margin:0;display:grid;gap:2px;font-size:.875rem}.alerta dl div{display:flex;justify-content:space-between;gap:10px}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
-#exemplares td:nth-child(n+3),#exemplares th:nth-child(n+3){white-space:nowrap}
+#exemplares td:nth-child(n+5),#exemplares th:nth-child(n+5){white-space:nowrap}
+/* tabelas no PC: palavras inteiras (sem quebrar letra a letra), nome com largura minima e tags sem quebrar por dentro */
+table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-space:nowrap}
+@media (min-width:600px){#exemplares td:first-child,#tabela td:first-child{min-width:16ch}#tabela td:nth-child(2){min-width:22ch}}
 .legenda-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:.2em 0 .8em;font-size:.875rem}.legenda-tags button[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px}.legenda-tags .rotulo{color:var(--mut)}
 .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
 .estrela{color:#a77d00}.alerta.exemplar{border-color:#a77d00}
