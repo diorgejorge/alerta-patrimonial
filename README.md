@@ -25,7 +25,7 @@ Abra `docs/index.html` (ou `_demo/docs/index.html`) no navegador.
 - `parametros.json`: anos analisados, taxa de poupança, limiares de alerta, e `publicar_somente_monitorados`.
 - `renda_publica.csv`: subsídio mensal por cargo e ano de vigência. **Confira os valores** antes de confiar na razão.
 - Lista de monitorados: segredo `MONITORADOS_CSV` (conteúdo CSV com `nome,cpf,renda_extra_mensal`), lido só em memória. Sem ele, o painel segue o modo atual: os `max_linhas_sem_lista` maiores alertas. `config/monitorados.csv` continua aceito, mas **não ponha CPF nele**: o repositório é público.
-- `analytics.json`: ID de medição do Google Analytics 4 (`G-XXXXXXXXXX`) e o prazo de retenção escolhido no GA (2 ou 14 meses). Vazio = GA desligado. Com ID, o site publicado mostra um aviso de cookies e o GA só carrega depois do "Aceitar" (LGPD); a página de privacidade ganha a seção "Métricas de acesso".
+- `analytics.json`: ID de medição do Google Analytics 4 (`G-XXXXXXXXXX`) e o prazo de retenção escolhido no GA (2 ou 14 meses). Vazio = GA desligado. Com ID, a tag do Google (gtag.js) entra logo depois do `<head>` de todas as páginas publicadas, com o consentimento negado: os cookies só são gravados depois do "Aceitar" no aviso (LGPD); a página de privacidade ganha a seção "Métricas de acesso".
 - `vinculos.csv` (fase 4) e `curadoria.csv` (fase 1): revisões manuais; só o que estiver aprovado aparece no site.
 
 ## Automação (GitHub Actions)
