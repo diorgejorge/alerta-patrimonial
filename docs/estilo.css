@@ -2,17 +2,18 @@
    tema claro/escuro automatico, contraste AA, foco visivel, menos movimento e impressao. */
 :root{color-scheme:light;
   --bg:#f7f7f5;--fg:#1d2328;--mut:#5d6870;--line:#d9dcdd;--card:#fff;--realce:#eef1f2;
-  --forte:#a3261b;--atencao:#9a5800;--info:#3d5a73;--novo:#14532d;--link:#1f5b8a;
+  --forte:#3b4a8c;--atencao:#226b6b;--info:#4d6a4c;--novo:#14532d;--link:#1f5b8a;
   /* tags (paleta categorica fixa; o rotulo de texto sempre acompanha a cor) */
   --t-politico:#2a78d6;--t-eleitoral:#eb6834;--t-legislativo:#1baf7a;--t-gestao:#eda100;
   --t-patrimonial:#e87ba4;--t-judicial:#008300;--t-criminal:#6250d6;--t-outros:#7a7f84}
 @media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){color-scheme:dark;
   --bg:#14181b;--fg:#e8ebec;--mut:#a7b1b8;--line:#2e363b;--card:#1b2024;--realce:#242b30;
-  --forte:#ff8a7d;--atencao:#f0b45c;--info:#8db3d1;--novo:#7fd9a0;--link:#8cc4f0;
+  --forte:#a9b7f0;--atencao:#7fcfc8;--info:#a8c9a2;--novo:#7fd9a0;--link:#8cc4f0;
   --t-politico:#3987e5;--t-eleitoral:#d95926;--t-legislativo:#199e70;--t-gestao:#c98500;
   --t-patrimonial:#d55181;--t-judicial:#008300;--t-criminal:#9085e9;--t-outros:#9aa0a5}}
 
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   padding:16px;overflow-wrap:anywhere}
