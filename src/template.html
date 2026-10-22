@@ -44,6 +44,13 @@ details.leitura{background:var(--card);border:1px solid var(--line);border-radiu
 details.leitura summary{cursor:pointer;font-weight:600}details.leitura p,details.leitura ul{max-width:80ch;margin:.5em 0}
 th small{font-weight:400}td.n small{color:var(--mut)}
 .contagem{margin:.4em 0;color:var(--mut)}.contagem button{font:inherit;font-size:.85rem;margin-left:6px;padding:.15em .6em;border:1px solid var(--line);border-radius:4px;background:var(--card);color:var(--fg);cursor:pointer}
+.alertas{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));list-style:none;padding:0;margin:.6em 0}
+.alerta{display:flex;flex-direction:column;gap:.5em;content-visibility:auto;contain-intrinsic-size:auto 230px}
+.alerta .topo{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.alerta .chip{flex:none}
+.alerta .cresc{margin:0;display:flex;flex-direction:column}.alerta .cresc b{font-size:1.35rem;line-height:1.2;font-variant-numeric:tabular-nums}
+.alerta dl{margin:0;display:grid;gap:2px;font-size:.875rem}.alerta dl div{display:flex;justify-content:space-between;gap:10px}
+.alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
+.alerta .links{margin:auto 0 0;font-size:.9rem}.alerta .links .lk{min-height:44px}.mais{text-align:center}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
 </style>
 </head>
@@ -73,7 +80,11 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Alertas por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
 <section aria-labelledby="t-pessoas"><h2 id="t-pessoas">Pessoas</h2><!--CARTOES--></section>
 <h2>Todos os períodos em alerta</h2>
-<div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table><div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div></div>
+<ul class="alertas" id="cards"></ul>
+<div id="vz" class="vazio" hidden>Nenhum alerta para este filtro.</div>
+<p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
+<details class="dados" id="tabela"><summary>Ver todos em tabela</summary>
+<div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Cargo</th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table></div></details>
 </main>
 <script>
 const D=/*DADOS*/null;
@@ -145,9 +156,23 @@ function painel(rows){
   for(const [dim,rot] of [["partido","Partido"],["uf","UF"]])if(F[dim]){const b=el("button",null,`${rot}: ${F[dim]} ×`);b.title="Remover filtro";b.onclick=()=>{F[dim]="";draw();};c.append(b);}
 }
 for(const id of ["lg1","lg2"])for(const n of NIVEIS){const s=el("span");const i=el("i");i.style.background=`var(--${n==="informativo"?"info":n})`;s.append(i,NV[n]);$(id).append(s);}
+// cards em lotes de PAG (pagina leve); a tabela completa so e montada quando aberta
+const PAG=24;let ROWS=[],VIS=0;
+const CARD=a=>`<li class="card alerta"><div class="topo"><span><b>${esc(a.nome_urna||a.nome)}</b>${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.cargo)} · ${esc(a.partido)} · ${esc(a.uf)} · ${a.ano_ini}–${a.ano_fim}</small></span><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span></div>
+<p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>
+<dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>
+${LK(a)?`<p class="links">${LK(a).replace(/^ · /,"")}</p>`:""}</li>`;
+function mais(){
+  const ate=Math.min(ROWS.length,VIS+PAG);$("cards").insertAdjacentHTML("beforeend",ROWS.slice(VIS,ate).map(CARD).join(""));VIS=ate;
+  const r=ROWS.length-VIS;$("mais").hidden=r<=0;$("mais").textContent=`Mostrar mais ${Math.min(r,PAG)} (faltam ${r.toLocaleString("pt-BR")})`;
+}
+function tabelaToda(){
+  if(!$("tabela").open)return;
+  document.getElementById("tb").innerHTML=ROWS.map(a=>`<tr><td data-label="Nome"><span>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></span></td><td data-label="Cargo"><span>${esc(a.cargo)}</span></td><td data-label="Período"><span>${a.ano_ini}–${a.ano_fim}</span></td><td class="n" data-label="Patrimônio no início"><span>${R(a.pat_ini)}</span></td><td class="n" data-label="Patrimônio no fim"><span>${R(a.pat_fim)}</span></td><td class="n" data-label="Crescimento"><span>${R(a.cresc)}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${R(a.cap)}</span></td><td class="n" data-label="Quantas vezes o possível"><span>${VZ(a.razao)}</span></td><td class="n" data-label="Comparado aos colegas"><span>${PC(a.percentil)}</span></td><td class="nivel ${a.nivel}" data-label="Nível"><span>${NV[a.nivel]}</span></td></tr>`).join("");
+}
 function draw(){
   const rows=filtra();painel(rows);
-  document.getElementById("tb").innerHTML=rows.map(a=>`<tr><td data-label="Nome"><span>${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${esc(a.partido)} · ${esc(a.uf)}${LK(a)}</small></span></td><td data-label="Cargo"><span>${esc(a.cargo)}</span></td><td data-label="Período"><span>${a.ano_ini}–${a.ano_fim}</span></td><td class="n" data-label="Patrimônio no início"><span>${R(a.pat_ini)}</span></td><td class="n" data-label="Patrimônio no fim"><span>${R(a.pat_fim)}</span></td><td class="n" data-label="Crescimento"><span>${R(a.cresc)}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${R(a.cap)}</span></td><td class="n" data-label="Quantas vezes o possível"><span>${VZ(a.razao)}</span></td><td class="n" data-label="Comparado aos colegas"><span>${PC(a.percentil)}</span></td><td class="nivel ${a.nivel}" data-label="Nível"><span>${NV[a.nivel]}</span></td></tr>`).join("");
+  ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
   const fl=[F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${D.alertas.length.toLocaleString("pt-BR")} registros`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
   if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf="";draw();};
@@ -184,5 +209,5 @@ function contrib(){
   $("contrib").hidden=false;
 }
 if(D){contrib();leitura();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
-document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;draw();}
+document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;$("mais").onclick=mais;$("tabela").ontoggle=tabelaToda;draw();}
 </script></body></html>
