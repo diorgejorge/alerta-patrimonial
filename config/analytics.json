@@ -1,0 +1,5 @@
+{
+  "id_medicao": "",
+  "retencao_meses": 2,
+  "como_preencher": "id_medicao: ID de medição do GA4 (G-XXXXXXXXXX), em Administrador > Fluxos de dados. Vazio = Google Analytics desligado. retencao_meses: o mesmo prazo escolhido em Administrador > Coleta e retenção de dados (2 ou 14 meses)."
+}

@@ -208,7 +208,57 @@ def copiar_estilo(docs):
                 CONTATO=(f'<a href="mailto:{e(contato)}">{e(contato)}</a>' if "@" in contato else e(contato)) or falta,
                 ENCARREGADO=(e(enc) + (f' · {e(cfg.get("contato_encarregado", "").strip())}'
                                         if cfg.get("contato_encarregado", "").strip() else "")) or falta,
-                ATUALIZADO=e(cfg.get("atualizado_em", "").strip() or "Não informado"))
+                ATUALIZADO=e(cfg.get("atualizado_em", "").strip() or "Não informado"),
+                MEDICAO=texto_medicao())
     tpl = (SRC / "privacidade.html").read_text(encoding="utf-8")
     (Path(docs) / "privacidade.html").write_text(re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl),
                                                  encoding="utf-8")
+
+
+def config_medicao():
+    """config/analytics.json: id do GA4 so se tiver o formato G-XXXXXXXXXX (senao, Google Analytics desligado)."""
+    try:
+        cfg = json.loads((ROOT / "config" / "analytics.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        cfg = {}
+    ga = str(cfg.get("id_medicao", "")).strip().upper()
+    meses = cfg.get("retencao_meses")
+    return (ga if re.fullmatch(r"G-[A-Z0-9]{4,16}", ga) else ""), (meses if meses in (2, 14) else None)
+
+
+def texto_medicao():
+    """Secao da privacidade sobre o Google Analytics; vazia quando ele esta desligado."""
+    ga, meses = config_medicao()
+    if not ga:
+        return ""
+    prazo = f"{meses} meses" if meses else "o prazo configurado no Google Analytics"
+    return f"""<h2 id="metricas">Métricas de acesso (Google Analytics)</h2>
+<p>Para saber quantas pessoas visitam o site e quais páginas são mais lidas, usamos o Google Analytics 4, do Google, <strong>só se você aceitar</strong> no aviso de cookies. Sem o seu aceite, nada do Google é carregado (consentimento, art. 7º, I, e art. 8º). Recusar não muda nada no uso do site.</p>
+<ul>
+<li><strong>O que é coletado:</strong> páginas visitadas, tempo de visita, de onde veio o acesso, tipo de aparelho e de navegador, região aproximada e um código aleatório guardado nos cookies <code>_ga</code>. O Google recebe o endereço IP para fazer a medição e informa que não o guarda no Google Analytics 4.</li>
+<li><strong>O que fica desligado:</strong> anúncios, personalização de anúncios e os sinais do Google (ligação com contas Google). Nenhum dado das pessoas acompanhadas pelo site vai para o Google.</li>
+<li><strong>Quem recebe:</strong> o Google, que pode tratar os dados fora do Brasil (transferência internacional, art. 33). Veja a <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">política de privacidade do Google</a> e <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener">como ele usa dados de sites parceiros</a>.</li>
+<li><strong>Por quanto tempo:</strong> os dados de navegação ficam {prazo} nos relatórios; os cookies <code>_ga</code> duram até 2 anos no seu navegador, ou até você recusar ou apagá-los.</li>
+<li><strong>Como mudar de ideia:</strong> <button type="button" class="botao" data-medicao-preferencias hidden>Mudar minha escolha</button> Também dá para apagar os cookies e os dados deste site nas configurações do navegador.</li>
+</ul>"""
+
+
+def medicao(site):
+    """Google Analytics 4 com aviso de consentimento no site publicado: grava medicao.js com o id de
+    config/analytics.json e liga o script em todas as paginas. Sem id valido, nada e carregado. Devolve quantas paginas."""
+    site = Path(site)
+    ga, _ = config_medicao()
+    alvo = site / "medicao.js"
+    if not ga:
+        alvo.unlink(missing_ok=True)
+        return 0
+    alvo.write_text((SRC / "medicao.js").read_text(encoding="utf-8").replace("__GA_ID__", ga), encoding="utf-8")
+    n = 0
+    for pag in sorted(site.rglob("*.html")):
+        h = pag.read_text(encoding="utf-8")
+        if "medicao.js" in h or "</head>" not in h:
+            continue
+        pre = "../" * (len(pag.relative_to(site).parts) - 1)
+        pag.write_text(h.replace("</head>", f'<script src="{pre}medicao.js" defer></script>\n</head>', 1), encoding="utf-8")
+        n += 1
+    return n
