@@ -1,0 +1,53 @@
+name: Pedir correção ou resposta
+description: Viu um dado errado, desatualizado ou de um homônimo? Foi citado e quer responder? Peça aqui.
+title: "[Correção] "
+labels: ["correcao"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Este pedido fica **público**. Não envie CPF, documentos pessoais, endereço ou telefone.
+        Cada pedido é analisado. Se proceder, o dado é corrigido ou retirado, e a resposta de quem foi citado
+        pode ser publicada junto ao dado (direito de resposta, Lei 13.188/2015).
+  - type: dropdown
+    id: tipo
+    attributes:
+      label: O que você quer pedir
+      options:
+        - "Corrigir um dado errado ou desatualizado"
+        - "O dado é de outra pessoa (homônimo)"
+        - "Publicar a resposta de quem foi citado"
+        - "Retirar um dado (LGPD, art. 18)"
+        - "Outro"
+    validations:
+      required: true
+  - type: input
+    id: pagina
+    attributes:
+      label: Endereço da página
+      placeholder: "https://.../pessoa/p0001.html"
+    validations:
+      required: true
+  - type: textarea
+    id: dado
+    attributes:
+      label: Qual dado e o que está errado
+      placeholder: "Ex.: o patrimônio de 2022 aparece como R$ 1 milhão, mas a declaração mostra R$ 100 mil."
+    validations:
+      required: true
+  - type: input
+    id: fonte
+    attributes:
+      label: Link da fonte oficial que mostra o valor certo (opcional)
+      placeholder: "https://divulgacandcontas.tse.jus.br/..."
+  - type: textarea
+    id: resposta
+    attributes:
+      label: Resposta para publicar (opcional, só para quem foi citado)
+  - type: checkboxes
+    id: aceite
+    attributes:
+      label: Confirmação
+      options:
+        - label: Não incluí CPF, documentos ou dados pessoais neste pedido.
+          required: true

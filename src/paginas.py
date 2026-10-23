@@ -118,6 +118,11 @@ def _resumo(linhas):
             '<p class="mut"><small><a href="../index.html#como-ler">O que significam estas colunas?</a></small></p>')
 
 
+FONTE_TSE = ('<p class="fonte">Fonte: declarações de bens do <a href="https://dadosabertos.tse.jus.br/" target="_blank" '
+             'rel="noopener">TSE</a>. Confira a declaração de cada eleição no <a href="https://divulgacandcontas.tse.jus.br/" '
+             'target="_blank" rel="noopener">DivulgaCandContas</a>.</p>')
+
+
 def _patrimonio(hist, linhas, uid):
     graf = graficos.patrimonio(hist, uid=uid)
     alt = _alt(graficos.tabela_patrimonio(hist)) if hist else ""
@@ -129,7 +134,7 @@ def _patrimonio(hist, linhas, uid):
                  "<p class=\"mut\"><small>Extraídas automaticamente da descrição dos bens declarados ao TSE; a lista pode "
                  "estar incompleta.</small></p>")
     return (graf + alt + bloco + '<p class="mut"><small>Valores declarados pelo custo histórico, não pelo valor de mercado. '
-            "Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta.</small></p>")
+            "Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta.</small></p>" + FONTE_TSE)
 
 
 def _chips(tags):
@@ -157,7 +162,8 @@ def _noticias(noticias, uid):
     return (graficos.percentual_por_tema(cont, uid=uid) + _alt(graficos.tabela_percentual_por_tema(cont))
             + '<ul class="nt">' + "".join(_item_noticia(n) for n in itens) + "</ul>"
             '<p class="mut"><small>Tags automáticas, pelas palavras do título e do resumo; podem errar. O gráfico conta '
-            "cada notícia uma vez, pela primeira tag.</small></p>")
+            "cada notícia uma vez, pela primeira tag.</small></p>"
+            '<p class="fonte">Fonte: cada link leva à matéria original; o conteúdo é de responsabilidade do veículo.</p>')
 
 
 def _propostas(pid):
@@ -249,7 +255,8 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=
 
 
 def copiar_estilo(docs):
-    """estilo.css, selo.js, logo e a pagina de privacidade (LGPD arts. 9, 18 e 41), com os dados de config/privacidade.json."""
+    """estilo.css, selo.js, logo, a pagina de privacidade (LGPD arts. 9, 18 e 41) e o aviso legal, com os dados de
+    config/privacidade.json."""
     for f in ("estilo.css", "selo.js", "compartilhar.js"):  # estilo comum, selo de cera e compartilhar/cobrar (#60, #61)
         shutil.copyfile(SRC / f, Path(docs) / f)
     for img in ("logo.png", "icone.png"):  # marca do Caramelo Vasculha
@@ -259,17 +266,50 @@ def copiar_estilo(docs):
     except (OSError, ValueError):
         cfg = {}
     falta = "Ainda não informado. Preencha <code>config/privacidade.json</code> antes de divulgar o site."
-    contato = cfg.get("contato", "").strip()
     enc = cfg.get("encarregado", "").strip()
     vals = dict(CONTROLADOR=e(cfg.get("controlador", "").strip()) or falta,
-                CONTATO=(f'<a href="mailto:{e(contato)}">{e(contato)}</a>' if "@" in contato else e(contato)) or falta,
+                CONTATO=link_contato(cfg.get("contato", "")) or falta,
                 ENCARREGADO=(e(enc) + (f' · {e(cfg.get("contato_encarregado", "").strip())}'
                                         if cfg.get("contato_encarregado", "").strip() else "")) or falta,
                 ATUALIZADO=e(cfg.get("atualizado_em", "").strip() or "Não informado"),
                 MEDICAO=texto_medicao())
-    tpl = (SRC / "privacidade.html").read_text(encoding="utf-8")
-    (Path(docs) / "privacidade.html").write_text(re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl),
-                                                 encoding="utf-8")
+    for nome in ("privacidade.html", "aviso-legal.html"):  # aviso legal (#62): o que o site e e como pedir correcao
+        tpl = (SRC / nome).read_text(encoding="utf-8")
+        (Path(docs) / nome).write_text(re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl),
+                                       encoding="utf-8")
+
+
+def link_contato(contato):
+    """Canal de correcao e direito de resposta: formulario (URL), e-mail ou texto livre; vazio se nao configurado."""
+    contato = (contato or "").strip()
+    if contato.startswith("https://"):
+        return f'<a href="{e(contato)}" target="_blank" rel="noopener">formulário de correção e resposta</a>'
+    if "@" in contato:
+        return f'<a href="mailto:{e(contato)}">{e(contato)}</a>'
+    return e(contato)
+
+
+RODAPE_LEGAL = "data-rodape-legal"
+
+
+def rodape_legal(site):
+    """Aviso legal (#62) no fim de todas as paginas publicadas: dados oficiais so reorganizados, nenhum indicador
+    afirma irregularidade, e onde pedir correcao. Idempotente. Devolve quantas paginas receberam o rodape."""
+    site = Path(site)
+    n = 0
+    for pag in sorted(site.rglob("*.html")):
+        h = pag.read_text(encoding="utf-8")
+        if RODAPE_LEGAL in h or "</body>" not in h:
+            continue
+        pre = "../" * (len(pag.relative_to(site).parts) - 1)
+        rodape = (f'<footer class="rodape-legal" {RODAPE_LEGAL}>Dados públicos de fontes oficiais (TSE, '
+                  f'Portal da Transparência, Câmara e Senado), que respondem por eles; aqui eles só são organizados. '
+                  f'Confira sempre na fonte indicada. Nenhum destaque afirma irregularidade ou crime. '
+                  f'<a href="{pre}aviso-legal.html">Aviso legal e correções</a> · '
+                  f'<a href="{pre}privacidade.html">Privacidade</a></footer>\n')
+        pag.write_text(h.replace("</body>", rodape + "</body>", 1), encoding="utf-8")
+        n += 1
+    return n
 
 
 def config_medicao():
