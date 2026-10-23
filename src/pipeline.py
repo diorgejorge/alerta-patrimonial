@@ -14,7 +14,6 @@ import projetos
 import parlamentares
 import empresas
 import estados
-import economia
 import temas
 from ids import Ids, varrer
 from cache import Cache, salvar_resultados
@@ -467,18 +466,6 @@ def montar_cobranca(pessoas, parl, ceap, proj, cache=None, demo=False):
     return out
 
 
-def carregar_economia(demo, dados_dir):
-    """PIB e IPCA do IBGE para comparar com o patrimonio (#55); nunca derruba as paginas ({} = fonte fora do ar)."""
-    if demo:
-        return economia.demo()
-    try:
-        siglas = {cod: uf for uf, (cod, _) in estados.UFS.items()}
-        return economia.coletar(estados.Buscador(intervalo=2.0), siglas, dados_dir / economia.ARQUIVO.name)
-    except Exception as ex:
-        print(f"[aviso] dados do IBGE indisponiveis ({ex!r})", file=sys.stderr)
-        return {}
-
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true", help="dados sinteticos para testar sem internet")
@@ -710,7 +697,7 @@ def main():
         try:
             cartoes, graficos_painel = paginas.gerar(dados["alertas"], pessoas, hist, secoes, docs,
                                                      gerado=dados["gerado_em"], noticias=noticias,
-                                                     econ=carregar_economia(args.demo, dados_dir), cobranca=cobranca)
+                                                     cobranca=cobranca)
         except Exception as ex:  # nunca derruba o painel
             print(f"[aviso] paginas por pessoa falharam ({ex!r})", file=sys.stderr)
         try:  # Acompanhar (#57): feed RSS por pessoa e geral, com um item quando um dado muda entre execucoes

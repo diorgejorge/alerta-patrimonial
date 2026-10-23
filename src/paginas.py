@@ -2,7 +2,7 @@
 So usa o id interno (p0001...): CPF, chave e CNPJ nunca entram no HTML."""
 import csv, html, json, re, shutil
 from pathlib import Path
-import acompanhar, cobrar, economia, graficos, temas
+import acompanhar, cobrar, graficos, temas
 from texto import cap
 
 SRC = Path(__file__).resolve().parent
@@ -118,7 +118,7 @@ def _resumo(linhas):
             '<p class="mut"><small><a href="../index.html#como-ler">O que significam estas colunas?</a></small></p>')
 
 
-def _patrimonio(hist, linhas, uid, econ=None):
+def _patrimonio(hist, linhas, uid):
     graf = graficos.patrimonio(hist, uid=uid)
     alt = _alt(graficos.tabela_patrimonio(hist)) if hist else ""
     emps = next((a.get("empresas") for a in linhas if a.get("empresas")), []) or []
@@ -128,7 +128,7 @@ def _patrimonio(hist, linhas, uid, econ=None):
                  + "".join(f"<li>{e(x)}</li>" for x in emps) + "</ul>"
                  "<p class=\"mut\"><small>Extraídas automaticamente da descrição dos bens declarados ao TSE; a lista pode "
                  "estar incompleta.</small></p>")
-    return (graf + alt + economia.secao(econ, linhas) + bloco + '<p class="mut"><small>Valores declarados pelo custo histórico, não pelo valor de mercado. '
+    return (graf + alt + bloco + '<p class="mut"><small>Valores declarados pelo custo histórico, não pelo valor de mercado. '
             "Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta.</small></p>")
 
 
@@ -178,7 +178,7 @@ def _cabecalho(a, nome, img=None, acoes=""):
             + (f'<div class="acoes">{acoes}</div>' if acoes else "") + "</header>")
 
 
-def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, econ=None, cobranca=None):
+def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, cobranca=None):
     """`cobranca`: contato do gabinete, cota e projetos da pessoa para a aba "Como cobrar" (#60, cobrar.secao)."""
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
@@ -186,7 +186,7 @@ def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, econ=None, c
     compartilhar = cobrar.botao(cobrar.imagem(linhas, f"pessoa/{pid}.html", site))
     vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())),
                 CABECALHO=_cabecalho(topo, nome, foto(linhas), compartilhar),
-                RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}", econ),
+                RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
                 PROPOSTAS=_propostas(pid), COBRAR=cobrar.secao(linhas, cobranca, site + f"pessoa/{pid}.html"), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
@@ -207,10 +207,9 @@ def cartao(pid, linhas, hist):
             f'<span class="mini">{mini}</span></li>')
 
 
-def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, econ=None, cobranca=None):
+def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=None):
     """Escreve docs/pessoa/<id>.html e devolve (html dos cartoes, {marca: html dos graficos do painel}).
     `noticias`: {indice_da_linha: lista de noticias com tags ou aviso em texto} (dossie.gerar_dossies).
-    `econ`: PIB e IPCA do IBGE (economia.coletar) para o bloco "Patrimônio × economia" (#55).
     `cobranca`: {indice_da_linha: contato, cota e projetos} para a aba "Como cobrar" (#60)."""
     noticias, cobranca = noticias or {}, cobranca or {}
     pasta = Path(docs) / "pessoa"
@@ -226,7 +225,7 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, econ=None
             continue
         h = hist.get(q["chave"], [])
         (pasta / f"{pid}.html").write_text(pagina(tpl, pid, linhas, h, secoes.get(q["idx"][0]), gerado,
-                                                           noticias.get(q["idx"][0]), econ,
+                                                           noticias.get(q["idx"][0]),
                                                            cobranca.get(q["idx"][0])), encoding="utf-8")
         for i in q["idx"]:
             alertas[i]["pagina"] = f"pessoa/{pid}.html"
