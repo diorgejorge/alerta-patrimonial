@@ -1023,6 +1023,9 @@ def pagina_uf(p):
     p = dict(p, emendas=emd)
     faltou = (f'<p class="fonte">Emendas de {", ".join(map(str, m["faltou"]))}: <b>{NAO_ACHOU}</b> nesta '
               f'atualização; os totais desses anos podem estar incompletos.</p>') if m.get("faltou") and not emd["falhou"] else ""
+    # sem a base oficial (S2iD) o bloco de emergencia nao aparece: nao ha o que conferir
+    emergencia = (f'<h3>Emergência sem reconhecimento oficial</h3>\n{secao_carimbos(p.get("carimbos") or [], m)}\n'
+                  if m.get("s2id") else "")
     corpo = f"""<h1>{e(p["nome"])}</h1>
 <p class="lead">Quanto o estado gastou, quanto veio do governo federal e quais parlamentares mandaram emendas para cá. Confira e cobre quem você elegeu. <a href="../index.html#meus={e(p["uf"])}">Ver meus representantes</a>.</p>
 {aviso_periodo(m, p["financas"])}
@@ -1037,9 +1040,7 @@ def pagina_uf(p):
 <p class="fonte">Deputados federais e senadores do estado, por quanto já foi pago das emendas de cada um aqui. Mandar emenda é parte do trabalho deles. O que vale cobrar é se o dinheiro chegou e virou obra ou serviço.</p>
 {secao_autores(p["autores"], p["uf"], emd["falhou"])}</section>
 <section class="card" id="carimbos"><h2>Emendas para conferir</h2>
-<h3>Emergência sem reconhecimento oficial</h3>
-{secao_carimbos(p.get("carimbos") or [], m)}
-<h3>Paradas</h3>
+{emergencia}<h3>Paradas</h3>
 {secao_paradas(p.get("paradas") or [], m)}</section>
 <section class="card"><h2>Cidades e deputados estaduais</h2>
 {secao_municipios(p["uf"])}

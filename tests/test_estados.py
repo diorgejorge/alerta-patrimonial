@@ -485,3 +485,10 @@ def test_texto_para_leigo():
     sp = estados.pagina_uf(pag["SP"])
     assert "Individual, tipo Pix (sem destino definido)<small>Emenda Individual - Transferências Especiais</small>" in sp
     assert 'href="../index.html#meus=SP">Ver meus representantes' in sp and "do prometido já pago" in sp
+
+
+def test_sem_s2id_o_bloco_de_emergencia_some():
+    pag, _ = estados.demo()
+    p = dict(pag["SP"], meta=dict(pag["SP"]["meta"], s2id=False))
+    html = estados.pagina_uf(p)
+    assert "Emergência sem reconhecimento oficial" not in html and "<h3>Paradas</h3>" in html
