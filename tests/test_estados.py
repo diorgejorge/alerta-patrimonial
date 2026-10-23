@@ -72,9 +72,18 @@ class CacheMem:
         self.salvo = True
 
 
-def emenda(autor, local, pago, tipo="Emenda Individual - Transferências Especiais", resto=0):
-    return dict(nomeAutor=autor, tipoEmenda=tipo, localidadeDoGasto=local, funcao="Saúde",
+def emenda(autor, local, pago, tipo="Emenda Individual - Transferências Especiais", resto=0, subfuncao="Atenção Básica",
+           ano=2025, empenhado=0):
+    return dict(nomeAutor=autor, tipoEmenda=tipo, localidadeDoGasto=local, funcao="Saúde", subfuncao=subfuncao,
+                ano=ano, codigoEmenda=f"{ano}{autor[:3]}", valorEmpenhado=empenhado,
                 valorPago=f"{pago:,.2f}".replace(",", "_").replace(".", ",").replace("_", "."), valorRestoPago=resto)
+
+
+S2ID_CSV = ("UF;Município;Código IBGE;COBRADE;Data da Publicação\n"
+            "SP;Campinas;3509502;Chuvas Intensas;15/01/2025\n"
+            "RJ;Petrópolis;3303906;Chuvas Intensas;2024-02-20\n").encode("latin-1")
+CKAN = {"result": {"resources": [dict(name="Reconhecimentos Realizados", url="https://mdr/rec.csv"),
+                                 dict(name="Danos informados", url="https://mdr/danos.csv")]}}
 
 
 # ---------------------------------------------------------------- unidades
@@ -149,7 +158,7 @@ def test_emendas_cache_so_de_ano_antigo_e_completo():
     cache = CacheMem()
     lista, faltou = estados.emendas(api, [2023, 2024, 2025, 2026], cache, HOJE)
     assert faltou == [2024] and [d["pago"] for d in lista] == [10.0, 5.0]
-    assert set(cache.d) == {("emendas", 2023)}  # 2024 falhou; 2025/2026 ainda recebem pagamentos
+    assert set(cache.d) == {("emendas", estados.VERSAO_EMENDAS, 2023)}  # 2024 falhou; 2025/2026 ainda recebem pagamentos
     api.pedidos.clear()
     estados.emendas(api, [2023], cache, HOJE)
     assert api.pedidos == []
@@ -190,6 +199,48 @@ def test_deputados_estaduais_em_exercicio():
     assert "cpf" not in json.dumps(out)
 
 
+def test_ler_reconhecimentos_acha_colunas_pelo_nome():
+    df = estados._tabela(S2ID_CSV, "rec.csv")
+    rec = estados.ler_reconhecimentos(df)
+    assert rec["cod"] == {"3509502": {2025}, "3303906": {2024}}
+    assert rec["nome"][("SP", "CAMPINAS")] == {2025} and rec["uf"] == {"SP": {2025}, "RJ": {2024}}
+    so_ano = pd.DataFrame(dict(ibge=["3509502"], ano=["2023"]))  # sem UF nem data: UF pelo codigo, ano pela coluna
+    assert estados.ler_reconhecimentos(so_ano)["uf"] == {"SP": {2023}}
+
+
+def test_reconhecimentos_pelo_catalogo_ckan():
+    baixados = []
+    rec = estados.reconhecimentos(lambda url: CKAN, lambda url: baixados.append(url) or S2ID_CSV)
+    assert baixados == ["https://mdr/rec.csv"] and rec["cod"]["3509502"] == {2025}
+    assert estados.reconhecimentos(lambda url: None) is None
+    assert estados.reconhecimentos(lambda url: CKAN, lambda url: None) is None  # arquivo fora do ar: nada carimba
+
+
+def test_carimbos_so_emergencial_sem_reconhecimento():
+    rec = estados.ler_reconhecimentos(estados._tabela(S2ID_CSV, "rec.csv"))
+    civil = dict(subfuncao="Defesa civil")
+    lista = [estados.enxuta(dict(emenda("A", "CAMPINAS - SP", 10, ano=2025), **civil)),  # reconhecido no ano
+             estados.enxuta(dict(emenda("B", "PETRÓPOLIS - RJ", 10, ano=2025), **civil)),  # reconhecido no ano anterior
+             estados.enxuta(dict(emenda("C", "SANTOS - SP", 10, ano=2025), **civil)),  # sem reconhecimento: carimbo
+             estados.enxuta(dict(emenda("D", "MINAS GERAIS (UF)", 0, ano=2025, empenhado=50), **civil)),  # carimbo
+             estados.enxuta(dict(emenda("E", "SÃO PAULO (UF)", 10, ano=2025), **civil)),  # alguma cidade de SP teve
+             estados.enxuta(emenda("F", "SANTOS - SP", 10, ano=2025)),  # nao e emergencial
+             estados.enxuta(dict(emenda("G", "Nacional", 10), **civil))]
+    cars = estados.carimbos(lista, rec, [dict(cod="3548500", nome="Santos", uf="SP")])
+    assert {uf: [d["autor"] for d in l] for uf, l in cars.items()} == {"SP": ["C"], "MG": ["D"]}
+    assert estados.carimbos(lista, None) == {}
+
+
+def test_noticias_so_apoiam_e_respeitam_o_limite():
+    cars = {"SP": [dict(municipio="SANTOS", ano=2025), dict(municipio="SANTOS", ano=2024)],
+            "MG": [dict(municipio=None, ano=2025)]}
+    pedidos = []
+    estados.noticias_apoio(cars, lambda url: pedidos.append(url) or "<item></item><item></item>", maximo=2)
+    assert [d["noticias"] for d in cars["SP"] + cars["MG"]] == [2, 2, None]
+    assert "Minas+Gerais" in cars["MG"][0]["busca"] and len(pedidos) == 2
+    assert "after%3A2024-07-01" in pedidos[0]
+
+
 # ---------------------------------------------------------------- integracao
 def _respostas():
     r = {("entes", None, None, None): [dict(cod_ibge=3509502, ente="Campinas", uf="SP", esfera="M", cnpj="00000000000191"),
@@ -200,19 +251,30 @@ def _respostas():
     return r
 
 
+class BuscarComCkan(BuscarFalso):
+    def __call__(self, url):
+        return CKAN if "package_show" in url else super().__call__(url)
+
+
 def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
-    api = ApiFalsa({2026: [emenda("FULANA DEP", "CAMPINAS - SP", 50), emenda("FULANA DEP", "SÃO PAULO (UF)", 25)]})
+    api = ApiFalsa({2026: [emenda("FULANA DEP", "CAMPINAS - SP", 50), emenda("FULANA DEP", "SÃO PAULO (UF)", 25),
+                           emenda("FULANA DEP", "SANTOS - SP", 7, subfuncao="Defesa civil", ano=2026)]})
     parl = [dict(nome="Fulana Dep", cargo="DEPUTADO FEDERAL", partido="PX", uf="SP", dossie="pessoa/p0001.html")]
     cache = CacheMem()
-    pag, extra = estados.coletar(BuscarFalso(_respostas(), falha=[("dca", "33", "2025", "DCA-Anexo I-E")]), api, parl,
-                                 cache=cache, hoje=HOJE, checar=lambda url: "al.sp" in url)
+    pag, extra = estados.coletar(BuscarComCkan(_respostas(), falha=[("dca", "33", "2025", "DCA-Anexo I-E")]), api, parl,
+                                 cache=cache, hoje=HOJE, checar=lambda url: "al.sp" in url,
+                                 baixar_=lambda url: S2ID_CSV, buscar_txt=lambda url: "")
     assert cache.salvo and len(pag) == 27
     assert extra["SP"]["municipios"][0][:4] == ["Campinas", 50.0, 1, 830.0]
+    assert [m[0] for m in extra["SP"]["municipios"] if m[5]] == ["Santos"]
     assert estados.gerar(tmp_path, pag, extra, "2026-10-23 04:00") == 28
     sp = (tmp_path / "estado" / "SP.html").read_text(encoding="utf-8")
     assert "R$ 1,4 mil" in sp and "Saúde" in sp and "Cota-Parte do FPE" in sp
     assert 'href="../pessoa/p0001.html"' in sp and "Assembleia Legislativa de São Paulo" in sp
     assert 'data-json="SP.json"' in sp
+    assert sp.count("⚠ Emergência sem reconhecimento oficial") == 1 and "1 sem reconhecimento oficial" in sp
+    assert "Santos, 2026" in sp and "nenhuma encontrada" in sp
+    assert 'Autor: <a href="../pessoa/p0001.html">Fulana Dep</a>' in sp
     rj = (tmp_path / "estado" / "RJ.html").read_text(encoding="utf-8")
     assert "Fonte não encontrada" in rj  # despesa do RJ falhou e o link da Alerj nao abriu
     assert "envolvido" not in sp.lower()
@@ -224,17 +286,19 @@ def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
 
 
 def test_sem_chave_do_portal_emendas_saem_fonte_nao_encontrada(tmp_path):
-    pag, extra = estados.coletar(BuscarFalso(_respostas()), None, [], hoje=HOJE)
+    pag, extra = estados.coletar(BuscarFalso(_respostas()), None, [], hoje=HOJE, baixar_=lambda url: None)
     estados.gerar(tmp_path, pag, extra, "agora")
     sp = (tmp_path / "estado" / "SP.html").read_text(encoding="utf-8")
-    assert sp.count("Fonte não encontrada") >= 2 and "R$ 1,4 mil" in sp
+    assert sp.count("Fonte não encontrada") >= 3 and "R$ 1,4 mil" in sp
+    assert "⚠ Emergência" not in sp  # sem emendas nem S2iD, nada e carimbado
 
 
 def test_demo_gera_todas_as_ufs(tmp_path):
     pag, extra = estados.demo()
     assert estados.gerar(tmp_path, pag, extra, "demo") == 28
     assert all(extra[uf]["municipios"] and extra[uf]["estaduais"] for uf in estados.UFS)
-    assert "Fonte não encontrada" in (tmp_path / "estado" / "AC.html").read_text(encoding="utf-8")
+    ac = (tmp_path / "estado" / "AC.html").read_text(encoding="utf-8")
+    assert "Fonte não encontrada" in ac and "⚠ Emergência sem reconhecimento oficial" in ac
 
 
 def test_pipeline_demo_publica_os_estados(tmp_path, monkeypatch):

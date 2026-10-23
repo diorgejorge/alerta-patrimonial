@@ -677,7 +677,8 @@ def main():
             uf_pag, uf_extra = estados.demo(parl, serie, pag)
         else:
             uf_pag, uf_extra = estados.coletar(projetos._json, estados.cliente_portal(os.getenv("TRANSPARENCIA_TOKEN")), parl,
-                                               serie, pag, link_tse, caches.get("estados"), checar=estados.abre)
+                                               serie, pag, link_tse, caches.get("estados"), checar=estados.abre,
+                                               buscar_txt=estados.texto)
         print(f"Dossie por estado: {estados.gerar(docs, uf_pag, uf_extra, dados['gerado_em'])} paginas em docs/estado.")
     except Exception as ex:
         print(f"[aviso] dossie por estado falhou ({ex!r})", file=sys.stderr)
