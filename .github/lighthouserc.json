@@ -2,7 +2,7 @@
   "ci": {
     "collect": {
       "staticDistDir": "./_demo/docs",
-      "url": ["http://localhost/index.html", "http://localhost/pessoa/p0001.html"],
+      "url": ["http://localhost/index.html", "http://localhost/pessoa/p0001.html", "http://localhost/estado/SP.html"],
       "numberOfRuns": 1,
       "settings": { "formFactor": "mobile", "screenEmulation": { "mobile": true, "width": 360, "height": 740, "deviceScaleFactor": 2 } }
     },
