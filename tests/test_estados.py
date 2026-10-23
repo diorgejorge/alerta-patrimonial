@@ -374,6 +374,9 @@ def test_demo_gera_todas_as_ufs(tmp_path):
     assert all(extra[uf]["municipios"] and extra[uf]["estaduais"] for uf in estados.UFS)
     ac = (tmp_path / "estado" / "AC.html").read_text(encoding="utf-8")
     assert "Emenda parada" in ac and "Fonte não encontrada" in ac and '<span class="rot">Emergência sem reconhecimento oficial</span>' in ac
+    for nome in ("AC.html", "index.html"):
+        html = (tmp_path / "estado" / nome).read_text(encoding="utf-8")
+        assert 'class="vidro"' in html and 'class="topo-site"' in html and 'class="marca-link"' in html
 
 
 def test_pipeline_demo_publica_os_estados(tmp_path, monkeypatch):
