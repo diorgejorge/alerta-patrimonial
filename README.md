@@ -46,7 +46,7 @@ Os fluxos de dados são separados para o site atualizar rápido: o principal pub
 | **Issue · aprovar fonte sugerida** | `fontes.yml` | Rótulo `aprovada` numa issue de fonte | Grava a fonte em `config/fontes_noticias.csv`. | segundos |
 | **Issue · aprovar processo informado** | `processos.yml` | Rótulo `aprovada` numa issue de processo | Desligado no site (#51); guardado para quando houver base oficial. | segundos |
 
-**Sem tempo perdido baixando coisas:** todos os fluxos com Python usam `.github/actions/python`, que guarda o ambiente pronto (Python e pacotes) em cache e só reinstala quando o `requirements.txt` muda. Antes, cada job gastava de 9 a 14 s em `pip install` em toda execução; com o cache, o ambiente volta em cerca de 2 s. Os testes de interface usam o Chrome que já vem no runner, e os fluxos de issue usam o Python do runner, sem instalar nada.
+**Sem tempo perdido baixando coisas:** todos os fluxos com Python usam `.github/actions/python`, que guarda o ambiente pronto (Python e pacotes) em cache e só reinstala quando o `requirements.txt` muda. Medido no fluxo de testes em 23/10: antes, cada job gastava de 12 a 21 s preparando o Python (`setup-python` mais `pip install`) em toda execução; com o cache, de 3 a 7 s. Os testes de interface usam o Chrome que já vem no runner, e os fluxos de issue usam o Python do runner, sem instalar nada.
 
 Uma execução manual (Actions → nome do fluxo → Run workflow) espera a anterior do mesmo fluxo terminar. O GitHub desativa agendamentos de repositórios sem nenhum commit por 60 dias; como cada execução grava um commit, isso não deve acontecer, mas se acontecer basta reativar em Actions.
 
