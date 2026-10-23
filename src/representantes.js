@@ -16,7 +16,6 @@
   const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const https=u=>/^https:\/\//.test(u||"");
   const rel=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);
-  const brl=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",notation:"compact",maximumFractionDigits:1}).format(v);
   const iniciais=n=>n.split(/\s+/).filter(w=>w.length>2).slice(0,2).map(w=>w[0]).join("").toUpperCase();
   // feed RSS por pessoa (thread RSS): existe para quem tem pessoa/pNNNN.html
   const feed=u=>{const m=/^pessoa\/(p\d+)\.html$/.exec(u||"");return m?`<a class="lk" href="feed/${m[1]}.xml" title="Receba um aviso (RSS) quando um dado mudar">Acompanhar</a>`:"";};
@@ -31,12 +30,14 @@
 
   // uma linha de dados por parlamentar: cota comparada com a media da casa e projetos aprovados
   function numeros(p){
-    const cota=p.cota==null?"Não informado":`${p.cota_link&&https(p.cota_link)?`<a href="${esc(p.cota_link)}" target="_blank" rel="noopener">${brl(p.cota)}</a>`:brl(p.cota)}`
-      +(p.cota_media?` <small class="${p.cota>p.cota_media?"acima":"abaixo"}">${p.cota>p.cota_media?"acima":"abaixo"} da média (${brl(p.cota_media)})</small>`:"");
+    // cota em percentual da media da casa (regra do site: percentual em vez de valor em reais)
+    const dif=p.cota!=null&&p.cota_media?Math.round((p.cota/p.cota_media-1)*100):null;
+    const txt=dif==null?(p.cota==null?"Não informado":"Sem média da casa"):dif===0?"Na média da casa":`${Math.abs(dif).toLocaleString("pt-BR")}% ${dif>0?"acima":"abaixo"} da média`;
+    const cota=dif!=null&&p.cota_link&&https(p.cota_link)?`<a class="${dif>0?"acima":"abaixo"}" href="${esc(p.cota_link)}" target="_blank" rel="noopener">${txt}</a>`:`<span class="${dif>0?"acima":"abaixo"}">${txt}</span>`;
     const proj=p.apresentados==null?"Não informado":`${(p.aprovados??0).toLocaleString("pt-BR")} de ${p.apresentados.toLocaleString("pt-BR")} apresentados`;
     const pr=p.presenca,pres=pr&&pr.pct!=null?`<div><dt>Presença</dt><dd>${pr.link&&https(pr.link)?`<a href="${esc(pr.link)}" target="_blank" rel="noopener">${esc(pr.pct)}%</a>`:`${esc(pr.pct)}%`}${pr.media_casa!=null?` <small>média da casa ${esc(pr.media_casa)}%</small>`:""}</dd></div>`:"";
     const votos=p.votos?`<div><dt>Temas importantes</dt><dd>Votou em ${p.votos[0]} de ${p.votos[1]}</dd></div>`:"";
-    return`<dl class="rep-num"><div><dt>Gastou da cota (4 anos)</dt><dd>${cota}</dd></div><div><dt>Projetos aprovados</dt><dd>${proj}</dd></div>${pres}${votos}</dl>`;
+    return`<dl class="rep-num"><div><dt>Gasto da cota (4 anos)</dt><dd>${cota}</dd></div><div><dt>Projetos aprovados</dt><dd>${proj}</dd></div>${pres}${votos}</dl>`;
   }
   function pessoa(p,g,uf){
     const cargo=g==="estaduais"&&uf==="DF"?"Deputado distrital":CARGO[g];
