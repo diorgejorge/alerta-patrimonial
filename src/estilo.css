@@ -247,6 +247,9 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 @keyframes carimbo{0%{opacity:0;transform:translateY(-16px) scale(1.9) rotate(-30deg)}
   55%{opacity:1;transform:translateY(0) scale(.86) rotate(4deg)}75%{transform:scale(1.07) rotate(-11deg)}100%{opacity:1;transform:scale(1) rotate(-8deg)}}
 @keyframes aparece{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+/* selo no canto superior esquerdo do card (abas Exemplares e Projetos) */
+.alerta.com-selo{position:relative;content-visibility:visible;padding-top:26px}
+.selo-cera.canto{position:absolute;top:-16px;left:-16px;z-index:2;min-height:0;padding:0}
 @media print{.selo-cera .cera{filter:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{

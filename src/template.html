@@ -365,7 +365,7 @@ const PR=a=>{const p=(a.processos||[]).filter(x=>/^https:\/\//.test(x.link||""))
 // tags de uma pessoa (cards e tabela): marcacoes + cargos, partidos e UF (uniao dos periodos) em cor neutra; todas filtram
 // selo de cera clicavel (filtra pela marcacao): cor, icone e rotulo
 // selo de cera: so nas abas proprias (Exemplares, Projetos); na principal a marcacao e uma tag colorida que filtra
-const SELO=(cor,title,ic,rot)=>`<p class="tags"><span class="selo-cera ${cor}" title="${esc(title)}"><span class="cera" aria-hidden="true"><span>${ic}</span></span><span class="rot">${rot}</span></span></p>`;
+const SELO=(cor,title,ic,rot)=>`<span class="selo-cera canto ${cor}" title="${esc(title)}"><span class="cera" aria-hidden="true"><span>${ic}</span></span><span class="sr">${rot}</span></span>`;
 const MARCA=(v,title,ic,rot)=>BT(v,`data-f="flag" data-v="${v}"`,title,`${ic} ${rot}`);
 const BT=(cls,attrs,title,txt)=>`<button type="button" class="tag ${cls}" ${attrs} title="${esc(title)}">${txt}</button>`;
 const DIM=(dim,v,rot,txt)=>BT("",`data-dim="${dim}" data-v="${esc(v)}"`,`Filtrar pelo ${rot} ${v}`,txt);
@@ -446,9 +446,8 @@ function exemplares(){
   $("exemplares-qtd").textContent=l.length===1?"1 parlamentar cumpre os três critérios nesta atualização.":`${l.length.toLocaleString("pt-BR")} parlamentares cumprem os três critérios nesta atualização.`;
   $("exemplares-lista").innerHTML=l.map(g=>{const x=g[0],lk=g.find(y=>/^https:\/\//.test(y.link||""))?.link,mul=g.length>1;
     const p={cargos:u(g,"cargo"),partidos:u(g,"partido"),ufs:u(g,"uf")};
-    return`<li class="card alerta exemplar"><div class="topo"><span><b><span class="estrela" title="Parlamentar exemplar">${ICO.estrela}</span> ${esc(x.nome)}</b>${mul?` <span class="multi">${g.length} períodos</span>`:""}<br><small>Patrimônio de ${Math.min(...g.map(y=>y.ano_ini))}–${Math.max(...g.map(y=>y.ano_fim))}</small></span></div>
+    return`<li class="card alerta exemplar com-selo">${SELO("ouro","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções",ICO.estrela,"Exemplar")}<div class="topo"><span><b>${esc(x.nome)}</b>${mul?` <span class="multi">${g.length} períodos</span>`:""}<br><small>Patrimônio de ${Math.min(...g.map(y=>y.ano_ini))}–${Math.max(...g.map(y=>y.ano_fim))}</small></span></div>
 <p class="resumo">${CPU_RES(p)}</p>
-${SELO("ouro","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções",ICO.estrela,"Exemplar")}
 <dl><div><dt>Cota parlamentar (últimos 4 anos)</dt><dd>${RS(x.cota)}</dd></div><div><dt>Média do cargo</dt><dd>${RS(x.cota_media)}</dd></div>${g.map(y=>`<div><dt>Crescimento do patrimônio (${y.ano_ini}–${y.ano_fim})</dt><dd>${R(y.cresc)}</dd></div><div><dt>Poderia juntar com o salário${mul?` (${y.ano_ini}–${y.ano_fim})`:""}</dt><dd>${R(y.cap)}</dd></div>`).join("")}</dl>
 <p class="links">${lk?`<a class="lk" href="${esc(lk)}" target="_blank" rel="noopener">Site oficial</a>`:"Site oficial: Não informado"}</p></li>`;}).join("");
   $("exemplares").hidden=false;
@@ -465,8 +464,8 @@ ${RES1(c)}
 }
 function projetos(){
   const l=D.projetos||[];if(!l.length)return;
-  $("projetos-lista").innerHTML=l.map((c,i)=>`<li class="card alerta"><div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
-${RES1(c)}${c.selo?SELO("caramelo","Entre os 10% da sua casa com mais projetos aprovados",ICO.pata,"Mão na massa"):""}
+  $("projetos-lista").innerHTML=l.map((c,i)=>`<li class="card alerta${c.selo?" com-selo":""}">${c.selo?SELO("caramelo","Mão na massa: entre os 10% da sua casa com mais projetos aprovados",ICO.pata,"Mão na massa"):""}<div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
+${RES1(c)}
 <dl><div><dt>Projetos apresentados</dt><dd>${c.apresentados.toLocaleString("pt-BR")}</dd></div><div><dt>Aprovados (viraram norma jurídica)</dt><dd>${c.aprovados.toLocaleString("pt-BR")}</dd></div></dl>
 <p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Ver a lista no site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
   $("projetos").hidden=false;
