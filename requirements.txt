@@ -1,2 +1,1 @@
 pandas>=2.0
-openpyxl>=3.1  # S2iD pode vir em XLSX (estados.py)

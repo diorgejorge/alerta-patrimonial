@@ -79,13 +79,6 @@ def emenda(autor, local, pago, tipo="Emenda Individual - Transferências Especia
                 valorPago=f"{pago:,.2f}".replace(",", "_").replace(".", ",").replace("_", "."), valorRestoPago=resto)
 
 
-S2ID_CSV = ("UF;Município;Código IBGE;COBRADE;Data da Publicação\n"
-            "SP;Campinas;3509502;Chuvas Intensas;15/01/2025\n"
-            "RJ;Petrópolis;3303906;Chuvas Intensas;2024-02-20\n").encode("latin-1")
-CKAN = {"result": {"resources": [dict(name="Reconhecimentos Realizados", url="https://mdr/rec.csv"),
-                                 dict(name="Danos informados", url="https://mdr/danos.csv")]}}
-
-
 # ---------------------------------------------------------------- unidades
 @pytest.mark.parametrize("v,txt", [(1_234_000_000, "R$ 1,2 bi"), (350_000_000, "R$ 350 mi"), (12_300, "R$ 12,3 mil"),
                                    (950, "R$ 950"), (None, "Não informado")])
@@ -258,38 +251,6 @@ def test_deputados_estaduais_em_exercicio():
     assert "cpf" not in json.dumps(out)
 
 
-def test_ler_reconhecimentos_acha_colunas_pelo_nome():
-    df = estados._tabela(S2ID_CSV, "rec.csv")
-    rec = estados.ler_reconhecimentos(df)
-    assert rec["cod"] == {"3509502": {2025}, "3303906": {2024}}
-    assert rec["nome"][("SP", "CAMPINAS")] == {2025} and rec["uf"] == {"SP": {2025}, "RJ": {2024}}
-    so_ano = pd.DataFrame(dict(ibge=["3509502"], ano=["2023"]))  # sem UF nem data: UF pelo codigo, ano pela coluna
-    assert estados.ler_reconhecimentos(so_ano)["uf"] == {"SP": {2023}}
-
-
-def test_reconhecimentos_pelo_catalogo_ckan():
-    baixados = []
-    rec = estados.reconhecimentos(lambda url: CKAN, lambda url: baixados.append(url) or S2ID_CSV)
-    assert baixados == ["https://mdr/rec.csv"] and rec["cod"]["3509502"] == {2025}
-    assert estados.reconhecimentos(lambda url: None) is None
-    assert estados.reconhecimentos(lambda url: CKAN, lambda url: None) is None  # arquivo fora do ar: nada carimba
-
-
-def test_carimbos_so_emergencial_sem_reconhecimento():
-    rec = estados.ler_reconhecimentos(estados._tabela(S2ID_CSV, "rec.csv"))
-    civil = dict(subfuncao="Defesa civil")
-    lista = [estados.enxuta(dict(emenda("A", "CAMPINAS - SP", 10, ano=2025), **civil)),  # reconhecido no ano
-             estados.enxuta(dict(emenda("B", "PETRÓPOLIS - RJ", 10, ano=2025), **civil)),  # reconhecido no ano anterior
-             estados.enxuta(dict(emenda("C", "SANTOS - SP", 10, ano=2025), **civil)),  # sem reconhecimento: carimbo
-             estados.enxuta(dict(emenda("D", "MINAS GERAIS (UF)", 0, ano=2025, empenhado=50), **civil)),  # carimbo
-             estados.enxuta(dict(emenda("E", "SÃO PAULO (UF)", 10, ano=2025), **civil)),  # alguma cidade de SP teve
-             estados.enxuta(emenda("F", "SANTOS - SP", 10, ano=2025)),  # nao e emergencial
-             estados.enxuta(dict(emenda("G", "Nacional", 10), **civil))]
-    cars = estados.carimbos(lista, rec, [dict(cod="3548500", nome="Santos", uf="SP")])
-    assert {uf: [d["autor"] for d in l] for uf, l in cars.items()} == {"SP": ["C"], "MG": ["D"]}
-    assert estados.carimbos(lista, None) == {}
-
-
 def test_paradas_e_execucao():
     lista = [estados.enxuta(emenda("A", "SANTOS - SP", 0, ano=2023, empenhado=100)),  # parada
              estados.enxuta(emenda("B", "SANTOS - SP", 0, ano=2025, empenhado=100)),  # recente: ainda nao
@@ -299,16 +260,6 @@ def test_paradas_e_execucao():
     assert estados.execucao(50, 200) == 25 and estados.execucao(300, 200) == 100 and estados.execucao(5, 0) is None
     sp = estados.agregar(lista)["SP"]
     assert sp["empenhado"] == 600 and sp["pago"] == 5 and sp["n"] == 1 and sp["autores"]["A"] == [0.0, 0, 100.0]
-
-
-def test_noticias_so_apoiam_e_respeitam_o_limite():
-    cars = {"SP": [dict(municipio="SANTOS", ano=2025), dict(municipio="SANTOS", ano=2024)],
-            "MG": [dict(municipio=None, ano=2025)]}
-    pedidos = []
-    estados.noticias_apoio(cars, lambda url: pedidos.append(url) or "<item></item><item></item>", maximo=2)
-    assert [d["noticias"] for d in cars["SP"] + cars["MG"]] == [2, 2, None]
-    assert "Minas+Gerais" in cars["MG"][0]["busca"] and len(pedidos) == 2
-    assert "after%3A2024-07-01" in pedidos[0]
 
 
 # ---------------------------------------------------------------- integracao
@@ -321,32 +272,24 @@ def _respostas():
     return r
 
 
-class BuscarComCkan(BuscarFalso):
-    def __call__(self, url):
-        return CKAN if "package_show" in url else super().__call__(url)
-
-
 def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
     api = ApiFalsa({2026: [emenda("FULANA DEP", "CAMPINAS - SP", 50), emenda("FULANA DEP", "SÃO PAULO (UF)", 25),
-                           emenda("FULANA DEP", "SANTOS - SP", 7, subfuncao="Defesa civil", ano=2026, empenhado=100)],
+                           emenda("FULANA DEP", "SANTOS - SP", 7, ano=2026, empenhado=100)],
                     2024: [emenda("FULANA DEP", "SANTOS - SP", 0, ano=2024, empenhado=40)]})
     parl = [dict(nome="Fulana Dep", cargo="DEPUTADO FEDERAL", partido="PX", uf="SP", dossie="pessoa/p0001.html")]
     cache = CacheMem()
-    pag, extra = estados.coletar(BuscarComCkan(_respostas(), falha=[("dca", "33", "2025", "DCA-Anexo I-E")]), api, parl,
-                                 cache=cache, hoje=HOJE, checar=lambda url: "al.sp" in url,
-                                 baixar_=lambda url: S2ID_CSV, buscar_txt=lambda url: "")
+    pag, extra = estados.coletar(BuscarFalso(_respostas(), falha=[("dca", "33", "2025", "DCA-Anexo I-E")]), api, parl,
+                                 cache=cache, hoje=HOJE, checar=lambda url: "al.sp" in url)
     assert cache.salvo and len(pag) == 27
     assert extra["SP"]["municipios"][0][:4] == ["Campinas", 50.0, 1, 830.0]
-    assert [m[0] for m in extra["SP"]["municipios"] if m[5]] == ["Santos"]
-    assert [m[0] for m in extra["SP"]["municipios"] if m[6]] == ["Santos"]
+    assert [m[0] for m in extra["SP"]["municipios"] if m[5]] == ["Santos"]  # emenda parada
     assert estados.gerar(tmp_path, pag, extra, "2026-10-23 04:00") == 28
     sp = (tmp_path / "estado" / "SP.html").read_text(encoding="utf-8")
     assert "R$ 1,4 mil" in sp and "Saúde" in sp and "Cota-Parte do FPE" in sp
     assert "Período dos dados:</b> emendas de 2023 a 2026 (até 23/10/2026); balanço do estado de 2025" in sp
     assert 'href="../pessoa/p0001.html"' in sp and "Assembleia Legislativa de São Paulo" in sp
     assert 'data-json="SP.json"' in sp
-    assert sp.count('<span class="rot">Emergência sem reconhecimento oficial</span>') == 1 and "1 sem reconhecimento oficial" in sp
-    assert "Santos, 2026" in sp and "nenhuma encontrada" in sp
+    assert "Emergência" not in sp and "S2iD" not in sp
     assert "Santos · R$ 40 reservados em 2024, nada pago" in sp and "1 parada" in sp
     assert "59% do prometido já pago" in sp and "<b>59%</b> já " in sp  # 82 pagos de 140 empenhados
     assert 'Autor: <a href="../pessoa/p0001.html">Fulana Dep</a>' in sp
@@ -361,11 +304,11 @@ def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
 
 
 def test_sem_chave_do_portal_emendas_saem_fonte_nao_encontrada(tmp_path):
-    pag, extra = estados.coletar(BuscarFalso(_respostas()), None, [], hoje=HOJE, baixar_=lambda url: None)
+    pag, extra = estados.coletar(BuscarFalso(_respostas()), None, [], hoje=HOJE)
     estados.gerar(tmp_path, pag, extra, "agora")
     sp = (tmp_path / "estado" / "SP.html").read_text(encoding="utf-8")
     assert sp.count("Fonte não encontrada") >= 3 and "R$ 1,4 mil" in sp
-    assert 'class="selo-cera' not in sp  # sem emendas nem S2iD, nada e carimbado
+    assert 'class="selo-cera' not in sp  # sem emendas, nada e carimbado
 
 
 def test_demo_gera_todas_as_ufs(tmp_path):
@@ -373,7 +316,7 @@ def test_demo_gera_todas_as_ufs(tmp_path):
     assert estados.gerar(tmp_path, pag, extra, "demo") == 28
     assert all(extra[uf]["municipios"] and extra[uf]["estaduais"] for uf in estados.UFS)
     ac = (tmp_path / "estado" / "AC.html").read_text(encoding="utf-8")
-    assert "Emenda parada" in ac and "Fonte não encontrada" in ac and '<span class="rot">Emergência sem reconhecimento oficial</span>' in ac
+    assert "Emenda parada" in ac and "Fonte não encontrada" in ac
     for nome in ("AC.html", "index.html"):
         html = (tmp_path / "estado" / nome).read_text(encoding="utf-8")
         assert 'class="vidro"' in html and 'class="topo-site"' in html and 'class="marca-link"' in html
@@ -404,11 +347,9 @@ def test_main_do_workflow_le_a_base_e_grava_as_paginas(tmp_path, monkeypatch):
                               dossie="pessoa/p0001.html")])
     (tmp_path / "data" / "estados_base.json").write_text(json.dumps(base), encoding="utf-8")
     monkeypatch.delenv("ID_SEGREDO", raising=False)
-    monkeypatch.setattr(estados, "Buscador", lambda: BuscarComCkan(_respostas()))
+    monkeypatch.setattr(estados, "Buscador", lambda: BuscarFalso(_respostas()))
     monkeypatch.setattr(estados, "cliente_portal", lambda chave: ApiFalsa({2026: [emenda("FULANA DEP", "CAMPINAS - SP", 9)]}))
     monkeypatch.setattr(estados, "abre", lambda url: True)
-    monkeypatch.setattr(estados, "texto", lambda url: "")
-    monkeypatch.setattr(estados, "baixar", lambda url, **k: S2ID_CSV)
     resumo = tmp_path / "resumo.md"
     monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(resumo))
     estados.main(tmp_path)
@@ -436,7 +377,7 @@ def test_andamento_mostra_contagem_percentual_e_estimativa(tmp_path):
     rel, linhas = Relogio(), []
     prog = estados.Andamento(intervalo=30, relogio=rel, saida=lambda txt, **k: linhas.append(txt))
     prog.etapa("Municípios no SICONFI")
-    assert linhas[-1].startswith("[3/5] Municípios no SICONFI")
+    assert linhas[-1].startswith("[3/4] Municípios no SICONFI")
     rel.t = 60
     prog.passo(1000, 4000, "Campinas (SP)")
     assert "1.000/4.000 · 25%" in linhas[-1] and "1min 00s" in linhas[-1] and "faltam ~3min 00s" in linhas[-1]
@@ -485,10 +426,3 @@ def test_texto_para_leigo():
     sp = estados.pagina_uf(pag["SP"])
     assert "Individual, tipo Pix (sem destino definido)<small>Emenda Individual - Transferências Especiais</small>" in sp
     assert 'href="../index.html#meus=SP">Ver meus representantes' in sp and "do prometido já pago" in sp
-
-
-def test_sem_s2id_o_bloco_de_emergencia_some():
-    pag, _ = estados.demo()
-    p = dict(pag["SP"], meta=dict(pag["SP"]["meta"], s2id=False))
-    html = estados.pagina_uf(p)
-    assert "Emergência sem reconhecimento oficial" not in html and "<h3>Paradas</h3>" in html

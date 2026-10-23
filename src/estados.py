@@ -99,8 +99,7 @@ class Andamento:
     """Andamento no log do Actions: etapa, contador, %, tempo decorrido e estimativa do que falta (no maximo uma
     linha a cada `intervalo` segundos por etapa), e um resumo em tabela no GITHUB_STEP_SUMMARY. So contagens e
     nomes de UF/municipio: nada de CPF/CNPJ."""
-    ETAPAS = ("Estados no SICONFI", "Emendas no Portal", "Municípios no SICONFI", "Reconhecimentos no S2iD",
-              "Notícias e páginas")
+    ETAPAS = ("Estados no SICONFI", "Emendas no Portal", "Municípios no SICONFI", "Páginas")
 
     def __init__(self, intervalo=30, relogio=time.monotonic, saida=print):
         self.intervalo, self.relogio, self.saida = intervalo, relogio, saida
@@ -373,137 +372,6 @@ def emendas(api, anos, cache=None, hoje=None, prog=None):
     return out, faltou
 
 
-# ---------------------------------------------------------------- emendas emergenciais x reconhecimento federal (S2iD)
-CKAN_S2ID = "https://dadosabertos.mdr.gov.br/api/3/action/package_show?id=s2id_sedec"
-LINK_S2ID = "https://s2id.mi.gov.br/paginas/series/"
-RSS_NOTICIAS, BUSCA_NOTICIAS = "https://news.google.com/rss/search?", "https://news.google.com/search?"
-MAX_NOTICIAS = 40  # consultas de apoio por execucao
-CARIMBO = "Emergência sem reconhecimento oficial"
-
-
-def baixar(url, timeout=120, limite=200_000_000):
-    """Bytes da URL; None se falhar."""
-    try:
-        req = urllib.request.Request(url, headers={"User-Agent": transparencia.UA})
-        with urllib.request.urlopen(req, timeout=timeout) as r:
-            return r.read(limite)
-    except Exception as ex:
-        print(f"[aviso] {url} indisponivel ({ex})", file=sys.stderr)
-        return None
-
-
-def emergencial(d):
-    """Emenda de resposta a desastre: subfuncao Defesa Civil (182)."""
-    return "DEFESA CIVIL" in norm(d.get("subfuncao"))
-
-
-def _tabela(bruto, nome):
-    """DataFrame de um CSV (separador e codificacao detectados) ou XLSX; None se nao der para ler."""
-    import io
-    import pandas as pd
-    try:
-        if bruto[:2] == b"PK" or norm(nome).endswith(("XLSX", "XLS")):
-            return pd.read_excel(io.BytesIO(bruto), dtype=str)
-        for cod in ("utf-8-sig", "latin-1"):
-            try:
-                return pd.read_csv(io.BytesIO(bruto), sep=None, engine="python", dtype=str, encoding=cod,
-                                   keep_default_na=False)
-            except UnicodeDecodeError:
-                continue
-    except Exception as ex:
-        print(f"[aviso] S2iD: {nome} ilegivel ({ex!r})", file=sys.stderr)
-    return None
-
-
-def _coluna(df, *partes, evitar=()):
-    """Primeira coluna cujo nome (normalizado) contem todas as `partes`."""
-    for c in df.columns:
-        n = norm(c)
-        if all(p in n for p in partes) and not any(x in n for x in evitar):
-            return c
-    return None
-
-
-def ler_reconhecimentos(df):
-    """{"cod": {ibge7: anos}, "nome": {(uf, MUNICIPIO): anos}, "uf": {uf: anos}} das portarias de reconhecimento.
-    As colunas variam entre arquivos: acha IBGE, UF, municipio e a data (ou o ano) pelo nome."""
-    out = dict(cod={}, nome={}, uf={})
-    c_ibge, c_uf = _coluna(df, "IBGE"), _coluna(df, "UF")
-    c_mun = _coluna(df, "MUNICIP", evitar=("IBGE", "COD"))
-    c_data = (_coluna(df, "DATA", "PUBLICA") or _coluna(df, "DATA", "RECONHEC") or _coluna(df, "DATA", "DOU")
-              or _coluna(df, "DATA"))
-    c_ano = _coluna(df, "ANO")
-    print(f"S2iD: colunas usadas ibge={c_ibge!r} uf={c_uf!r} municipio={c_mun!r} data={c_data!r} ano={c_ano!r}")
-    for r in df.to_dict("records"):
-        m = re.search(r"(19|20)\d{2}", str(r.get(c_data) or "")) if c_data else None
-        ano = int(m[0]) if m else int(_num(r.get(c_ano))) if c_ano else 0
-        if not ano:
-            continue
-        uf = str(r.get(c_uf) or "").strip().upper()[:2] if c_uf else ""
-        cod = re.sub(r"\D", "", str(r.get(c_ibge) or ""))[:7] if c_ibge else ""
-        if len(cod) == 7:
-            out["cod"].setdefault(cod, set()).add(ano)
-            uf = uf or next((u for u, (c, _) in UFS.items() if c == cod[:2]), "")
-        if uf in UFS:
-            out["uf"].setdefault(uf, set()).add(ano)
-            if c_mun and r.get(c_mun):
-                out["nome"].setdefault((uf, norm(r[c_mun])), set()).add(ano)
-    return out
-
-
-def reconhecimentos(buscar, baixar_=baixar):
-    """Reconhecimentos federais de situacao de emergencia ou calamidade (S2iD, dados abertos do MIDR, pelo catalogo
-    CKAN). None se a fonte falhar: sem essa base nenhuma emenda e carimbada."""
-    d = buscar(CKAN_S2ID)
-    recursos = ((d or {}).get("result") or {}).get("resources") if isinstance(d, dict) else None
-    if recursos is None:
-        print(f"[aviso] S2iD: catalogo {CKAN_S2ID} sem resposta valida", file=sys.stderr)
-    alvos = [r for r in recursos or [] if r.get("url") and any(
-        k in norm(f'{r.get("name")} {r.get("description")} {r.get("url")}') for k in ("RECONHEC", "PORTARIA"))]
-    if recursos and not alvos:  # mostra o que o catalogo tem, para ajustar o filtro (so nomes publicos de arquivos)
-        print("S2iD: arquivos no catalogo: " + "; ".join(str(r.get("name") or r.get("url"))[:80] for r in recursos[:30]))
-    out, lidos = dict(cod={}, nome={}, uf={}), 0
-    for r in alvos:
-        bruto = baixar_(r["url"])
-        df = _tabela(bruto, r.get("url") or "") if bruto else None
-        if df is None or not len(df):
-            continue
-        lidos += 1
-        for k, v in ler_reconhecimentos(df).items():
-            for ch, anos in v.items():
-                out[k].setdefault(ch, set()).update(anos)
-    print(f"S2iD: {len(alvos)} arquivos de reconhecimento no catalogo, {lidos} lidos, "
-          f"{len(out['cod']) or len(out['nome'])} municipios com reconhecimento.")
-    return out if lidos else None
-
-
-def reconhecido(rec, uf, mun, ano, cod=None):
-    """Houve reconhecimento federal no ano da emenda ou no anterior? Emenda para o estado: qualquer municipio da UF."""
-    janela = {ano - 1, ano}
-    if mun is None:
-        return bool(rec["uf"].get(uf, set()) & janela)
-    return bool((rec["cod"].get(cod, set()) if cod else set()) & janela
-                or rec["nome"].get((uf, mun), set()) & janela)
-
-
-def carimbos(lista, rec, entes=()):
-    """{uf: [emendas emergenciais sem reconhecimento federal]}, maior valor primeiro. Sem a base do S2iD: {}."""
-    if rec is None:
-        return {}
-    cods = {(e_["uf"], norm(e_["nome"])): e_["cod"] for e_ in entes}
-    out = {}
-    for d in lista:
-        lc = local(d["local"])
-        if not (lc and d.get("ano") and emergencial(d) and (d["pago"] > 0 or d.get("empenhado", 0) > 0)):
-            continue
-        uf, mun = lc
-        if not reconhecido(rec, uf, mun, d["ano"], cods.get((uf, mun))):
-            out.setdefault(uf, []).append(dict(d, municipio=mun))
-    for l in out.values():
-        l.sort(key=lambda d: -(d["pago"] or d.get("empenhado", 0)))
-    return out
-
-
 ANOS_PARADA = 2  # emenda empenhada ha 2 anos ou mais sem nenhum pagamento
 CARIMBO_PARADA = "Emenda parada"
 
@@ -524,33 +392,6 @@ def paradas(lista, hoje=None):
 def execucao(pago, empenhado):
     """Parte do empenhado que ja foi paga, em %; None sem empenho. Pago inclui restos de anos anteriores: limite 100."""
     return min(round(pago / empenhado * 100), 100) if empenhado else None
-
-
-def consulta_noticias(lugar, ano):
-    return (f'"{lugar}" (enchente OR seca OR estiagem OR chuva OR desastre OR "defesa civil" OR emergência) '
-            f"after:{ano - 1}-07-01 before:{ano + 1}-01-01")
-
-
-def noticias_apoio(cars, buscar_txt, maximo=MAX_NOTICIAS):
-    """Apoio ao leitor: quantas noticias de emergencia o Google Noticias acha no local e no periodo da emenda. Nao
-    decide o carimbo (cidade pequena quase nao aparece na imprensa). Fica None quando nao foi consultado."""
-    n = 0
-    for uf, l in cars.items():
-        for d in l:
-            lugar = (d["municipio"] or UFS[uf][1]).title()
-            q = consulta_noticias(lugar, d["ano"])
-            d["busca"] = BUSCA_NOTICIAS + urllib.parse.urlencode(dict(q=q, hl="pt-BR", gl="BR", ceid="BR:pt-419"))
-            d["noticias"] = None
-            if buscar_txt and n < maximo:
-                n += 1
-                xml = buscar_txt(RSS_NOTICIAS + urllib.parse.urlencode(dict(q=q, hl="pt-BR", gl="BR", ceid="BR:pt-419")))
-                d["noticias"] = None if xml is None else xml.count("<item>")
-    return cars
-
-
-def texto(url):
-    b = baixar(url, timeout=30, limite=5_000_000)
-    return None if b is None else b.decode("utf-8", "replace")
 
 
 def coletivo(autor):
@@ -661,7 +502,7 @@ def abre(url, timeout=20):
 
 
 def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=None, checar=None,
-            baixar_=baixar, buscar_txt=None, prog=None):
+            prog=None):
     """Dados de todas as UFs para gerar(). Cada fonte que falha vira NAO_ACHOU na sua secao, sem derrubar o resto.
     parl/estaduais/ano_est: da base gravada pelo pipeline (base())."""
     hoje = hoje or dt.date.today()
@@ -684,12 +525,7 @@ def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=No
     prog.fim(f"{len(mun):,}/{len(entes):,} com verbas da União".replace(",", "."))
     if hasattr(buscar, "req"):
         print(f"SICONFI: {buscar.req} consultas, {buscar.falhas} sem resposta.")
-    prog.etapa("Reconhecimentos no S2iD")
-    rec = reconhecimentos(buscar, baixar_)
-    prog.fim("lidos" if rec is not None else NAO_ACHOU)
-    prog.etapa("Notícias e páginas")
-    cars = noticias_apoio(carimbos(lista, rec, entes), buscar_txt)
-    prog.fim(f"{sum(map(len, cars.values()))} emendas com carimbo de emergência")
+    prog.etapa("Páginas")
     if cache:
         cache.salvar()
     assembleias = carregar_assembleias()
@@ -697,7 +533,7 @@ def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=No
         a["ok"] = bool(a["site"]) and (checar(a["site"]) if checar else True)
     return montar(fin, agregar(lista), parl, entes, mun, estaduais or {}, assembleias,
                   dict(anos=anos, faltou=faltou, hoje=hoje.isoformat(), ano_estadual=ano, eleicao_estadual=ano_est,
-                       falhou_emendas=len(faltou) == len(anos), s2id=rec is not None), cars, paradas(lista, hoje))
+                       falhou_emendas=len(faltou) == len(anos)), paradas(lista, hoje))
 
 
 BASE = ROOT / "data" / "estados_base.json"
@@ -726,7 +562,7 @@ def main(raiz=ROOT):
     cache = Cache(Path(raiz) / "data" / "cache" / "estados.cache", 90 * 86400, seg) if seg else None
     prog = Andamento()
     pag, extra = coletar(Buscador(), cliente_portal(os.getenv("TRANSPARENCIA_TOKEN")), b["parlamentares"],
-                         b["estaduais"], b["eleicao_estadual"], cache, checar=abre, buscar_txt=texto, prog=prog)
+                         b["estaduais"], b["eleicao_estadual"], cache, checar=abre, prog=prog)
     docs = Path(raiz) / "docs"
     n = gerar(docs, pag, extra, dt.datetime.now().strftime('%Y-%m-%d %H:%M'))
     prog.fim(f"{n} páginas geradas")
@@ -744,9 +580,9 @@ def _contar(lista, campo):
     return out
 
 
-def montar(fin, emd, parl, entes, mun, estaduais, assembleias, meta, cars=None, parad=None):
+def montar(fin, emd, parl, entes, mun, estaduais, assembleias, meta, parad=None):
     """{uf: dados da pagina} + {uf: dados sob demanda (municipios e deputados estaduais)}.
-    cars: {uf: [emendas de emergencia carimbadas]} (carimbos()); parad: {uf: [emendas paradas]} (paradas())."""
+    parad: {uf: [emendas paradas]} (paradas())."""
     paginas, extras, por_uf = {}, {}, {}
     for ent in entes:
         por_uf.setdefault(ent["uf"], {})[norm(ent["nome"])] = ent
@@ -757,15 +593,14 @@ def montar(fin, emd, parl, entes, mun, estaduais, assembleias, meta, cars=None, 
                            empenhado=round(u["empenhado"], 2),
                            estado=round(u["estado"], 2), tipos=sorted(u["tipos"].items(), key=lambda kv: -kv[1])),
                            autores=ligar_autores(u["autores"], uf, parl), assembleia=assembleias.get(uf), meta=meta,
-                           carimbos=(cars or {}).get(uf, []), paradas=(parad or {}).get(uf, []))
+                           paradas=(parad or {}).get(uf, []))
         conta = lambda chave, campo: _contar(paginas[uf][chave], campo)
-        por_autor, por_mun = conta("carimbos", "autor"), conta("carimbos", "municipio")
         par_autor, par_mun = conta("paradas", "autor"), conta("paradas", "municipio")
         quem = {}
         for a in paginas[uf]["autores"]:
-            a["carimbos"], a["paradas"] = por_autor.get(norm(a["autor"]), 0), par_autor.get(norm(a["autor"]), 0)
+            a["paradas"] = par_autor.get(norm(a["autor"]), 0)
             quem.setdefault(norm(a["autor"]), a)
-        for d in paginas[uf]["carimbos"] + paginas[uf]["paradas"]:  # nome e link do autor como na lista
+        for d in paginas[uf]["paradas"]:  # nome e link do autor como na lista
             a = quem.get(norm(d["autor"])) or {}
             d.update(autor_nome=a.get("nome") or d["autor"].title(), autor_link=a.get("link"))
         lm = []
@@ -778,12 +613,12 @@ def montar(fin, emd, parl, entes, mun, estaduais, assembleias, meta, cars=None, 
             top = sorted((em.get("autores") or {}).items(), key=lambda kv: -kv[1])[:TOP_AUTORES_MUN]
             lm.append([ent["nome"], round(em.get("pago", 0.0), 2), em.get("n", 0),
                        uniao["total"] if uniao else None, [[a.title(), round(v, 2)] for a, v in top],
-                       por_mun.get(norm(ent["nome"]), 0), par_mun.get(norm(ent["nome"]), 0)])
+                       par_mun.get(norm(ent["nome"]), 0)])
         for nm, em in u["municipios"].items():  # municipio da emenda que nao bateu com o SICONFI: entra assim mesmo
             if nm not in nomes_mun:
                 top = sorted(em["autores"].items(), key=lambda kv: -kv[1])[:TOP_AUTORES_MUN]
                 lm.append([nm.title(), round(em["pago"], 2), em["n"], None, [[a.title(), round(v, 2)] for a, v in top],
-                           por_mun.get(nm, 0), par_mun.get(nm, 0)])
+                           par_mun.get(nm, 0)])
         lm.sort(key=lambda m: -(m[1] + (m[3] or 0)))
         extras[uf] = dict(municipios=lm, ano_uniao=meta.get("ano_estadual"), siconfi_municipios=bool(mun),
                           estaduais=estaduais.get(uf, []), eleicao=meta.get("eleicao_estadual"))
@@ -866,7 +701,7 @@ def secao_receita(f, emd):
     return corpo
 
 
-def carimbo(texto=CARIMBO, pequeno=False, cor="alerta-cera"):
+def carimbo(texto=CARIMBO_PARADA, pequeno=False, cor="parada-cera"):
     """Selo de cera comum do site (estilo.css + selo.js) com o texto ao lado."""
     return (f'<span class="selo-cera {cor}{" p" if pequeno else ""}"><span class="cera" aria-hidden="true">'
             f'<span>!</span></span><span class="rot">{e(texto)}</span></span>')
@@ -900,33 +735,6 @@ def secao_paradas(itens, meta):
     return intro + _lista_conferir(itens, _parada)
 
 
-def _carimbada(d):
-    lugar = (d["municipio"] or UFS.get(local(d["local"])[0], ("", ""))[1]).title()
-    noticias = ("não consultadas" if d.get("noticias") is None else
-                f'{d["noticias"]} encontrada{"s" if d["noticias"] != 1 else ""}' if d["noticias"] else "nenhuma encontrada")
-    valor = (f'{brl_curto(d["pago"])} pagos' if d["pago"] else f'{brl_curto(d.get("empenhado"))} reservados')
-    nome = e(d.get("autor_nome") or d["autor"].title())
-    autor = f'<a href="{e(d["autor_link"])}">{nome}</a>' if d.get("autor_link") else nome
-    return (f'<li>{carimbo()}<span class="rot">{e(lugar)}, {d["ano"]} · {valor}'
-            f'<small>Autor: {autor} · {e(d["subfuncao"] or "Defesa civil")}</small>'
-            f'<small><a href="{transparencia._link("/emendas/consulta", codigoEmenda=d["codigo"])}" target="_blank" '
-            f'rel="noopener">Ver a emenda</a> · <a href="{e(d["busca"])}" target="_blank" rel="noopener">Notícias de '
-            f'emergência no período</a>: {noticias}</small></span></li>')
-
-
-def secao_carimbos(cars, meta):
-    """Emendas de defesa civil sem reconhecimento federal de emergencia no local (S2iD) no ano ou no anterior."""
-    intro = (f'<p class="fonte">Dinheiro de defesa civil (desastres) para um lugar que não teve emergência reconhecida '
-             f'pelo governo federal naquele ano nem no anterior, segundo o <a href="{LINK_S2ID}" target="_blank" '
-             f'rel="noopener">S2iD</a>. Não prova irregularidade, porque a defesa civil também previne desastres, '
-             f'mas vale conferir. As notícias só ajudam na conferência.</p>')
-    if meta.get("falhou_emendas") or not meta.get("s2id"):
-        return intro + f'<p class="vazio"><b>{NAO_ACHOU}</b>: sem essa base nenhuma emenda é carimbada.</p>'
-    if not cars:
-        return intro + '<p class="vazio">Nenhuma emenda de defesa civil sem reconhecimento oficial.</p>'
-    return intro + _lista_conferir(cars, _carimbada)
-
-
 def _autor(a):
     nome = f'<a href="{e(a["link"])}">{e(a["nome"])}</a>' if a.get("link") else e(a["nome"])
     info = " · ".join(x for x in (a["cargo"].title() if a["cargo"] else "", a["partido"], a["uf"]) if x)
@@ -939,9 +747,8 @@ def _autor(a):
     pct = execucao(a["pago"], a.get("empenhado"))
     if pct is not None:
         valor += f'<small class="exec">{pct}% do prometido já pago</small>'
-    n, par = a.get("carimbos"), a.get("paradas")
-    marca = (f'<small>{carimbo(f"{n} sem reconhecimento oficial", pequeno=True)}</small>' if n else "") + \
-            (f'<small>{carimbo(f"{par} parada" + ("s" if par > 1 else ""), pequeno=True, cor="parada-cera")}</small>'
+    par = a.get("paradas")
+    marca = (f'<small>{carimbo(f"{par} parada" + ("s" if par > 1 else ""), pequeno=True, cor="parada-cera")}</small>'
              if par else "")
     return f'<li><span class="rot">{nome}<small>{e(info)}</small>{marca}</span><span class="val">{valor}</span></li>'
 
@@ -1023,9 +830,6 @@ def pagina_uf(p):
     p = dict(p, emendas=emd)
     faltou = (f'<p class="fonte">Emendas de {", ".join(map(str, m["faltou"]))}: <b>{NAO_ACHOU}</b> nesta '
               f'atualização; os totais desses anos podem estar incompletos.</p>') if m.get("faltou") and not emd["falhou"] else ""
-    # sem a base oficial (S2iD) o bloco de emergencia nao aparece: nao ha o que conferir
-    emergencia = (f'<h3>Emergência sem reconhecimento oficial</h3>\n{secao_carimbos(p.get("carimbos") or [], m)}\n'
-                  if m.get("s2id") else "")
     corpo = f"""<h1>{e(p["nome"])}</h1>
 <p class="lead">Quanto o estado gastou, quanto veio do governo federal e quais parlamentares mandaram emendas para cá. Confira e cobre quem você elegeu. <a href="../index.html#meus={e(p["uf"])}">Ver meus representantes</a>.</p>
 {aviso_periodo(m, p["financas"])}
@@ -1039,8 +843,7 @@ def pagina_uf(p):
 <section class="card"><h2>Quem mandou emendas para {e(p["nome"])}</h2>
 <p class="fonte">Deputados federais e senadores do estado, por quanto já foi pago das emendas de cada um aqui. Mandar emenda é parte do trabalho deles. O que vale cobrar é se o dinheiro chegou e virou obra ou serviço.</p>
 {secao_autores(p["autores"], p["uf"], emd["falhou"])}</section>
-<section class="card" id="carimbos"><h2>Emendas para conferir</h2>
-{emergencia}<h3>Paradas</h3>
+<section class="card" id="paradas"><h2>Emendas paradas</h2>
 {secao_paradas(p.get("paradas") or [], m)}</section>
 <section class="card"><h2>Cidades e deputados estaduais</h2>
 {secao_municipios(p["uf"])}
@@ -1090,7 +893,6 @@ def demo(parl=(), serie=None, paginas=None):
                ("Transferências de Convênios da União", "voluntarias"),
                ("Transferências Especiais da União", "especiais")]
     fin, lista, entes, mun, siglas = {}, [], [], {}, list(UFS)
-    rec = dict(cod={}, nome={}, uf={})
     parl = list(parl) or [dict(nome=f"Deputada Demo {uf} {j}", cargo="DEPUTADO FEDERAL" if j < 4 else "SENADOR",
                                partido="XX", uf=uf, perfil=None) for uf in UFS for j in range(1, 6)]
     for i, (uf, (cod, nome)) in enumerate(UFS.items()):
@@ -1109,27 +911,24 @@ def demo(parl=(), serie=None, paginas=None):
             lc = f"{nome.upper()} (UF)" if k % 3 == 0 else f"CIDADE DEMO {k % 3 + 1} - {uf}"
             de = siglas[(i + 1) % len(siglas)] if k == 6 else uf  # um autor de outra UF
             autor = "BANCADA DE DEMO" if k == 7 else f"DEPUTADA DEMO {de} {k % 4 + 1}"
-            civil = k in (1, 2)  # duas de defesa civil por UF: a da Cidade Demo 3 fica sem reconhecimento
             lista.append(dict(autor=autor, tipo=rnd.choice(
                 ["Emenda Individual - Transferências com Finalidade Definida", "Emenda Individual - Transferências Especiais",
-                 "Emenda de Bancada"]), local=lc, funcao="Segurança Pública" if civil else rnd.choice(funcoes),
-                subfuncao="Defesa civil" if civil else "", ano=2025, codigo=f"2025{i:02d}{k:04d}",
+                 "Emenda de Bancada"]), local=lc, funcao=rnd.choice(funcoes),
+                subfuncao="", ano=2025, codigo=f"2025{i:02d}{k:04d}",
                 pago=round(rnd.uniform(1e5, 2e7), 2), empenhado=round(rnd.uniform(2e7, 3e7), 2)))
         lista.append(dict(autor=f"DEPUTADA DEMO {uf} 2", tipo="Emenda Individual - Transferências com Finalidade Definida",
                           local=f"CIDADE DEMO 1 - {uf}", funcao="Urbanismo", subfuncao="", ano=2023,
                           codigo=f"2023{i:02d}9999", pago=0.0, empenhado=round(rnd.uniform(1e6, 5e6), 2)))  # parada
-        rec["cod"][f"{cod}00001"] = {2025}  # Cidade Demo 2 teve reconhecimento federal
     estaduais, ano_est = deputados_estaduais(serie, paginas, None, hoje)
     if not estaduais:
         estaduais = {uf: [dict(nome=f"Deputada Estadual Demo {k}", partido="XX", tse=None, pagina=None)
                           for k in range(1, 4)] for uf in UFS}
         ano_est = 2022
     assembleias = {uf: dict(a, ok=True) for uf, a in carregar_assembleias().items()}
-    cars = noticias_apoio(carimbos(lista, rec, entes), None)
     return montar(fin, agregar(lista), parl, entes, mun, estaduais, assembleias,
                   dict(anos=[2023, 2024, 2025, 2026], faltou=[], ano_estadual=2025, eleicao_estadual=ano_est,
                        hoje=hoje.isoformat(),
-                       falhou_emendas=False, s2id=True), cars, paradas(lista, hoje))
+                       falhou_emendas=False), paradas(lista, hoje))
 
 
 if __name__ == "__main__":

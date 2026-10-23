@@ -30,9 +30,9 @@ details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;f
 .conteudo input{width:100%;min-height:44px;font:inherit;padding:.4em .8em;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);margin:.4em 0}
 .conteudo button{margin-top:.6em}
 .ufs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:12px 0}
-/* carimbo de alerta: selo de cera comum (estilo.css + selo.js); aqui so nao e clicavel e tem o texto em caixa alta */
-.selo-cera.alerta-cera,.selo-cera.parada-cera{cursor:default;color:var(--forte);text-transform:uppercase;letter-spacing:.03em;font-weight:800}
-.selo-cera.alerta-cera:hover .rot,.selo-cera.parada-cera:hover .rot{text-decoration:none}
+/* carimbo de emenda parada: selo de cera comum (estilo.css + selo.js); aqui so nao e clicavel e tem o texto em caixa alta */
+.selo-cera.parada-cera{cursor:default;color:var(--forte);text-transform:uppercase;letter-spacing:.03em;font-weight:800}
+.selo-cera.parada-cera:hover .rot{text-decoration:none}
 .selo-cera.parada-cera{--cera:#8a4d12;color:var(--atencao)}
 .exec{display:block;color:var(--mut);font-size:.8rem}.exec-total .barra{display:block;margin-top:.3em}
 .selo-cera.p{min-height:32px;font-size:.75rem}.selo-cera.p .cera{width:28px;height:28px}.selo-cera.p .cera::after{inset:5px}
@@ -83,8 +83,7 @@ __CORPO__
         val.appendChild(document.createTextNode(brl(m[1]) + " em emendas"));
         val.appendChild(el("small", (d.siconfi_municipios ? brl(m[3]) : "Não informado") + " do governo federal em " + (d.ano_uniao || "")));
         val.lastChild.style.display = "block";
-        if (m[5]) rot.appendChild(carimbo(m[5] + " sem emergência reconhecida", "alerta-cera"));
-        if (m[6]) rot.appendChild(carimbo(m[6] + " emenda" + (m[6] > 1 ? "s" : "") + " parada" + (m[6] > 1 ? "s" : ""), "parada-cera"));
+        if (m[5]) rot.appendChild(carimbo(m[5] + " emenda" + (m[5] > 1 ? "s" : "") + " parada" + (m[5] > 1 ? "s" : ""), "parada-cera"));
         li.appendChild(rot); li.appendChild(val); ul.appendChild(li);
       });
       mais.hidden = n <= limite;
