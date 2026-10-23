@@ -20,6 +20,24 @@
   --t-politico:#3987e5;--t-eleitoral:#d95926;--t-legislativo:#199e70;--t-gestao:#c98500;
   --t-patrimonial:#d55181;--t-judicial:#008300;--t-criminal:#9085e9;--t-outros:#9aa0a5}}
 
+/* tema "vidro" (painel): fundo em gradiente marinho com brilho caramelo, paineis de vidro fosco e texto claro.
+   Vale nos dois esquemas de cor; html.vidro tem especificidade maior que :root. */
+html.vidro{color-scheme:dark;
+  --bg:#122138;--fg:#fff;--mut:rgba(245,236,220,.8);--line:rgba(255,255,255,.14);--card:rgba(255,255,255,.07);--realce:rgba(255,255,255,.1);
+  --sombra:rgba(0,0,0,.3);--titulo:#fff;--forte:#ffa89d;--atencao:#f7c67f;--info:#add0f7;--novo:#8fe0ab;--link:#f6c24a;
+  --exemplar:#f4b223;--sombra-exemplar:rgba(244,178,35,.22);--elev:0 8px 30px rgba(4,10,20,.28);--elev-alto:0 16px 48px rgba(4,10,20,.4)}
+html.vidro body{min-height:100vh;background:radial-gradient(90% 60% at 85% 110%,rgba(196,122,53,.45),transparent 60%),
+  radial-gradient(70% 50% at 0% 0%,rgba(58,96,150,.55),transparent 60%),linear-gradient(170deg,#1f3a62 0%,#1b2f4e 40%,#111e34 100%) #111e34;background-attachment:fixed}
+html.vidro{background:#111e34}
+html.vidro :is(.card,.kpi,.legenda,.contrib,input,select,.abas-site,.abas [role=tablist],.tab,ul.nt,.hero-num div){
+  -webkit-backdrop-filter:blur(14px) saturate(140%);backdrop-filter:blur(14px) saturate(140%)}
+html.vidro option{background:#1b2f4e;color:#fff}
+html.vidro :is(#tip,.consentimento){background:#1b2f4e}
+html.vidro .marca{background:none;box-shadow:none;padding-left:0;padding-right:0}
+html.vidro :is(.abas [role=tab],.abas-site button)[aria-selected=true]{background:#fff;color:var(--marinho)}
+html.vidro .tag.renda{background:rgba(255,255,255,.06)}
+@media print{html.vidro body{background:#fff}}
+
 *,*::before,*::after{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
