@@ -159,3 +159,68 @@ def test_sem_arquivo_mostra_fonte_nao_encontrada(pagina):
     pagina.goto(pagina.url_base)
     pagina.select_option("#meu-uf", "BA")
     pagina.wait_for_function("document.getElementById('meus-corpo').textContent.includes('Fonte não encontrada')")
+
+
+# ---------- cidade (prefeito, vice e vereadores) ----------
+
+def _zip(nome, linhas):
+    import io, zipfile
+    cab = list(linhas[0])
+    txt = "\n".join([";".join(cab)] + [";".join(str(l.get(c, "")) for c in cab) for l in linhas])
+    b = io.BytesIO()
+    with zipfile.ZipFile(b, "w") as z:
+        z.writestr(f"{nome}_BRASIL.csv", txt.encode("latin-1"))
+    return b.getvalue()
+
+
+def test_leitura_tse_guarda_municipio_e_resultado_do_segundo_turno():
+    import pipeline
+    cand = dict(NR_CPF_CANDIDATO="", NM_CANDIDATO="FULANA", DT_NASCIMENTO="01/01/1970", SQ_CANDIDATO="1", DS_CARGO="PREFEITO",
+                SG_UF="SP", SG_PARTIDO="AA", SG_UE="71072", NM_UE="SÃO PAULO", NM_URNA_CANDIDATO="FULANA", CD_ELEICAO="619",
+                NM_TIPO_ELEICAO="ORDINÁRIA", NR_TURNO="1", DS_SIT_TOT_TURNO="2º TURNO")
+    zc = _zip("consulta_cand", [cand, dict(cand, NR_TURNO="2", DS_SIT_TOT_TURNO="ELEITO")])
+    zb = _zip("bem_candidato", [dict(SQ_CANDIDATO="1", VR_BEM_CANDIDATO="100,00", DS_BEM_CANDIDATO="CASA",
+                                     DS_TIPO_BEM_CANDIDATO="IMOVEL")])
+    df = pipeline._ler_ano_tse(2024, zb, zc)
+    assert len(df) == 1 and bool(df.iloc[0]["eleito"]) and df.iloc[0]["nm_ue"] == "SÃO PAULO"
+
+
+def test_cidades_da_ultima_eleicao_municipal_empossada():
+    base = dict(uf="SP", sg_ue="71072", nm_ue="SÃO PAULO", eleito=True, nome_urna="", partido="A")
+    linhas = [dict(base, ano=2024, cargo="PREFEITO", nome="PREFEITA"),
+              dict(base, ano=2024, cargo="VEREADOR", nome="VEREADOR B"), dict(base, ano=2024, cargo="VEREADOR", nome="VEREADOR A"),
+              dict(base, ano=2024, cargo="VEREADOR", nome="NAO", eleito=False),
+              dict(base, ano=2020, cargo="PREFEITO", nome="ANTIGO"),
+              dict(base, ano=2024, cargo="DEPUTADO ESTADUAL", nome="OUTRO"),
+              dict(base, ano=2024, cargo="PREFEITO", nome="SEM UE", sg_ue="", nm_ue="")]
+    cid, ano = rp.cidades(pd.DataFrame(linhas), hoje=dt.date(2026, 10, 23))
+    assert ano == 2024 and list(cid) == ["71072"] and cid["71072"]["cidade"] == "São Paulo"
+    assert [p["nome"] for p in cid["71072"]["grupos"]["prefeito"]] == ["Prefeita"]
+    assert rp.cidades(pd.DataFrame(linhas).drop(columns="nm_ue")) == ({}, None)
+    assert rp.mandato_municipal([2020, 2024], dt.date(2024, 12, 31)) == 2020
+
+
+def test_gravar_cidades_e_lista_no_arquivo_do_estado(tmp_path):
+    cid, ano = rp.demo_cidades()
+    assert rp.gravar_cidades(tmp_path, cid, ano) == len(cid) == 52
+    um = json.loads(next((tmp_path / rp.PASTA / "cidades").glob("*.json")).read_text(encoding="utf-8"))
+    assert [g["id"] for g in um["grupos"]] == ["prefeito", "vice", "vereadores"] and "gerado_em" not in um
+    lista = rp.lista_cidades(cid)
+    assert "DF" not in lista and [n for _, n in lista["SP"]] == ["Cidade Demo SP 1", "Cidade Demo SP 2"]
+    assert rp.montar([], cidades_uf=lista)["SP"]["cidades"] == lista["SP"]
+
+
+def test_escolher_cidade_mostra_prefeitura_e_lembra(pagina):
+    pagina.goto(pagina.url_base)
+    pagina.select_option("#meu-uf", "SP")
+    pagina.wait_for_selector("#minha-cidade")
+    pagina.select_option("#minha-cidade", label="Cidade Demo SP 2")
+    pagina.wait_for_selector("#meus-cidade .rep")
+    txt = pagina.locator("#meus-cidade").inner_text()
+    assert "Prefeita Demo SP 2" in txt and "Vereadores (9)" in txt.replace("\n", " ")
+    pagina.reload()
+    pagina.wait_for_selector("#meus-cidade .rep")
+    assert "Prefeita Demo SP 2" in pagina.locator("#meus-cidade").inner_text()
+    pagina.select_option("#meu-uf", "DF")
+    pagina.wait_for_selector("#meus-corpo .rep")
+    assert pagina.locator("#minha-cidade").count() == 0

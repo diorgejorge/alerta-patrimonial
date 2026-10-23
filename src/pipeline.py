@@ -141,7 +141,7 @@ def empresas_por_sq(bens):
     return out, cnpjs
 
 
-VERSAO_LEITURA_TSE = 1  # mude ao alterar a leitura abaixo: invalida o cache dos anos ja lidos
+VERSAO_LEITURA_TSE = 2  # mude ao alterar a leitura abaixo: invalida o cache dos anos ja lidos
 
 
 def serie_tse(anos, cache=None):
@@ -178,6 +178,9 @@ def _ler_ano_tse(ano, zb, zc):
     bens["VR"] = dinheiro(bens["VR_BEM_CANDIDATO"])
     pat = bens.groupby("SQ_CANDIDATO", as_index=False)["VR"].sum().rename(columns={"VR": "patrimonio"})
     emp, emp_cnpj = empresas_por_sq(bens)
+    # 2o turno: a mesma candidatura vem uma vez por turno; fica a do ultimo turno, que traz o resultado final (#59)
+    if "NR_TURNO" in cand:
+        cand = cand.sort_values("NR_TURNO", ascending=False, key=lambda t: pd.to_numeric(t, errors="coerce"))
     cand = cand.drop_duplicates("SQ_CANDIDATO").copy()
     cand["chave"] = cand.apply(chave_pessoa, axis=1)
     m = cand.merge(pat, on="SQ_CANDIDATO", how="inner")
@@ -186,13 +189,13 @@ def _ler_ano_tse(ano, zb, zc):
     m["eleito"] = sit.astype(str).str.upper().str.startswith("ELEITO")
     col = lambda c: m[c].astype(str).str.strip() if c in m else pd.Series("", index=m.index)
     m["sq_candidato"], m["cd_eleicao"] = col("SQ_CANDIDATO"), col("CD_ELEICAO")
-    m["sg_ue"], m["nome_urna"] = col("SG_UE"), col("NM_URNA_CANDIDATO")
+    m["sg_ue"], m["nome_urna"], m["nm_ue"] = col("SG_UE"), col("NM_URNA_CANDIDATO"), col("NM_UE")
     m["suplementar"] = col("NM_TIPO_ELEICAO").map(norm).str.contains("SUPLEMENTAR")
     m["empresas"] = m["sq_candidato"].map(lambda s: list(emp.get(s, ())))
     m["empresas_cnpj"] = m["sq_candidato"].map(lambda s: list(emp_cnpj.get(s, ())))
     return (m.rename(columns={"NM_CANDIDATO": "nome", "DS_CARGO": "cargo", "SG_UF": "uf", "SG_PARTIDO": "partido"})
             [["chave", "ano", "nome", "cargo", "uf", "partido", "eleito", "patrimonio", "sq_candidato",
-              "cd_eleicao", "sg_ue", "nome_urna", "suplementar", "empresas", "empresas_cnpj"]])
+              "cd_eleicao", "sg_ue", "nm_ue", "nome_urna", "suplementar", "empresas", "empresas_cnpj"]])
 
 
 def cpf_ficticio(i):
@@ -761,8 +764,12 @@ def main():
                                     (parl, *representantes.eleitos(serie, link_tse, link_foto, pag)))
         contato = ({(p["casa"], p["_id"]): contatos.DEMO for p in parl_uf[::5]} if args.demo else
                    representantes.contatos_de(parl_uf, caches.get("contatos")))
+        cid, ano_mun = (representantes.demo_cidades() if args.demo else
+                        representantes.cidades(serie, link_tse, link_foto, pag))
+        representantes.gravar_cidades(docs, cid, ano_mun)
         dados["representantes"] = representantes.gravar(docs, parl_uf, tse_uf, dados["gerado_em"], ano_est,
-                                                         contato, contatos.assembleias())
+                                                         contato, contatos.assembleias(),
+                                                         representantes.lista_cidades(cid))
         shutil.copyfile(ROOT / "src" / "representantes.js", docs / "representantes.js")
     except Exception as ex:  # nunca derruba o painel: sem os arquivos, o bloco mostra "Fonte não encontrada"
         print(f"[aviso] meus representantes falhou ({ex!r})", file=sys.stderr)

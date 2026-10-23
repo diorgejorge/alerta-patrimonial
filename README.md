@@ -48,6 +48,10 @@ Os fluxos de dados são separados para o site atualizar rápido: o principal pub
 
 **Sem tempo perdido baixando coisas:** todos os fluxos com Python usam `.github/actions/python`, que guarda o ambiente pronto (Python e pacotes) em cache e só reinstala quando o `requirements.txt` muda. Medido no fluxo de testes em 23/10: antes, cada job gastava de 12 a 21 s preparando o Python (`setup-python` mais `pip install`) em toda execução; com o cache, de 3 a 7 s. Os testes de interface usam o Chrome que já vem no runner, e os fluxos de issue usam o Python do runner, sem instalar nada.
 
+**Releitura única do TSE:** o fluxo 1 guarda cada ano do TSE já lido e só relê quando o arquivo muda ou quando a leitura muda (`VERSAO_LEITURA_TSE` em `src/pipeline.py`). Em 23/10 a leitura passou para a versão 2 (#59: cidade do eleito e resultado do 2º turno), então a próxima execução relê todos os anos uma vez e demora mais (perto dos 17 min de uma execução fria, dentro do limite de 150 min).
+
+**Meus representantes (#59):** o fluxo 1 grava `docs/representantes/UF.json` (um por estado) e `docs/representantes/cidades/<código TSE>.json` (prefeito, vice e vereadores de cada cidade). O painel só baixa o arquivo escolhido.
+
 Uma execução manual (Actions → nome do fluxo → Run workflow) espera a anterior do mesmo fluxo terminar. O GitHub desativa agendamentos de repositórios sem nenhum commit por 60 dias; como cada execução grava um commit, isso não deve acontecer, mas se acontecer basta reativar em Actions.
 
 ## Sugestões de fontes pelo site

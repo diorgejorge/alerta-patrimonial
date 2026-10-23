@@ -6,6 +6,7 @@ deputados estaduais em exercicio. Fontes oficiais e gratuitas:
 So dados publicos: nada de CPF, chave interna ou campos "_..."."""
 import json
 from pathlib import Path
+import datetime as dt
 import re, time
 import contatos
 from estados import UFS, mandato_estadual, norm
@@ -92,14 +93,70 @@ def eleitos(serie, link=None, foto=None, paginas=None, hoje=None):
         uf = str(r.get("uf") or "").upper()
         if uf not in UFS:
             continue
-        nome = (str(r.get("nome_urna") or "").strip() or str(r.get("nome") or "")).title()
-        out.setdefault(uf, {}).setdefault(CARGOS_TSE[norm(r["cargo"])], []).append(_limpa(dict(
-            nome=nome or "Não informado", partido=r.get("partido"), foto=_https(foto(r)) if foto else None,
-            perfil=_https(link(r)) if link else None, dossie=_local((paginas or {}).get(r.get("chave"))))))
+        out.setdefault(uf, {}).setdefault(CARGOS_TSE[norm(r["cargo"])], []).append(_pessoa_tse(r, link, foto, paginas))
     return out, ano
 
 
-def montar(parl, tse=None, gerado=None, eleicao=None, contato=None, assembleias=None):
+CARGOS_MUN = {"PREFEITO": "prefeito", "VICE-PREFEITO": "vice", "VEREADOR": "vereadores"}
+GRUPOS_MUN = (("prefeito", "Prefeito"), ("vice", "Vice-prefeito"), ("vereadores", "Vereadores"))
+
+
+def mandato_municipal(anos, hoje=None):
+    """Ano da eleicao municipal em exercicio (posse em 1/jan do ano seguinte)."""
+    hoje = hoje or dt.date.today()
+    validos = [a for a in anos if dt.date(int(a) + 1, 1, 1) <= hoje]
+    return max(validos) if validos else None
+
+
+def cidades(serie, link=None, foto=None, paginas=None, hoje=None):
+    """{codigo TSE do municipio: dict(cidade, uf, grupos)} dos eleitos da ultima eleicao municipal empossada e o ano.
+    Precisa da coluna nm_ue (leitura do TSE versao 2); sem ela, nada."""
+    if serie is None or not len(serie) or "nm_ue" not in serie:
+        return {}, None
+    mun = serie[serie["cargo"].map(norm).isin(CARGOS_MUN) & serie["eleito"].astype(bool)]
+    ano = mandato_municipal(sorted(set(mun["ano"].astype(int))), hoje)
+    if ano is None:
+        return {}, None
+    out = {}
+    for r in mun[mun["ano"].astype(int) == ano].to_dict("records"):
+        uf, cod, nome = str(r.get("uf") or "").upper(), str(r.get("sg_ue") or "").strip(), str(r.get("nm_ue") or "").strip()
+        if uf not in UFS or not cod.isdigit() or not nome:
+            continue
+        c = out.setdefault(cod, dict(cidade=nome.title(), uf=uf, grupos={g: [] for g, _ in GRUPOS_MUN}))
+        c["grupos"][CARGOS_MUN[norm(r["cargo"])]].append(_pessoa_tse(r, link, foto, paginas))
+    return out, ano
+
+
+def _pessoa_tse(r, link, foto, paginas):
+    nome = (str(r.get("nome_urna") or "").strip() or str(r.get("nome") or "")).title()
+    return _limpa(dict(nome=nome or "Não informado", partido=r.get("partido"), foto=_https(foto(r)) if foto else None,
+                       perfil=_https(link(r)) if link else None, dossie=_local((paginas or {}).get(r.get("chave")))))
+
+
+def gravar_cidades(docs, cid, ano):
+    """docs/representantes/cidades/<codigo>.json, um por municipio, sem data de geracao (so muda quando o dado muda)."""
+    pasta = Path(docs) / PASTA / "cidades"
+    pasta.mkdir(parents=True, exist_ok=True)
+    for cod, c in cid.items():
+        for l in c["grupos"].values():
+            l.sort(key=lambda d: norm(d["nome"]))
+        d = dict(cidade=c["cidade"], uf=c["uf"], eleicao=ano,
+                 grupos=[dict(id=g, titulo=t, pessoas=c["grupos"][g]) for g, t in GRUPOS_MUN])
+        (pasta / f"{cod}.json").write_text(json.dumps(d, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    return len(cid)
+
+
+def lista_cidades(cid):
+    """{uf: [[codigo, nome], ...]} em ordem alfabetica, para o seletor de cidade (vai no arquivo do estado)."""
+    out = {}
+    for cod, c in cid.items():
+        out.setdefault(c["uf"], []).append([cod, c["cidade"]])
+    for l in out.values():
+        l.sort(key=lambda x: norm(x[1]))
+    return out
+
+
+def montar(parl, tse=None, gerado=None, eleicao=None, contato=None, assembleias=None, cidades_uf=None):
     """{uf: dict do arquivo} para os 27 estados; o estado sem ninguem tambem sai, com os grupos vazios."""
     por_uf = {uf: {g: [] for g, _ in GRUPOS} for uf in UFS}
     for p in parl or ():
@@ -118,16 +175,17 @@ def montar(parl, tse=None, gerado=None, eleicao=None, contato=None, assembleias=
         ala = (assembleias or {}).get(uf)
         out[uf] = dict(uf=uf, estado=UFS[uf][1], gerado_em=gerado, eleicao_estadual=eleicao,
                        assembleia=dict(nome=ala[0], site=ala[1]) if ala and _https(ala[1]) else None,
+                       cidades=(cidades_uf or {}).get(uf) or [],
                        grupos=[dict(id=g, titulo=t, pessoas=grupos[g]) for g, t in GRUPOS])
     return out
 
 
-def gravar(docs, parl, tse=None, gerado=None, eleicao=None, contato=None, assembleias=None):
+def gravar(docs, parl, tse=None, gerado=None, eleicao=None, contato=None, assembleias=None, cidades_uf=None):
     """Grava docs/representantes/UF.json (um por estado) e devolve quantas pessoas sairam."""
     pasta = Path(docs) / PASTA
     pasta.mkdir(parents=True, exist_ok=True)
     total = 0
-    for uf, d in montar(parl, tse, gerado, eleicao, contato, assembleias).items():
+    for uf, d in montar(parl, tse, gerado, eleicao, contato, assembleias, cidades_uf).items():
         (pasta / f"{uf}.json").write_text(json.dumps(d, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         total += sum(len(g["pessoas"]) for g in d["grupos"])
     print(f"Meus representantes: {total} pessoas em {len(UFS)} arquivos (docs/{PASTA}).")
@@ -148,3 +206,15 @@ def demo():
         tse[uf] = dict(governador=[dict(nome=f"Governadora Demo {uf}", partido="YY")],
                        estaduais=[dict(nome=f"Estadual Demo {uf} {k}", partido="ZZ") for k in range(1, 9)])
     return parl, tse, 2022
+
+
+def demo_cidades():
+    """Municipios sinteticos (dois por estado, menos o DF) no formato de cidades(), para o --demo e os testes."""
+    out = {}
+    for i, uf in enumerate(u for u in UFS if u != "DF"):
+        for k in (1, 2):
+            out[f"{i + 1:03d}{k:02d}"] = dict(cidade=f"Cidade Demo {uf} {k}", uf=uf, grupos=dict(
+                prefeito=[dict(nome=f"Prefeita Demo {uf} {k}", partido="AA")],
+                vice=[dict(nome=f"Vice Demo {uf} {k}", partido="BB")],
+                vereadores=[dict(nome=f"Vereadora Demo {uf} {k} {j}", partido="CC") for j in range(1, 10)]))
+    return out, 2024

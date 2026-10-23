@@ -4,12 +4,12 @@
   // so aparece depois que o pipeline gravou os arquivos (D.representantes = quantas pessoas)
   const box=document.getElementById("meus");if(!box||typeof D!=="object"||!D||!D.representantes)return;
   const sel=document.getElementById("meu-uf"),corpo=document.getElementById("meus-corpo");
-  const CHAVE="cv-meu-estado",PRIMEIROS=6;
+  const CHAVE="cv-meu-estado",CHAVE_CID="cv-minha-cidade",PRIMEIROS=6;
   const UFS={AC:"Acre",AL:"Alagoas",AP:"Amapá",AM:"Amazonas",BA:"Bahia",CE:"Ceará",DF:"Distrito Federal",ES:"Espírito Santo",
     GO:"Goiás",MA:"Maranhão",MT:"Mato Grosso",MS:"Mato Grosso do Sul",MG:"Minas Gerais",PA:"Pará",PB:"Paraíba",PR:"Paraná",
     PE:"Pernambuco",PI:"Piauí",RJ:"Rio de Janeiro",RN:"Rio Grande do Norte",RS:"Rio Grande do Sul",RO:"Rondônia",
     RR:"Roraima",SC:"Santa Catarina",SP:"São Paulo",SE:"Sergipe",TO:"Tocantins"};
-  const CARGO={governador:"Governador",senadores:"Senador",federais:"Deputado federal",estaduais:"Deputado estadual"};
+  const CARGO={governador:"Governador",senadores:"Senador",federais:"Deputado federal",estaduais:"Deputado estadual",prefeito:"Prefeito",vice:"Vice-prefeito",vereadores:"Vereador"};
   const ico=k=>typeof ICO==="object"&&ICO[k]||"";  // icones do painel (template.html), quando houver
   const MARCA={exemplar:["exemplar","Parlamentar exemplar","Patrimônio compatível com o salário, cota abaixo da média e sem sanções"],
     selo:["selo","Mão na massa","Entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos"]};
@@ -23,8 +23,9 @@
   // aba "Como cobrar" da pagina da pessoa (thread Como cobrar): texto pronto para mandar
   const cobrar=u=>/^pessoa\/p\d+\.html$/.test(u||"")?`<a class="lk" href="${esc(u)}#cobrar">texto pronto</a>`:"";
   const cache=new Map();
-  const ler=()=>{try{return localStorage.getItem(CHAVE)||"";}catch(e){return"";}};
-  const gravar=uf=>{try{uf?localStorage.setItem(CHAVE,uf):localStorage.removeItem(CHAVE);}catch(e){}};
+  const ler=(k=CHAVE)=>{try{return localStorage.getItem(k)||"";}catch(e){return"";}};
+  const gravar=(v,k=CHAVE)=>{try{v?localStorage.setItem(k,v):localStorage.removeItem(k);}catch(e){}};
+  const json=url=>{if(!cache.has(url))cache.set(url,fetch(url).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}).catch(e=>{cache.delete(url);throw e;}));return cache.get(url);};
 
   sel.append(...Object.entries(UFS).map(([uf,nome])=>{const o=document.createElement("option");o.value=uf;o.textContent=nome;return o;}));
 
@@ -70,19 +71,27 @@ ${parl?numeros(p):""}${fale}${links?`<p class="rep-links">${links}</p>`:""}</div
   function mostrar(d){
     const uf=d.uf,nome=UFS[uf];
     corpo.innerHTML=`<p class="rep-resumo">${esc(nome)} tem hoje <b>${esc(resumo(d))}</b>. Eles trabalham para você: confira e cobre.</p>
+${(d.cidades||[]).length?`<p class="rep-cidade"><label for="minha-cidade">E na sua cidade?</label> <select id="minha-cidade"><option value="">Escolha sua cidade</option>${d.cidades.map(([c,n])=>`<option value="${esc(c)}">${esc(n)}</option>`).join("")}</select></p><div id="meus-cidade" aria-live="polite"></div>`:""}
 <p class="rep-acoes"><button type="button" class="botao" id="meus-filtrar">Ver ${esc(uf)} nos destaques</button> <a class="botao" href="estado/${esc(uf)}.html">Gastos de ${esc(nome)}</a> <a class="botao" href="feed/uf-${esc(uf)}.xml" title="Receba um aviso (RSS) quando um dado mudar">Acompanhar ${esc(uf)}</a></p>
 ${d.grupos.map(g=>grupo(g,uf,d.assembleia)).join("")}<p class="fonte">Fontes: Câmara dos Deputados, Senado Federal e TSE${d.eleicao_estadual?` (eleitos em ${esc(d.eleicao_estadual)})`:""}. Atualizado em ${esc(d.gerado_em||"Não informado")}.</p>`;
   }
-  async function carregar(uf){
-    if(!cache.has(uf))cache.set(uf,fetch(`representantes/${uf}.json`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}));
-    return cache.get(uf);
+  // prefeitura e camara municipal: um arquivo pequeno por cidade, baixado so na escolha
+  async function cidade(cod){
+    const alvo=document.getElementById("meus-cidade");if(!alvo)return;
+    gravar(cod,CHAVE_CID);if(!cod){alvo.replaceChildren();return;}
+    alvo.innerHTML=`<p class="rep-resumo">Farejando…</p>`;
+    try{const c=await json(`representantes/cidades/${encodeURIComponent(cod)}.json`);if(document.getElementById("minha-cidade")?.value!==cod)return;
+      alvo.innerHTML=`<div class="rep-cid">${c.grupos.map(g=>grupo(g,c.uf)).join("")||`<p class="rep-resumo">Não informado.</p>`}<p class="fonte">Fonte: TSE (eleitos em ${esc(c.eleicao||"Não informado")}).</p></div>`;}
+    catch(e){alvo.innerHTML=`<p class="rep-resumo">Fonte não encontrada. Tente de novo mais tarde.</p>`;}
   }
   async function escolher(uf){
     sel.value=uf;gravar(uf);box.classList.toggle("escolhido",!!uf);
     if(!uf){corpo.replaceChildren();return;}
     corpo.innerHTML=`<p class="rep-resumo">Farejando quem representa ${esc(UFS[uf])}…</p>`;
-    try{const d=await carregar(uf);if(sel.value===uf)mostrar(d);}
-    catch(e){cache.delete(uf);if(sel.value===uf)corpo.innerHTML=`<p class="rep-resumo">Fonte não encontrada. Tente de novo mais tarde.</p>`;}
+    try{const d=await json(`representantes/${uf}.json`);if(sel.value!==uf)return;mostrar(d);
+      const cs=document.getElementById("minha-cidade"),salva=ler(CHAVE_CID);
+      if(cs){cs.onchange=()=>cidade(cs.value);if(salva&&d.cidades.some(([c])=>c===salva)){cs.value=salva;cidade(salva);}}}
+    catch(e){if(sel.value===uf)corpo.innerHTML=`<p class="rep-resumo">Fonte não encontrada. Tente de novo mais tarde.</p>`;}
   }
   sel.onchange=()=>escolher(UFS[sel.value]?sel.value:"");
   corpo.onclick=ev=>{
