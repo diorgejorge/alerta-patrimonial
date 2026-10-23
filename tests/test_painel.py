@@ -166,7 +166,7 @@ def test_card_dois_periodos(abrir):
 
 def test_cards_com_mesma_escala_tipografica(abrir):
     pg = abrir()
-    tam = pg.evaluate("""()=>{const px=s=>[...document.querySelectorAll('#cards .alerta:not(.presidente) '+s)].map(e=>getComputedStyle(e).fontSize);
+    tam = pg.evaluate("""()=>{const px=s=>[...document.querySelectorAll('#cards .alerta:not(.presidente):not(.vice) '+s)].map(e=>getComputedStyle(e).fontSize);
         return {nome:px('.nome'),valor:px('.valor b'),fatos:px('.fatos li')}}""")
     assert all(len(set(v)) == 1 for v in tam.values()), tam
 
@@ -178,11 +178,16 @@ def test_presidente_em_exercicio_primeiro_e_maior(abrir):
     assert "presidente" in c.get_attribute("class")
     assert "Presidente da República em exercício" in c.locator(".faixa-pres").text_content()
     assert c.locator(".topo .chip").count() == 0  # sem nivel calculado: nenhuma faixa de cor
-    largura = pg.evaluate("()=>[...document.querySelectorAll('#cards > li')].slice(0,2).map(e=>e.getBoundingClientRect().width)")
-    assert largura[0] > largura[1] * 1.5
-    nome = pg.evaluate("()=>[...document.querySelectorAll('#cards .nome')].slice(0,2).map(e=>parseFloat(getComputedStyle(e).fontSize))")
-    assert nome[0] > nome[1]
+    largura = pg.evaluate("()=>[...document.querySelectorAll('#cards > li')].map(e=>e.getBoundingClientRect().width)")
+    assert largura[0] > largura[2] * 1.5  # [1] e o vice, tambem na largura toda
+    nome = pg.evaluate("()=>[...document.querySelectorAll('#cards .nome')].slice(0,3).map(e=>parseFloat(getComputedStyle(e).fontSize))")
+    assert nome[0] > nome[1] > nome[2]
     assert pg.locator("#cards .presidente").count() == 1
+    vice = pg.locator("#cards > li").nth(1)
+    assert "vice" in vice.get_attribute("class")  # o vice vem logo depois, com destaque menor
+    assert "Vice-presidente da República em exercício" in vice.locator(".faixa-pres").text_content()
+    av = pg.evaluate("()=>[...document.querySelectorAll('#cards > li .faixa-pres .avatar')].map(e=>e.getBoundingClientRect().width)")
+    assert av[0] > av[1]
 
 
 def test_presidente_some_com_filtro_que_nao_o_inclui(abrir):

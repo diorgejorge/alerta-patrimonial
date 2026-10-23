@@ -224,10 +224,13 @@ def serie_demo(seed=7):
                            sq_candidato=None, cd_eleicao=None, sg_ue=None, nome_urna=f"DEMO {i:03d}",
                            suplementar=False, empresas=[], empresas_cnpj=[]))  # sem SQ real: link_tse fica None no demo
         linhas.append(dict(linhas[-1], ano=2022, patrimonio=base * f, eleito=False))
-    # presidente eleito em 2022 com crescimento pequeno (sem nivel): mesmo assim aparece nos destaques (#63)
+    # presidente e vice eleitos em 2022 com crescimento pequeno (sem nivel): mesmo assim aparecem nos destaques (#63)
     linhas.append(dict(linhas[-1], chave="demo:presidente", ano=2018, nome="PRESIDENTE DEMO", nome_urna="PRESIDENTE DEMO",
                        cargo="PRESIDENTE", uf="BR", partido="XX", eleito=False, patrimonio=1_000_000.0))
     linhas.append(dict(linhas[-1], ano=2022, eleito=True, patrimonio=1_050_000.0))
+    linhas.append(dict(linhas[-1], chave="demo:vice", ano=2018, nome="VICE DEMO", nome_urna="VICE DEMO",
+                       cargo="VICE-PRESIDENTE", eleito=False, patrimonio=800_000.0))
+    linhas.append(dict(linhas[-1], ano=2022, eleito=True, patrimonio=820_000.0))
     return pd.DataFrame(linhas)
 
 
@@ -346,10 +349,11 @@ def nivel(r, p):
     return None
 
 
-def presidente_em_exercicio(serie, hoje=None):
-    """Chave de quem foi eleito PRESIDENTE na eleicao mais recente com posse ja ocorrida (1o de janeiro seguinte), ou None (#63)."""
+def em_exercicio(serie, cargo, hoje=None):
+    """Chave de quem foi eleito para `cargo` na eleicao mais recente com posse ja ocorrida (1o de janeiro seguinte),
+    ou None (#63: PRESIDENTE e VICE-PRESIDENTE)."""
     hoje = hoje or dt.date.today()
-    eleitos = serie[serie["eleito"].astype(bool) & (serie["cargo"].map(norm) == "PRESIDENTE")
+    eleitos = serie[serie["eleito"].astype(bool) & (serie["cargo"].map(norm) == cargo)
                     & (serie["ano"].astype(int) < hoje.year)]
     return None if eleitos.empty else eleitos.sort_values("ano").iloc[-1]["chave"]
 
@@ -522,10 +526,12 @@ def main():
     if df.empty:
         sys.exit("Nenhuma pessoa com duas declaracoes consecutivas.")
     df["monitorado"] = df.apply(lambda r: r.chave in cpfs or norm(r.nome) in nomes, axis=1)
-    # o presidente em exercicio sempre entra nos destaques, mesmo sem nivel (#63)
-    pres = presidente_em_exercicio(serie)
-    df["presidente_atual"] = df["chave"].eq(pres) if pres else False
-    alertas = df[df.nivel.notna() | df.presidente_atual].copy()
+    # presidente e vice em exercicio sempre entram nos destaques, mesmo sem nivel; topo ordena (2 presidente, 1 vice) (#63)
+    for campo, cargo in (("presidente_atual", "PRESIDENTE"), ("vice_atual", "VICE-PRESIDENTE")):
+        chave = em_exercicio(serie, cargo)
+        df[campo] = df["chave"].eq(chave) if chave else False
+    df["topo"] = df.presidente_atual * 2 + df.vice_atual
+    alertas = df[df.nivel.notna() | df.topo.gt(0)].copy()
 
     # memoria de alertas por id interno (versoes antigas usavam o CPF na chave: sao descartadas)
     try:  # cifrado (cifra.py); o arquivo antigo em texto puro e lido uma vez e regravado cifrado no fim
@@ -544,9 +550,9 @@ def main():
     else:
         vis = alertas.assign(o=alertas.nivel.map(ORDEM).fillna(0)).sort_values(["o", "percentil"], ascending=False) \
                      .head(p["max_linhas_sem_lista"]).drop(columns="o")
-        # o limite de linhas nao tira o presidente; a trava da lista de monitorados vale para todos
-        vis = pd.concat([vis, alertas[alertas.presidente_atual & ~alertas.index.isin(vis.index)]])
-    vis = vis.assign(o=vis.nivel.map(ORDEM).fillna(0)).sort_values(["presidente_atual", "novo", "o", "cresc"],
+        # o limite de linhas nao tira presidente nem vice; a trava da lista de monitorados vale para todos
+        vis = pd.concat([vis, alertas[alertas.topo.gt(0) & ~alertas.index.isin(vis.index)]])
+    vis = vis.assign(o=vis.nivel.map(ORDEM).fillna(0)).sort_values(["topo", "novo", "o", "cresc"],
                                                                      ascending=False).drop(columns="o")
 
     pub = vis.drop(columns=["chave", "id", "cargo_ini", "empresas_cnpj"])  # CPF/CNPJ nunca vao para o site
@@ -802,7 +808,7 @@ def main():
         print(f"[aviso] meus representantes falhou ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)
     # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
-    dados["alertas"].sort(key=lambda a: (not a.get("presidente_atual"), -(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
+    dados["alertas"].sort(key=lambda a: (-(a.get("topo") or 0), -(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
     tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     html_painel = tpl.replace("/*DADOS*/null", json.dumps(arredonda(dados), ensure_ascii=False))
     html_painel = html_painel.replace("/*BENS*/null", json.dumps(bens, ensure_ascii=False))

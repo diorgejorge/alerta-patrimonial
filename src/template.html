@@ -87,9 +87,14 @@ button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 .faixa-pres .rot{display:inline-flex;align-items:center;gap:.4em;padding:4px 12px;border-radius:999px;background:var(--ouro);color:var(--tinta);font-size:.8125rem;font-weight:800;letter-spacing:.02em;text-transform:uppercase;line-height:1.35}
 .faixa-pres .avatar{border:3px solid var(--ouro)}
 .alerta.presidente .nome{font-size:1.5rem}.alerta.presidente .valor b{font-size:2.25rem}
+/* vice em exercicio: logo depois, mesmo desenho com destaque menor (borda fina, sem brilho, faixa so contornada) */
+.alerta.vice{grid-column:1/-1;border:1.5px solid var(--ouro)}.alerta.vice .faixa-pres .rot{background:none;align-items:center;gap:.4em;padding:3px 10px;border-radius:999px;border:1.5px solid var(--ouro);color:var(--ouro);font-size:.75rem;font-weight:800;text-transform:uppercase;line-height:1.35}
+.alerta.vice .faixa-pres .avatar{width:64px;height:64px;font-size:1.2rem;border:2px solid var(--ouro)}.alerta.vice .nome{font-size:1.3rem}
 @media (min-width:720px){.alerta.presidente{display:grid;grid-template-columns:104px 1fr;column-gap:24px}.alerta.presidente>*{grid-column:2}
   .alerta.presidente>.faixa-pres{display:contents}.alerta.presidente .faixa-pres .avatar{grid-column:1;grid-row:1/span 7;align-self:start;width:104px;height:104px;font-size:1.9rem}.alerta.presidente .faixa-pres .rot{justify-self:start}
-  .alerta.presidente .fatos{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
+  .alerta.presidente .fatos{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .alerta.vice{display:grid;grid-template-columns:64px 1fr;column-gap:18px}.alerta.vice>*{grid-column:2}.alerta.vice>.faixa-pres{display:contents}
+  .alerta.vice .faixa-pres .avatar{grid-column:1;grid-row:1/span 7;align-self:start}.alerta.vice .faixa-pres .rot{justify-self:start}}
 .fatos{list-style:none;margin:0;padding:12px 0 0;border-top:1px solid var(--line);display:grid;gap:8px;font-size:.875rem;line-height:1.5}
 .fatos li{display:grid;grid-template-columns:1.6em 1fr;align-items:start}.fatos .ic{line-height:1.5}.fatos b{font-variant-numeric:tabular-nums}
 .alerta .tags .tag{gap:.35em}
@@ -330,11 +335,12 @@ function agrupaPessoas(l){
       // presenca e votos (#56, #58): iguais em todos os periodos da pessoa (vem do parlamentar em exercicio)
       presenca:per.map(a=>a.presenca).find(Boolean)||null,votos:per.map(a=>a.votos).find(Boolean)||null,
       // parlamentar: cargo do TSE ou contagem de projetos da casa em que esta em exercicio (o cargo do TSE pode ser outro)
-      presidente:per.some(a=>a.presidente_atual),foto:[...per].reverse().map(a=>a.link_foto).find(v=>/^https:\/\//.test(v||"")),
+      presidente:per.some(a=>a.presidente_atual),vice:per.some(a=>a.vice_atual),foto:[...per].reverse().map(a=>a.link_foto).find(v=>/^https:\/\//.test(v||"")),
       parlamentar:per.some(a=>a.projetos||/^(DEPUTADO FEDERAL|SENADOR)$/i.test(a.cargo||""))};});
 }
-// o presidente em exercicio vem sempre primeiro (#63); sort estavel mantem a ordem dos demais
-const PES=D?agrupaPessoas(D.alertas||[]).sort((x,y)=>y.presidente-x.presidente):[];
+// presidente e depois vice em exercicio vem sempre primeiro (#63); sort estavel mantem a ordem dos demais
+const TOPO=p=>p.presidente?2:p.vice?1:0;
+const PES=D?agrupaPessoas(D.alertas||[]).sort((x,y)=>TOPO(y)-TOPO(x)):[];
 // periodos da pessoa que atendem aos filtros de busca, nivel e dimensao (ign: o grafico ignora o proprio filtro)
 function casa(p,ign){
   const q=$("q").value.toLowerCase(),nv=$("nv").value;
@@ -491,9 +497,9 @@ function verDet(ev){const b=ev.target.closest("button.ver");if(!b)return false;
   b.firstChild.textContent=abre?"Fechar":b.dataset.rot;return true;}
 // faixa do presidente em exercicio (#63): cargo e resultado do TSE, foto oficial sobre as iniciais
 const INI=n=>String(n).split(/\s+/).filter(w=>w&&!MIN.has(w.toLowerCase())).slice(0,2).map(w=>w[0]).join("").toUpperCase();
-const PRES=p=>`<div class="faixa-pres"><span class="avatar g" aria-hidden="true">${esc(INI(p.nome_urna||p.nome))}${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span><span class="rot">${ICO.faixa} Presidente da República em exercício</span></div>`;
+const PRES=p=>`<div class="faixa-pres"><span class="avatar g" aria-hidden="true">${esc(INI(p.nome_urna||p.nome))}${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span><span class="rot">${ICO.faixa} ${p.presidente?"Presidente":"Vice-presidente"} da República em exercício</span></div>`;
 const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
-const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}${p.presidente?" presidente":""}">${p.presidente?PRES(p):""}<div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b>${p.nivel?`<span class="chip nv-${p.nivel}" role="img" aria-label="${NV[p.nivel]}: ${RES(p.maior)}" title="${NV[p.nivel]}${p.per.length>1?` no período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})`:""}. Veja a fórmula em Como ler os números">${RES(p.maior)}</span>`:""}</div>
+const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}${p.presidente?" presidente":p.vice?" vice":""}">${TOPO(p)?PRES(p):""}<div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b>${p.nivel?`<span class="chip nv-${p.nivel}" role="img" aria-label="${NV[p.nivel]}: ${RES(p.maior)}" title="${NV[p.nivel]}${p.per.length>1?` no período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})`:""}. Veja a fórmula em Como ler os números">${RES(p.maior)}</span>`:""}</div>
 <p class="resumo">${CPU_RES(p)}</p>
 <p class="valor">${AUM(p)}<span>no patrimônio de ${p.ano_ini} a ${p.ano_fim}</span></p>
 ${FATOS(p)}${MARCAS(p)}${DET(p)}
