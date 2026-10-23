@@ -565,7 +565,8 @@ def main():
     dados["repo"] = os.getenv("GITHUB_REPOSITORY")  # links "sugerir fonte" do painel
     dados["metodo"] = dict(taxa=p["taxa_poupanca"], minimo=p["crescimento_minimo"], forte=p["limiar_forte"],
                            atencao=p["limiar_atencao"], informativo=p["limiar_informativo"],
-                           min_pares=p["min_pares_grupo"])  # texto "Como ler"
+                           min_pares=p["min_pares_grupo"],
+                           formula="vezes")  # texto "Como ler"; "vezes" (#62) avisa a tela que as faixas ja usam a conta nova
     dados["fontes"] = [dict(nome=f["nome"], uf=f["uf"]) for f in fontes]
     # Portal da Transparencia: uma consulta por pessoa (nome+UF), na ordem do painel; CPF/CNPJ ficam so aqui
     pessoas = {}

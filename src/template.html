@@ -340,6 +340,9 @@ function agrupaPessoas(l){
 // ordem dos destaques: presidente e depois vice em exercicio no topo (#63), depois quem mais aumentou o patrimonio (vezes o valor original)
 const TOPO=p=>p.presidente?2:p.vice?1:0;
 const VN=p=>p.pat_ini>0&&p.cresc!=null?p.cresc/p.pat_ini:-Infinity;
+// #62: faixas calculadas com a conta antiga (antes da carga) ficam escondidas; aparecem sozinhas quando a carga nova chegar
+const FAIXA_NOVA=!!D&&(D.metodo||{}).formula==="vezes";
+if(D)for(const a of D.alertas||[])if(!FAIXA_NOVA||!NIVEIS.includes(a.nivel))a.nivel=a.nivel_calculado=null;
 const PES=D?agrupaPessoas(D.alertas||[]).sort((x,y)=>TOPO(y)-TOPO(x)||VN(y)-VN(x)):[];
 // periodos da pessoa que atendem aos filtros de busca, nivel e dimensao (ign: o grafico ignora o proprio filtro)
 function casa(p,ign){
@@ -498,7 +501,7 @@ function verDet(ev){const b=ev.target.closest("button.ver");if(!b)return false;
 const INI=n=>String(n).split(/\s+/).filter(w=>w&&!MIN.has(w.toLowerCase())).slice(0,2).map(w=>w[0]).join("").toUpperCase();
 const PRES=p=>`<div class="faixa-pres"><span class="avatar g" aria-hidden="true">${esc(INI(p.nome_urna||p.nome))}${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span><span class="rot">${ICO.faixa} ${p.presidente?"Presidente":"Vice-presidente"} da República em exercício</span></div>`;
 const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
-const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}${p.presidente?" presidente":p.vice?" vice":""}">${TOPO(p)?PRES(p):""}<div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b>${p.nivel?`<span class="chip nv-${p.nivel}" role="img" aria-label="${NV[p.nivel]}: o patrimônio aumentou ${VO(p.maior)}" title="${NV[p.nivel]}${p.per.length>1?` no período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})`:""}. Veja a fórmula em Como ler os números">${NV[p.nivel]}</span>`:""}</div>
+const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}${p.presidente?" presidente":p.vice?" vice":""}">${TOPO(p)?PRES(p):""}<div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b>${NV[p.nivel]?`<span class="chip nv-${p.nivel}" role="img" aria-label="${NV[p.nivel]}: o patrimônio aumentou ${VO(p.maior)}" title="${NV[p.nivel]}${p.per.length>1?` no período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})`:""}. Veja a fórmula em Como ler os números">${NV[p.nivel]}</span>`:""}</div>
 <p class="resumo">${CPU_RES(p)}</p>
 <p class="valor">${AUM(p)}<span>vezes o valor original: quanto o patrimônio aumentou de ${p.ano_ini} a ${p.ano_fim}</span></p>
 ${FATOS(p)}${MARCAS(p)}${DET(p)}
@@ -563,7 +566,8 @@ async function todosCarregar(){
   TCARR=true;$("todos-qtd").textContent="Carregando a lista...";
   try{const r=await fetch("todos.json",{cache:"no-cache"});if(!r.ok)throw new Error(r.status);TD=await r.json();if(!Array.isArray(TD.lista))throw new Error("formato");}
   catch(e){TD=null;TCARR=false;$("todos-qtd").innerHTML="<b>Fonte não encontrada</b>: não deu para carregar a lista agora. Feche e abra a lista de novo para tentar outra vez.";return;}
-  TD.P=TD.lista.map(([n,c,pg,m,per])=>({n,c,pg,m:m||"",per,nv:Math.max(0,...per.map(x=>x[7]||0)),
+  TD.P=TD.lista.map(([n,c,pg,m,per])=>({n,c,pg,m:m||"",per,nv:Math.max(0,...per.map(x=>FAIXA_NOVA&&x[7]<TN.length?x[7]||0:0)),  // conta antiga: sem faixa ate a proxima carga
+
     cg:new Set(per.map(x=>TD.cargos[x[2]])),pt:new Set(per.map(x=>TD.partidos[x[3]])),uf:new Set(per.map(x=>x[4]||"Não informado")),q:SA(`${n} ${c}`)}));
   const opc=(id,k)=>$(id).append(...[...new Set(TD.P.flatMap(p=>[...p[k]]))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(v=>{const o=el("option",null,v);o.value=v;return o;}));
   opc("tcg","cg");opc("tpt","pt");opc("tuf","uf");
@@ -665,6 +669,7 @@ function contrib(){
 // legenda: cada marcacao mostra quantas pessoas do painel a tem; sem ninguem, o botao fica desativado e explica
 function legenda(){
   const m=metodo();
+  $("leg-niveis").hidden=!FAIXA_NOVA;  // #62: sem faixas da conta nova, a legenda delas some
   $("leg-niveis").innerHTML=[["forte",`O patrimônio aumentou ${m.forte.razao} vezes ou mais, e mais que ${m.forte.percentil} de cada 100 colegas.`],
     ["atencao",`O patrimônio aumentou ${m.atencao.razao} vezes ou mais, ou bem mais que os colegas do mesmo cargo.`],
     ["informativo",`Cresceu mais que ${m.informativo.percentil} de cada 100 colegas do mesmo cargo.`]]
@@ -698,7 +703,7 @@ function abas(){
 // depois de filtrar (tag, legenda ou barra de grafico): volta aos destaques, na contagem
 // cabecalho: total de pessoas em destaque e quantas cresceram mais do que o salario permitiria (sem valores em reais, #62)
 function heroNum(){
-  const mais=PES.filter(p=>p.per.some(a=>a.razao>=1)).length,b=$("hero-num");
+  const mais=PES.filter(p=>p.per.some(a=>a.pat_ini>0&&a.cresc/a.pat_ini>=1)).length,b=$("hero-num");
   b.innerHTML=`<div><dd>${PES.length.toLocaleString("pt-BR")}</dd><dt>pessoas em destaque</dt></div><div><dd>${mais.toLocaleString("pt-BR")}</dd><dt>pelo menos dobraram o patrimônio</dt></div>`;
   b.hidden=!PES.length;
 }

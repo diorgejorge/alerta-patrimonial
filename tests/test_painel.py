@@ -208,6 +208,21 @@ def test_vezes_o_valor_original(abrir):
     assert vn == sorted(vn, reverse=True)
 
 
+def test_dados_antigos_nao_quebram_a_tela(abrir):
+    """Tela publicada antes da carga: faixa antiga ("sem_salario") fica sem chip e o card mostra as vezes."""
+    c = card(abrir(), [{**UM_PERIODO[0], "nivel": "sem_salario"}])
+    assert c.locator(".topo .chip").count() == 0 and "undefined" not in c.inner_text()
+    assert "1,0×" in c.locator(".valor").text_content()
+
+
+def test_faixas_da_conta_antiga_ficam_escondidas(abrir):
+    """#62: antes da carga nova (sem metodo.formula = "vezes"), nenhuma faixa de cor aparece; o resto da tela segue."""
+    pg = abrir()
+    assert pg.evaluate("FAIXA_NOVA")  # o site de teste ja vem da conta nova
+    assert pg.evaluate("""()=>{const d={metodo:{},alertas:[{nivel:'forte'}]};const nova=(d.metodo||{}).formula==="vezes";
+        for(const a of d.alertas)if(!nova||!NIVEIS.includes(a.nivel))a.nivel=null;return d.alertas[0].nivel}""") is None
+
+
 def test_legenda_explica_niveis_em_linguagem_simples(abrir):
     pg = abrir()
     assert pg.is_visible("#legenda")
