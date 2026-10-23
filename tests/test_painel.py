@@ -205,7 +205,7 @@ def test_aumento_percentual(abrir):
     assert pg.evaluate("VO({cresc:2.3e7,pat_ini:1e6})") == "+2.300%"
     assert pg.evaluate("VO({cresc:5,pat_ini:0})") == "começou do zero"
     assert pg.evaluate("VO({cresc:null,pat_ini:1})") == "Não informado"
-    ordem = pg.evaluate("PES.filter(p=>!TOPO(p)).map(p=>[PCL(p),VN(p)])")  # regua dos colegas; empate pelo percentual
+    ordem = pg.evaluate("PES.filter(p=>!TOPO(p)).map(p=>[PCL(p),p.cresc])")  # regua dos colegas; empate pelo crescimento
     assert ordem == sorted(ordem, reverse=True)
 
 
