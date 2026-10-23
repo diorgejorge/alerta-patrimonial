@@ -12,7 +12,7 @@ import transparencia
 import cota
 import projetos
 import parlamentares
-import votacoes, presenca
+import votacoes, presenca, gabinete
 from texto import cap
 import empresas
 import estados
@@ -495,6 +495,21 @@ def montar_cobranca(pessoas, parl, ceap, proj, cache=None, demo=False):
     return out
 
 
+def montar_equipe(pessoas, parl, cache=None, demo=False):
+    """{indice da primeira linha: dict(pessoas, link) ou None} da equipe do gabinete (#66). So entra parlamentar
+    federal em exercicio com pagina; None = fonte fora do ar ("Fonte nao encontrada")."""
+    em_exercicio = {x["_chave"] for x in parl if x["_chave"]}
+    chaves = {q["chave"] for q in pessoas.values()} & em_exercicio
+    equipe = gabinete.coletar(parl, chaves, cache) if chaves else {}
+    out = {}
+    for q in pessoas.values():
+        if q["chave"] in em_exercicio:
+            out[q["idx"][0]] = equipe.get(q["chave"])
+        elif demo and "DEPUTADO FEDERAL" in q["cargo"]:
+            out[q["idx"][0]] = gabinete.DEMO
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true", help="dados sinteticos para testar sem internet")
@@ -519,7 +534,8 @@ def main():
                   portal=Cache(CACHE / "portal.cache", 7 * 86400, seg_cache, cifrar=True),
                   noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache),
                   pares=Cache(CACHE / "pares.cache", 400 * 86400, seg_cache),
-                  contatos=Cache(CACHE / "contatos.cache", contatos.VALIDADE_S, seg_cache)) if seg_cache else {}
+                  contatos=Cache(CACHE / "contatos.cache", contatos.VALIDADE_S, seg_cache),
+                  gabinete=Cache(CACHE / "gabinete.cache", gabinete.VALIDADE_S, seg_cache)) if seg_cache else {}
     serie = serie_demo() if args.demo else serie_tse(p["anos"], caches.get("tse"))
     extras = {r.chave: extras_cfg.get(r.chave, extras_cfg.get("nome:" + norm(r.nome), 0.0))
               for r in serie.drop_duplicates("chave").itertuples()}
@@ -753,6 +769,16 @@ def main():
         cobranca = montar_cobranca(pessoas, parl, ceap, proj, caches.get("contatos"), args.demo)
     except Exception as ex:  # sem contatos a aba sai com "Fonte nao encontrada"; nunca derruba o painel
         print(f"[aviso] contatos de gabinete indisponiveis ({ex!r})", file=sys.stderr)
+    # equipe do gabinete (#66): so o numero de pessoas; nomes e salarios ficam na fonte oficial
+    equipe = {}
+    try:
+        equipe = montar_equipe(pessoas, parl, caches.get("gabinete"), args.demo)
+    except Exception as ex:  # sem a contagem o bloco nao aparece; nunca derruba o painel
+        print(f"[aviso] equipe de gabinete indisponivel ({ex!r})", file=sys.stderr)
+    for q in pessoas.values():  # card: so o numero, em "Ver detalhes"
+        r = equipe.get(q["idx"][0])
+        for i in q["idx"] if r and r.get("pessoas") else ():
+            dados["alertas"][i]["gabinete"] = r
     cartoes, graficos_painel = "", {}
     if pid:  # uma pagina por pessoa (docs/pessoa/<id>.html), so com o id interno
         hist = {c: sorted((int(a), float(v)) for a, v in zip(g.ano, g.patrimonio))
@@ -760,7 +786,7 @@ def main():
         try:
             cartoes, graficos_painel = paginas.gerar(dados["alertas"], pessoas, hist, secoes, docs,
                                                      gerado=dados["gerado_em"], noticias=noticias,
-                                                     cobranca=cobranca, votos=secoes_votos)
+                                                     cobranca=cobranca, votos=secoes_votos, equipe=equipe)
         except Exception as ex:  # nunca derruba o painel
             print(f"[aviso] paginas por pessoa falharam ({ex!r})", file=sys.stderr)
         try:  # Acompanhar (#57): feed RSS por pessoa e geral, com um item quando um dado muda entre execucoes

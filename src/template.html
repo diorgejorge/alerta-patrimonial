@@ -267,6 +267,7 @@ const ICO={"regua":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="cur
 ICO.check='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>';
 ICO.faixa='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6M5 10v8M9.7 10v8M14.3 10v8M19 10v8M3 20h18"/></svg>';
 ICO.urna='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v9H4zM8 11V4h8v7M10 7h4"/></svg>';
+ICO.equipe='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.9.4 5 2.9 5 5.8"/></svg>';
 const PCT=v=>Number(v).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%";
 const D=/*DADOS*/null;
 const BENS=/*BENS*/null;  // config/bens_referencia.json
@@ -333,6 +334,8 @@ function agrupaPessoas(l){
       projetos:per.map(a=>a.projetos).filter(Boolean).sort((x,y)=>(y.ate||0)-(x.ate||0))[0]||null,
       // presenca e votos (#56, #58): iguais em todos os periodos da pessoa (vem do parlamentar em exercicio)
       presenca:per.map(a=>a.presenca).find(Boolean)||null,votos:per.map(a=>a.votos).find(Boolean)||null,
+      // equipe do gabinete (#66): so o numero; sem o dado (antes da carga ou fonte fora do ar) o contador nao aparece
+      gabinete:per.map(a=>a.gabinete).find(g=>g&&g.pessoas>0)||null,
       // parlamentar: cargo do TSE ou contagem de projetos da casa em que esta em exercicio (o cargo do TSE pode ser outro)
       presidente:per.some(a=>a.presidente_atual),vice:per.some(a=>a.vice_atual),foto:[...per].reverse().map(a=>a.link_foto).find(v=>/^https:\/\//.test(v||"")),
       parlamentar:per.some(a=>a.projetos||/^(DEPUTADO FEDERAL|SENADOR)$/i.test(a.cargo||""))};});
@@ -459,6 +462,7 @@ const CONT=(p,tag="p",cls="contadores")=>{
     +(PROC_ON?s(!np,REU_OBS,ICO.balanca+" "+(np?(lk?`<a href="${esc(lk)}" target="_blank" rel="noopener">${pr}</a>`:pr):"Nenhum processo informado")," processos")+" ":"")
     +(p.parlamentar?s(j&&!j.aprovados,j?"Projetos de lei, de lei complementar e PECs como autor ou coautor; aprovados = viraram norma jurídica":"",ICO.pata+" "+(j?`<b>${n(j.aprovados)}</b> ${j.aprovados===1?"projeto aprovado":"projetos aprovados"} de ${n(j.apresentados)} ${j.apresentados===1?"apresentado":"apresentados"}${j.de?` (${j.de}–${j.ate})`:""}${/^https:\/\//.test(j.link||"")?` · <a href="${esc(j.link)}" target="_blank" rel="noopener" aria-label="Ver os projetos no site oficial">ver</a>`:""}`:"Projetos: Não informado")):"")
     +(p.presenca&&p.presenca.pct!=null?" "+s(0,"Presença registrada em sessões do plenário desde o início da legislatura, comparada com a média da casa. Falta pode ter justificativa (licença, missão)",ICO.check+` Presença <b>${PCT(p.presenca.pct)}</b>${p.presenca.media_casa!=null?` (média da casa ${PCT(p.presenca.media_casa)})`:""}`," presenca"):"")
+    +(p.gabinete?" "+s(0,"Pessoas que trabalham hoje no gabinete, pagas com dinheiro público, segundo a fonte oficial",ICO.equipe+` <b>${n(p.gabinete.pessoas)}</b> ${p.gabinete.pessoas===1?"pessoa":"pessoas"} no gabinete${/^https:\/\//.test(p.gabinete.link||"")?` · <a href="${esc(p.gabinete.link)}" target="_blank" rel="noopener" aria-label="Ver a equipe no site oficial">ver</a>`:""}`," gabinete"):"")
     +(p.votos&&p.votos.length?" "+s(0,"Votações de temas importantes no plenário. Veja como votou em cada um no dossiê",ICO.urna+` Votou em <b>${p.votos.filter(v=>v.voto!=="Não votou").length}</b> de ${p.votos.length} temas${/^dossie\//.test(p.dossie||"")?` · <a href="${esc(p.dossie)}#votos">ver votos</a>`:""}`," votos"):"")
     +`</${tag}>`;};
 // nome e cargo do TSE em caixa alta viram "Zé da Silva", "Deputado Estadual" (conectivos ficam minusculos)

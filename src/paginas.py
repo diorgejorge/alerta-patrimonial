@@ -2,7 +2,7 @@
 So usa o id interno (p0001...): CPF, chave e CNPJ nunca entram no HTML."""
 import csv, html, json, re, shutil
 from pathlib import Path
-import acompanhar, cobrar, graficos, temas
+import acompanhar, cobrar, gabinete, graficos, temas
 from texto import cap
 
 SRC = Path(__file__).resolve().parent
@@ -177,14 +177,23 @@ def _cabecalho(a, nome, img=None, acoes=""):
             + (f'<div class="acoes">{acoes}</div>' if acoes else "") + "</header>")
 
 
-def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, cobranca=None, votos=None):
-    """`cobranca`: contato do gabinete, cota e projetos da pessoa para a aba "Como cobrar" (#60, cobrar.secao)."""
+def _equipe(equipe):
+    """Bloco "Equipe do gabinete" do Resumo (#66); vazio quando a contagem nao existe (cargo sem gabinete ou dado
+    ainda nao carregado), para a pagina nunca mostrar um bloco quebrado."""
+    if not equipe:
+        return ""
+    return f'<h3>Equipe do gabinete</h3>{gabinete.secao(equipe[0], None, consultado=True)}'
+
+
+def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, cobranca=None, votos=None, equipe=None):
+    """`cobranca`: contato do gabinete, cota e projetos da pessoa para a aba "Como cobrar" (#60, cobrar.secao).
+    `equipe`: (contagem do gabinete ou None se a fonte falhou,) para parlamentar em exercicio; None fora disso (#66)."""
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
     compartilhar = cobrar.botao(cobrar.imagem(linhas))
     vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())),
                 CABECALHO=_cabecalho(topo, nome, foto(linhas), compartilhar),
-                RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
+                RESUMO=_resumo(linhas) + _equipe(equipe), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
                 PROPOSTAS=_propostas(pid), COBRAR=cobrar.secao(linhas, cobranca), VOTOS=_votos(votos), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
@@ -205,12 +214,13 @@ def cartao(pid, linhas, hist):
             f'<span class="mini">{mini}</span></li>')
 
 
-def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=None, votos=None):
+def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=None, votos=None, equipe=None):
     """Escreve docs/pessoa/<id>.html e devolve (html dos cartoes, {marca: html dos graficos do painel}).
     `noticias`: {indice_da_linha: lista de noticias com tags ou aviso em texto} (dossie.gerar_dossies).
     `cobranca`: {indice_da_linha: contato, cota e projetos} para a aba "Como cobrar" (#60).
-    `votos`: {indice_da_linha: (html de "Como votou", html de "Presença")} (#56, #58)."""
-    noticias, cobranca = noticias or {}, cobranca or {}
+    `votos`: {indice_da_linha: (html de "Como votou", html de "Presença")} (#56, #58).
+    `equipe`: {indice_da_linha: contagem do gabinete ou None se a fonte falhou} (#66, pipeline.montar_equipe)."""
+    noticias, cobranca, equipe = noticias or {}, cobranca or {}, equipe or {}
     pasta = Path(docs) / "pessoa"
     pasta.mkdir(parents=True, exist_ok=True)
     for f in pasta.glob("*.html"):
@@ -225,7 +235,9 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=
         h = hist.get(q["chave"], [])
         (pasta / f"{pid}.html").write_text(pagina(tpl, pid, linhas, h, secoes.get(q["idx"][0]), gerado,
                                                            noticias.get(q["idx"][0]),
-                                                           cobranca.get(q["idx"][0]), (votos or {}).get(q["idx"][0])), encoding="utf-8")
+                                                           cobranca.get(q["idx"][0]), (votos or {}).get(q["idx"][0]),
+                                                           (equipe[q["idx"][0]],) if q["idx"][0] in equipe else None),
+                                       encoding="utf-8")
         for i in q["idx"]:
             alertas[i]["pagina"] = f"pessoa/{pid}.html"
             alertas[i]["cobrar"] = 1  # a pagina ja tem a aba "Como cobrar": o card mostra o atalho (#60)
