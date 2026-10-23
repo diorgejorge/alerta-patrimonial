@@ -69,6 +69,18 @@ def link_tse(r):
     return f"{DIVULGA}/{regiao}/{uf}/{eleicao}/{sq}/{ano}/{ue}"
 
 
+FOTO = "https://divulgacandcontas.tse.jus.br/divulga/rest/arquivo/img"
+
+
+def link_foto(r):
+    """Foto oficial da candidatura no DivulgaCandContas ({FOTO}/{ID_ELEICAO}/{SQ_CANDIDATO}/{SG_UE}), ou None."""
+    lk = link_tse(r)  # mesmas regras: sem id da eleicao, SQ ou UE, nao ha foto
+    if not lk:
+        return None
+    eleicao, sq, _, ue = lk.rsplit("/", 4)[1:]
+    return f"{FOTO}/{eleicao}/{sq}/{ue}"
+
+
 # ---------------------------------------------------------------- coleta TSE
 def baixar(tipo, ano):
     """Zip do TSE (bytes), guardado cifrado em data/cache (cifra.py). Anos passados nao mudam: usa a copia sem
@@ -267,7 +279,7 @@ def _lista_pares(serie, regras, extras, p, so_fim=None):
             out.append(dict(chave=chave, nome=b["nome"], cargo=b["cargo"], uf=b["uf"], partido=b["partido"],
                             ano_ini=a["ano"], ano_fim=b["ano"], pat_ini=a["patrimonio"], pat_fim=b["patrimonio"],
                             cresc=b["patrimonio"] - a["patrimonio"], cap=cap, cargo_ini=a["cargo"],
-                            nome_urna=txt(b.get("nome_urna")) or None, link_tse=link_tse(b),
+                            nome_urna=txt(b.get("nome_urna")) or None, link_tse=link_tse(b), link_foto=link_foto(b),
                             empresas=[str(x) for x in b["empresas"]][:MAX_EMPRESAS]
                             if isinstance(b.get("empresas"), (list, tuple)) else [],
                             # quantas empresas diferentes a pessoa declarou no inicio ou no fim do periodo (card)

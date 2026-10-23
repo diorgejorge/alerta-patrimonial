@@ -37,9 +37,11 @@ def iniciais(nome):
     return ((ps[0][0] + (ps[-1][0] if len(ps) > 1 else "")) if ps else "?").upper()
 
 
-def avatar(nome, grande=False):
-    """Iniciais; fotos oficiais entram depois de confirmados os termos de uso."""
-    return f'<span class="avatar{" g" if grande else ""}" aria-hidden="true">{e(iniciais(nome))}</span>'
+def avatar(nome, grande=False, foto=None):
+    """Foto oficial da candidatura (TSE) sobre as iniciais; se a foto nao carregar, ficam as iniciais."""
+    img = (f'<img src="{e(foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">'
+           if str(foto or "").startswith("https://") else "")
+    return f'<span class="avatar{" g" if grande else ""}" aria-hidden="true">{e(iniciais(nome))}{img}</span>'
 
 
 def _alt(tabela):
@@ -156,7 +158,7 @@ def _propostas(pid):
 def _cabecalho(a, nome):
     urna = (a.get("nome_urna") or "").strip()
     ficha = " · ".join(e(str(x)) for x in (cap(a.get("cargo")), a.get("partido"), a.get("uf")) if x)
-    return (f'<header class="cab">{avatar(urna or nome, grande=True)}<div><h1>{e(cap(nome))}</h1>'
+    return (f'<header class="cab">{avatar(urna or nome, grande=True, foto=a.get("link_foto"))}<div><h1>{e(cap(nome))}</h1>'
             + (f'<p class="ficha">Nome de urna: <strong>{e(cap(urna))}</strong></p>' if urna and urna.upper() != nome.upper() else "")
             + f'<p class="ficha">{ficha}</p>{chip_nivel(a.get("nivel"))}</div></header>')
 
@@ -179,7 +181,7 @@ def cartao(pid, linhas, hist):
     ficha = " · ".join(e(str(x)) for x in (topo.get("cargo"), topo.get("partido"), topo.get("uf")) if x)
     mini = graficos.mini_patrimonio(hist, uid=f"mn-{pid}")
     # so o nome e link: as tags (montadas no painel a partir de data-pagina) sao botoes de filtro
-    return (f'<li class="card pessoa" data-pagina="pessoa/{e(pid)}.html">{avatar(nome)}'
+    return (f'<li class="card pessoa" data-pagina="pessoa/{e(pid)}.html">{avatar(nome, foto=topo.get("link_foto"))}'
             f'<span class="info"><a class="nome" href="pessoa/{e(pid)}.html">{e(nome)}</a>'
             f'<small class="ficha">{ficha}</small>{chip_nivel(topo.get("nivel"))}</span>'
             f'<span class="mini">{mini}</span></li>')
