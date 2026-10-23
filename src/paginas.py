@@ -2,7 +2,7 @@
 So usa o id interno (p0001...): CPF, chave e CNPJ nunca entram no HTML."""
 import csv, html, json, re, shutil
 from pathlib import Path
-import graficos, temas
+import economia, graficos, temas
 from texto import cap
 
 SRC = Path(__file__).resolve().parent
@@ -118,7 +118,7 @@ def _resumo(linhas):
             '<p class="mut"><small><a href="../index.html#como-ler">O que significam estas colunas?</a></small></p>')
 
 
-def _patrimonio(hist, linhas, uid):
+def _patrimonio(hist, linhas, uid, econ=None):
     graf = graficos.patrimonio(hist, uid=uid)
     alt = _alt(graficos.tabela_patrimonio(hist)) if hist else ""
     emps = next((a.get("empresas") for a in linhas if a.get("empresas")), []) or []
@@ -128,7 +128,7 @@ def _patrimonio(hist, linhas, uid):
                  + "".join(f"<li>{e(x)}</li>" for x in emps) + "</ul>"
                  "<p class=\"mut\"><small>Extraídas automaticamente da descrição dos bens declarados ao TSE; a lista pode "
                  "estar incompleta.</small></p>")
-    return (graf + alt + bloco + '<p class="mut"><small>Valores declarados pelo custo histórico, não pelo valor de mercado. '
+    return (graf + alt + economia.secao(econ, linhas) + bloco + '<p class="mut"><small>Valores declarados pelo custo histórico, não pelo valor de mercado. '
             "Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta.</small></p>")
 
 
@@ -177,11 +177,11 @@ def _cabecalho(a, nome, img=None):
             + f'<p class="ficha">{ficha}</p>{chip_nivel(a.get("nivel"))}</div></header>')
 
 
-def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None):
+def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, econ=None):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
     vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())), CABECALHO=_cabecalho(topo, nome, foto(linhas)),
-                RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
+                RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}", econ),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
                 PROPOSTAS=_propostas(pid), GERADO=e(gerado))
@@ -201,9 +201,10 @@ def cartao(pid, linhas, hist):
             f'<span class="mini">{mini}</span></li>')
 
 
-def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None):
+def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, econ=None):
     """Escreve docs/pessoa/<id>.html e devolve (html dos cartoes, {marca: html dos graficos do painel}).
-    `noticias`: {indice_da_linha: lista de noticias com tags ou aviso em texto} (dossie.gerar_dossies)."""
+    `noticias`: {indice_da_linha: lista de noticias com tags ou aviso em texto} (dossie.gerar_dossies).
+    `econ`: PIB e IPCA do IBGE (economia.coletar) para o bloco "Patrimônio × economia" (#55)."""
     noticias = noticias or {}
     pasta = Path(docs) / "pessoa"
     pasta.mkdir(parents=True, exist_ok=True)
@@ -218,7 +219,7 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None):
             continue
         h = hist.get(q["chave"], [])
         (pasta / f"{pid}.html").write_text(pagina(tpl, pid, linhas, h, secoes.get(q["idx"][0]), gerado,
-                                                           noticias.get(q["idx"][0])), encoding="utf-8")
+                                                           noticias.get(q["idx"][0]), econ), encoding="utf-8")
         for i in q["idx"]:
             alertas[i]["pagina"] = f"pessoa/{pid}.html"
         itens.append((max(ORDEM.get(a.get("nivel"), 0) for a in linhas), max(a.get("cresc") or 0 for a in linhas),
