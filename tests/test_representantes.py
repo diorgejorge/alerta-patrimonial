@@ -42,6 +42,33 @@ def test_presenca_e_votos_resumidos():
     assert "presenca" not in rp.parlamentar(dep(presenca="erro")) and "votos" not in rp.parlamentar(dep(votos=[]))
 
 
+class CacheFalso(dict):
+    salvo = False
+    def set(self, k, v): self[k] = v
+    def salvar(self): self.salvo = True
+
+
+def test_contatos_de_consulta_cada_um_uma_vez_e_usa_cache():
+    chamadas = []
+    def buscar(casa, ident, cache):
+        chamadas.append((casa, ident))
+        return dict(email=f"{ident}@x.leg.br")
+    cache = CacheFalso({"contato:senado:5012": dict(email="s@senado.leg.br")})
+    out = rp.contatos_de([dep(), dep(), dep(casa="senado", _id="5012"), dep(_id="")], cache, pausa=0,
+                         buscar=lambda c, i, k: k.get(f"contato:{c}:{i}") or buscar(c, i, k))
+    assert chamadas == [("camara", "204554")] and cache.salvo
+    assert out[("senado", "5012")]["email"] == "s@senado.leg.br" and len(out) == 2
+
+
+def test_contato_so_email_e_telefone_e_assembleia_no_estado():
+    c = dict(email="dep@camara.leg.br", telefone="(61) 3215-5000", endereco="Anexo 4", fonte="https://x")
+    p = rp.parlamentar(dep(), c)
+    assert p["contato"] == dict(email="dep@camara.leg.br", telefone="(61) 3215-5000")
+    assert "contato" not in rp.parlamentar(dep(), None)
+    out = rp.montar([dep()], assembleias={"SP": ("Alesp", "https://www.al.sp.gov.br"), "RJ": ("Alerj", "http://x")})
+    assert out["SP"]["assembleia"] == dict(nome="Alesp", site="https://www.al.sp.gov.br") and out["RJ"]["assembleia"] is None
+
+
 def test_eleitos_da_ultima_eleicao_estadual_empossada():
     linhas = [dict(ano=2022, cargo="GOVERNADOR", eleito=True, uf="SP", nome="FULANO", nome_urna="FULANO GOV", partido="A"),
               dict(ano=2022, cargo="DEPUTADO ESTADUAL", eleito=True, uf="SP", nome="BELTRANA", nome_urna="", partido="B",
@@ -103,6 +130,7 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     assert "Parlamentar exemplar" in txt and "Mão na massa" in txt and "abaixo da média" in txt
     assert pagina.locator('a[href="estado/SP.html"]').count() == 1
     assert pagina.locator('a[href="feed/uf-SP.xml"]').count() == 1
+    assert pagina.locator('.rep a[href^="mailto:"]').count() == 1 and "Cobre direto" in txt
     pagina.reload()
     pagina.wait_for_selector("#meus-corpo .rep")
     assert pagina.input_value("#meu-uf") == "SP"

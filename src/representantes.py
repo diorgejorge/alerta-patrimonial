@@ -6,7 +6,8 @@ deputados estaduais em exercicio. Fontes oficiais e gratuitas:
 So dados publicos: nada de CPF, chave interna ou campos "_..."."""
 import json
 from pathlib import Path
-import re
+import re, time
+import contatos
 from estados import UFS, mandato_estadual, norm
 
 PASTA = "representantes"
@@ -46,14 +47,34 @@ def _votos(p):
     return [sum(x.get("voto") not in (None, "", "Não votou") for x in v), len(v)] if isinstance(v, list) and v else None
 
 
-def parlamentar(p):
-    """Deputado federal ou senador de parlamentares.py, so com os campos publicos que o card usa."""
+def parlamentar(p, contato=None):
+    """Deputado federal ou senador de parlamentares.py, so com os campos publicos que o card usa.
+    `contato`: gabinete (contatos.py); so e-mail e telefone, o resto ja esta no perfil oficial."""
     senado = p.get("casa") == "senado"
     foto = (FOTO_SEN if senado else FOTO_DEP).format(id=p["_id"]) if str(p.get("_id") or "").isdigit() else None
     marcas = [m for m in ("exemplar", "selo") if p.get(m)]
     return _limpa(dict(nome=p.get("nome") or "Não informado", partido=p.get("partido"), foto=foto,
                        perfil=_https(p.get("perfil")), dossie=_local(p.get("dossie")), marcas=marcas,
-                       presenca=_presenca(p), votos=_votos(p), **{k: p.get(k) for k in CAMPOS_PARL}))
+                       presenca=_presenca(p), votos=_votos(p),
+                       contato=_limpa(dict(email=(contato or {}).get("email"), telefone=(contato or {}).get("telefone"))) or None, **{k: p.get(k) for k in CAMPOS_PARL}))
+
+
+def contatos_de(parl, cache=None, pausa=0.3, buscar=contatos.buscar):
+    """{(casa, id): contato} do gabinete de todos os parlamentares em exercicio (contatos.py, mesmo cache de 30 dias
+    da aba "Como cobrar"). So pausa quando consultou a fonte, para respeitar o limite das APIs (429)."""
+    out = {}
+    for p in parl or ():
+        k = (p.get("casa"), p.get("_id"))
+        if not k[1] or k in out:
+            continue
+        novo = not (cache and cache.get(f"contato:{k[0]}:{k[1]}"))
+        out[k] = buscar(k[0], k[1], cache)
+        if novo and pausa:
+            time.sleep(pausa)
+    if cache:
+        cache.salvar()
+    print(f"Meus representantes: contato de gabinete de {sum(1 for c in out.values() if c)} de {len(out)} parlamentares.")
+    return out
 
 
 def eleitos(serie, link=None, foto=None, paginas=None, hoje=None):
@@ -78,13 +99,14 @@ def eleitos(serie, link=None, foto=None, paginas=None, hoje=None):
     return out, ano
 
 
-def montar(parl, tse=None, gerado=None, eleicao=None):
+def montar(parl, tse=None, gerado=None, eleicao=None, contato=None, assembleias=None):
     """{uf: dict do arquivo} para os 27 estados; o estado sem ninguem tambem sai, com os grupos vazios."""
     por_uf = {uf: {g: [] for g, _ in GRUPOS} for uf in UFS}
     for p in parl or ():
         uf = str(p.get("uf") or "").upper()
         if uf in por_uf:
-            por_uf[uf]["senadores" if p.get("casa") == "senado" else "federais"].append(parlamentar(p))
+            por_uf[uf]["senadores" if p.get("casa") == "senado" else "federais"].append(
+                parlamentar(p, (contato or {}).get((p.get("casa"), p.get("_id")))))
     for uf, grupos in (tse or {}).items():
         for g, l in grupos.items():
             if uf in por_uf and g in por_uf[uf]:
@@ -93,17 +115,19 @@ def montar(parl, tse=None, gerado=None, eleicao=None):
     for uf, grupos in por_uf.items():
         for l in grupos.values():
             l.sort(key=lambda d: norm(d["nome"]))
+        ala = (assembleias or {}).get(uf)
         out[uf] = dict(uf=uf, estado=UFS[uf][1], gerado_em=gerado, eleicao_estadual=eleicao,
+                       assembleia=dict(nome=ala[0], site=ala[1]) if ala and _https(ala[1]) else None,
                        grupos=[dict(id=g, titulo=t, pessoas=grupos[g]) for g, t in GRUPOS])
     return out
 
 
-def gravar(docs, parl, tse=None, gerado=None, eleicao=None):
+def gravar(docs, parl, tse=None, gerado=None, eleicao=None, contato=None, assembleias=None):
     """Grava docs/representantes/UF.json (um por estado) e devolve quantas pessoas sairam."""
     pasta = Path(docs) / PASTA
     pasta.mkdir(parents=True, exist_ok=True)
     total = 0
-    for uf, d in montar(parl, tse, gerado, eleicao).items():
+    for uf, d in montar(parl, tse, gerado, eleicao, contato, assembleias).items():
         (pasta / f"{uf}.json").write_text(json.dumps(d, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         total += sum(len(g["pessoas"]) for g in d["grupos"])
     print(f"Meus representantes: {total} pessoas em {len(UFS)} arquivos (docs/{PASTA}).")

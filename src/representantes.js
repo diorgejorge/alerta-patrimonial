@@ -20,6 +20,8 @@
   const iniciais=n=>n.split(/\s+/).filter(w=>w.length>2).slice(0,2).map(w=>w[0]).join("").toUpperCase();
   // feed RSS por pessoa (thread RSS): existe para quem tem pessoa/pNNNN.html
   const feed=u=>{const m=/^pessoa\/(p\d+)\.html$/.exec(u||"");return m?`<a class="lk" href="feed/${m[1]}.xml" title="Receba um aviso (RSS) quando um dado mudar">Acompanhar</a>`:"";};
+  // aba "Como cobrar" da pagina da pessoa (thread Como cobrar): texto pronto para mandar
+  const cobrar=u=>/^pessoa\/p\d+\.html$/.test(u||"")?`<a class="lk" href="${esc(u)}#cobrar">texto pronto</a>`:"";
   const cache=new Map();
   const ler=()=>{try{return localStorage.getItem(CHAVE)||"";}catch(e){return"";}};
   const gravar=uf=>{try{uf?localStorage.setItem(CHAVE,uf):localStorage.removeItem(CHAVE);}catch(e){}};
@@ -42,15 +44,19 @@
     const parl=g==="senadores"||g==="federais";
     const links=[https(p.perfil)?`<a class="lk" href="${esc(p.perfil)}" target="_blank" rel="noopener">${parl?"Perfil oficial":"Candidatura no TSE"}</a>`:"",
       rel(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Dossiê</a>`:"",feed(p.dossie)].filter(Boolean).join(" · ");
+    const c=p.contato||{},tel=(c.telefone||"").replace(/\D/g,"");
+    const fale=parl&&(c.email||tel)?`<p class="rep-fale"><b>Cobre direto:</b> ${[c.email?`<a class="lk" href="mailto:${esc(c.email)}">e-mail</a>`:"",
+      tel?`<a class="lk" href="tel:+55${esc(tel)}">${esc(c.telefone)}</a>`:"",cobrar(p.dossie)].filter(Boolean).join(" · ")}</p>`:"";
     return`<li class="rep"><span class="avatar" aria-hidden="true">${esc(iniciais(p.nome))}${foto}</span><div class="rep-txt">
 <p class="rep-nome"><b>${esc(p.nome)}</b> <small>${esc(cargo)} · ${esc(p.partido||"Não informado")}</small></p>${tags?`<p class="tags">${tags}</p>`:""}
-${parl?numeros(p):""}${links?`<p class="rep-links">${links}</p>`:""}</div></li>`;
+${parl?numeros(p):""}${fale}${links?`<p class="rep-links">${links}</p>`:""}</div></li>`;
   }
-  function grupo(g,uf){
+  function grupo(g,uf,ala_){
     const n=g.pessoas.length;if(!n)return"";
     const tit=g.id==="estaduais"&&uf==="DF"?"Deputados distritais":g.titulo;
     const mais=n>PRIMEIROS?`<p class="mais"><button type="button" class="botao rep-mais" aria-expanded="false">Ver todos os ${n}</button></p>`:"";
-    return`<section class="rep-grupo${n>PRIMEIROS?" curto":""}" data-g="${esc(g.id)}"><h3>${esc(tit)} <small>(${n})</small></h3>
+    const ala=g.id==="estaduais"&&ala_&&https(ala_.site)?` <a class="lk" href="${esc(ala_.site)}" target="_blank" rel="noopener">Contatos na ${esc(ala_.nome)}</a>`:"";
+    return`<section class="rep-grupo${n>PRIMEIROS?" curto":""}" data-g="${esc(g.id)}"><h3>${esc(tit)} <small>(${n})</small>${ala}</h3>
 <ul class="rep-lista">${g.pessoas.map(p=>pessoa(p,g.id,uf)).join("")}</ul>${mais}</section>`;
   }
   // "1 governador, 3 senadores, 70 deputados federais e 94 deputados estaduais"
@@ -65,7 +71,7 @@ ${parl?numeros(p):""}${links?`<p class="rep-links">${links}</p>`:""}</div></li>`
     const uf=d.uf,nome=UFS[uf];
     corpo.innerHTML=`<p class="rep-resumo">${esc(nome)} tem hoje <b>${esc(resumo(d))}</b>. Eles trabalham para você: confira e cobre.</p>
 <p class="rep-acoes"><button type="button" class="botao" id="meus-filtrar">Ver ${esc(uf)} nos destaques</button> <a class="botao" href="estado/${esc(uf)}.html">Gastos de ${esc(nome)}</a> <a class="botao" href="feed/uf-${esc(uf)}.xml" title="Receba um aviso (RSS) quando um dado mudar">Acompanhar ${esc(uf)}</a></p>
-${d.grupos.map(g=>grupo(g,uf)).join("")}<p class="fonte">Fontes: Câmara dos Deputados, Senado Federal e TSE${d.eleicao_estadual?` (eleitos em ${esc(d.eleicao_estadual)})`:""}. Atualizado em ${esc(d.gerado_em||"Não informado")}.</p>`;
+${d.grupos.map(g=>grupo(g,uf,d.assembleia)).join("")}<p class="fonte">Fontes: Câmara dos Deputados, Senado Federal e TSE${d.eleicao_estadual?` (eleitos em ${esc(d.eleicao_estadual)})`:""}. Atualizado em ${esc(d.gerado_em||"Não informado")}.</p>`;
   }
   async function carregar(uf){
     if(!cache.has(uf))cache.set(uf,fetch(`representantes/${uf}.json`).then(r=>{if(!r.ok)throw new Error(r.status);return r.json();}));

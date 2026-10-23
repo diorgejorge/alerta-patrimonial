@@ -734,7 +734,10 @@ def main():
     try:
         parl_uf, tse_uf, ano_est = (representantes.demo() if args.demo else
                                     (parl, *representantes.eleitos(serie, link_tse, link_foto, pag)))
-        dados["representantes"] = representantes.gravar(docs, parl_uf, tse_uf, dados["gerado_em"], ano_est)
+        contato = ({(p["casa"], p["_id"]): contatos.DEMO for p in parl_uf[::5]} if args.demo else
+                   representantes.contatos_de(parl_uf, caches.get("contatos")))
+        dados["representantes"] = representantes.gravar(docs, parl_uf, tse_uf, dados["gerado_em"], ano_est,
+                                                         contato, contatos.assembleias())
         shutil.copyfile(ROOT / "src" / "representantes.js", docs / "representantes.js")
     except Exception as ex:  # nunca derruba o painel: sem os arquivos, o bloco mostra "Fonte não encontrada"
         print(f"[aviso] meus representantes falhou ({ex!r})", file=sys.stderr)
