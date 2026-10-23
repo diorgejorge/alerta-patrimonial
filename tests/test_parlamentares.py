@@ -11,7 +11,7 @@ CPF_A, CPF_B, CPF_S, CPF_EX = "11111111111", "22222222222", "33333333333", "4444
 
 def par(chave, nome, cargo, uf, cresc, cap):
     return dict(chave=chave, nome=nome, nome_urna=None, cargo=cargo, cargo_ini=cargo, uf=uf, partido="PX",
-                ano_ini=2022, ano_fim=2026, cresc=cresc, cap=cap, razao=cresc / cap)
+                ano_ini=2022, ano_fim=2026, cresc=cresc, cap=cap, razao_salario=cresc / cap)
 
 
 DF = pd.DataFrame([par(f"cpf:{CPF_A}", "FULANO A", "DEPUTADO FEDERAL", "SP", 100_000, 500_000),

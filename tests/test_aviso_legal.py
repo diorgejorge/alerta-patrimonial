@@ -56,7 +56,7 @@ def test_aviso_legal_publicado_com_canal(tmp_path, monkeypatch):
     aviso = (docs / "funcionamento.html").read_text(encoding="utf-8")
     assert "__" not in re.sub(r"<[^>]+>", "", aviso)
     assert "issues/new?template=correcao.yml" in aviso and "23/10/2026" in aviso
-    for rotulo in ("Faixas de cor", "vezes o possível = ", "Emergência sem reconhecimento oficial", "Emenda parada"):
+    for rotulo in ("Faixas de cor", "vezes = (patrimônio no fim", "Emergência sem reconhecimento oficial", "Emenda parada"):
         assert rotulo in aviso
     assert len(LINK_OFICIAL.findall(aviso)) >= 4
     assert "issues/new?template=correcao.yml" in (docs / "privacidade.html").read_text(encoding="utf-8")

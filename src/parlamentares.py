@@ -53,8 +53,8 @@ def _base(casa, cargo, nome, nome_completo, partido, uf, ident, perfil, cpf, r):
              _nomes={cota.norm(nome), cota.norm(nome_completo), cota.norm((r or {}).get("nome"))} - {""})
     if r:
         p.update(ano_ini=int(r["ano_ini"]), ano_fim=int(r["ano_fim"]), cresc=_num(r["cresc"]), cap=_num(r["cap"]),
-                 razao=_num(r["razao"]))
-    p["patrimonio_ok"] = exemplares.compativel(r["cresc"], r["cap"], r["razao"]) if r else None
+                 razao=_num(r.get("razao_salario")))
+    p["patrimonio_ok"] = exemplares.compativel(r["cresc"], r["cap"], r.get("razao_salario")) if r else None
     return p
 
 

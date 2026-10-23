@@ -118,11 +118,11 @@ def test_barras_niveis():
     s = g.barras_niveis(NIV, "n")
     raiz = acessivel(s)
     tx = textos(raiz)
-    assert tx == ["Faixa vermelha", "3", "Faixa laranja", "0", "Faixa azul", "12", "Sem salário informado", "0"]
-    for k in ("forte", "atencao", "informativo", "sem_salario"):
+    assert tx == ["Faixa vermelha", "3", "Faixa laranja", "0", "Faixa azul", "12"]
+    for k in ("forte", "atencao", "informativo"):
         assert f'class="g-barra nv-{k}"' in s
         assert f'fill="url(#g-n-niv-{k})"' in s
-    assert s.count('class="g-padrao"') == 4
+    assert s.count('class="g-padrao"') == 3
     zero = [el for el in raiz.iter(NS + "text") if el.text == "0"][0]
     assert zero.get("x") == "184"  # barra minima de 2 px + 6 de folga a partir de x=176
     assert "Faixa laranja: 0" in raiz.find(NS + "desc").text
@@ -130,7 +130,7 @@ def test_barras_niveis():
 
 def test_barras_niveis_vazio_e_grande():
     raiz = acessivel(g.barras_niveis({}, "v"))
-    assert textos(raiz) == ["Faixa vermelha", "0", "Faixa laranja", "0", "Faixa azul", "0", "Sem salário informado", "0"]
+    assert textos(raiz) == ["Faixa vermelha", "0", "Faixa laranja", "0", "Faixa azul", "0"]
     raiz = acessivel(g.barras_niveis({"forte": 12345, "atencao": None}, "w"))
     assert "12.345" in textos(raiz)
 
@@ -138,7 +138,7 @@ def test_barras_niveis_vazio_e_grande():
 def test_tabela_niveis():
     t = ET.fromstring(g.tabela_niveis(NIV))
     assert t.find("caption").text == "Destaques por nível"
-    assert [th.text for th in t.iter("th")] == ["Faixa", "Destaques", "Faixa vermelha", "Faixa laranja", "Faixa azul", "Sem salário informado", "Total"]
+    assert [th.text for th in t.iter("th")] == ["Faixa", "Destaques", "Faixa vermelha", "Faixa laranja", "Faixa azul", "Total"]
     assert t.find("tfoot").find("tr").find("td").text == "15"
 
 
@@ -183,10 +183,11 @@ def test_tabela_patrimonio():
     linhas = raiz.find("tbody").findall("tr")
     assert [l.find("th").text for l in linhas] == ["2018", "2022"]
     assert [td.text for td in linhas[0].findall("td")] == ["—", "início"]
-    assert [td.text for td in linhas[1].findall("td")] == ["+50%", "+50%"]
+    assert [td.text for td in linhas[1].findall("td")] == ["0,5×", "0,5×"]
     t = g.tabela_patrimonio([(2018, 100_000), (2022, 0)])
-    assert "−100%" in t and "R$" not in t
-    assert g.variacao(5, 0) == "começou do zero" and g.variacao(None, 1) == "Não informado"
+    assert "diminuiu" in t and "R$" not in t
+    assert g.vezes_aumento(5, 0) == "começou do zero" and g.vezes_aumento(None, 1) == "Não informado"
+    assert g.vezes_aumento(300, 100) == "2,0×"  # tinha 100, foi a 300: aumentou 2 vezes o valor original
 
 
 # ---------------------------------------------------------------- 3. mini
@@ -194,7 +195,7 @@ def test_mini_patrimonio():
     s = g.mini_patrimonio([(2018, 100_000), (2022, 150_000)], "m")
     raiz = svg(s)
     assert raiz.get("viewBox") == "0 0 96 28"
-    assert raiz.get("aria-label") == "Patrimônio declarado de 2018 a 2022: +50%"
+    assert raiz.get("aria-label") == "Quantas vezes o patrimônio aumentou de 2018 a 2022: 0,5×"
     c = raiz.find(NS + "circle")
     assert c.get("r") == "3"
     assert raiz.find(NS + "polyline").get("stroke-width") == "2"

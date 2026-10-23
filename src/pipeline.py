@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CACHE, DOCS, CFG = ROOT / "data" / "cache", ROOT / "docs", ROOT / "config"
 ESTADO = ROOT / "data" / "estado.json"
 BASE = "https://cdn.tse.jus.br/estatistica/sead/odsele"
-ORDEM = {"forte": 3, "atencao": 2, "informativo": 1, "sem_salario": 0.5}  # sem salario: abaixo das cores
+ORDEM = {"forte": 3, "atencao": 2, "informativo": 1}
 
 # DivulgaCandContas: pagina do candidato em
 #   {DIVULGA}/{REGIAO}/{UF}/{ID_ELEICAO}/{SQ_CANDIDATO}/{ANO}/{SG_UE}
@@ -312,7 +312,10 @@ def _classifica(df, p):
     """Razao, percentil no grupo de pares e nivel de destaque (sobre todos os periodos juntos)."""
     if df.empty:
         return df
-    df["razao"] = df.apply(lambda r: r.cresc / r.cap if r.cap and r.cap > 0 else None, axis=1)
+    # faixas (#62): quantas vezes o patrimonio aumentou sobre o valor original (pat_ini > 0 em _lista_pares); o salario nao entra
+    df["razao"] = df.cresc / df.pat_ini
+    # so para "parlamentar exemplar" (patrimonio compativel com o salario)
+    df["razao_salario"] = df.apply(lambda r: r.cresc / r.cap if r.cap and r.cap > 0 else None, axis=1)
     # percentil dentro do grupo de pares (cargo + periodo); se o grupo for pequeno, so o periodo
     gk = ["ano_ini", "ano_fim", "cargo_ini"]
     pct_grupo = df.groupby(gk)["cresc"].rank(pct=True) * 100
@@ -330,16 +333,14 @@ def _classifica(df, p):
     return df
 
 
-REDUZ = {"forte": "atencao", "atencao": "informativo", "informativo": "informativo", "sem_salario": "sem_salario"}
+REDUZ = {"forte": "atencao", "atencao": "informativo", "informativo": "informativo"}
 
 
 def nivel(r, p):
     if r.cresc < p["crescimento_minimo"]:
         return None
-    rz = r.razao if pd.notna(r.razao) else None
+    rz = r.razao
     f, a, i = p["limiar_forte"], p["limiar_atencao"], p["limiar_informativo"]
-    if rz is None:  # sem salario pago pelo Estado (#62): sem cor, so a marca, para quem cresceu mais que os colegas
-        return "sem_salario" if r.percentil >= i["percentil"] else None
     if rz >= f["razao"] and r.percentil >= f["percentil"]:
         return "forte"
     if (rz >= a["razao"] and r.percentil >= a["percentil"]) or r.percentil >= 98:
@@ -433,7 +434,7 @@ def carregar_bens():
         return None
 
 
-NIVEL_COD = {"forte": 3, "atencao": 2, "informativo": 1, "sem_salario": 4}  # lista completa: 0 = sem destaque
+NIVEL_COD = {"forte": 3, "atencao": 2, "informativo": 1}  # lista completa: 0 = sem destaque
 REL_OK = lambda u: isinstance(u, str) and bool(u) and not re.match(r"\s*[a-z][a-z0-9+.-]*:", u, re.I)
 
 

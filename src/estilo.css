@@ -89,7 +89,7 @@ small,.mut{color:var(--mut)}
 /* chips de nivel e de tag: simbolo + texto, nunca so cor */
 .chip{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:.875rem;font-weight:600;
   border:1px solid currentColor;line-height:1.6}
-.chip.nv-forte{color:var(--forte)}.chip.nv-atencao{color:var(--atencao)}.chip.nv-informativo{color:var(--info)}.chip.nv-sem_salario{color:var(--mut)}
+.chip.nv-forte{color:var(--forte)}.chip.nv-atencao{color:var(--atencao)}.chip.nv-informativo{color:var(--info)}
 .chip[class*="nv-"]{background:color-mix(in srgb,currentColor 16%,transparent)}  /* fundo tingido da propria cor do nivel */
 .chip[class*="tag-"]{font-weight:500;color:var(--fg);border-color:var(--tc,var(--line))}
 .chip[class*="tag-"]::before{content:"";width:.6em;height:.6em;border-radius:50%;background:var(--tc,var(--mut))}  /* cor so como marcador; texto em --fg (AA) */
@@ -156,7 +156,7 @@ table.resp th{font-weight:600;color:var(--mut)}.n{text-align:right;font-variant-
 svg{max-width:100%;height:auto;color:var(--fg)}
 svg .g-txt{fill:var(--fg)}svg .g-mut{fill:var(--mut)}svg .g-eixo{stroke:var(--line);fill:none}
 svg polyline.g-txt,svg path.g-txt,svg line.g-txt{fill:none;stroke:var(--fg)}
-svg .nv-forte{fill:var(--forte)}svg .nv-atencao{fill:var(--atencao)}svg .nv-informativo{fill:var(--info)}svg .nv-sem_salario{fill:var(--mut)}
+svg .nv-forte{fill:var(--forte)}svg .nv-atencao{fill:var(--atencao)}svg .nv-informativo{fill:var(--info)}
 svg .g-hachura{color:var(--card)}svg .g-padrao{opacity:.45}  /* cor da hachura vem do <pattern>, nunca dar fill ao .g-padrao */
 svg .g-coluna{fill:var(--info)}.grafico{max-width:720px}.g-pct{max-width:520px}
 svg .tag-politico{fill:var(--t-politico)}svg .tag-eleitoral{fill:var(--t-eleitoral)}svg .tag-legislativo{fill:var(--t-legislativo)}

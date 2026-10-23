@@ -11,7 +11,6 @@ e = html.escape
 TSE_DADOS = "https://dadosabertos.tse.jus.br/"
 CASAS = {"camara": "Dados Abertos da Câmara dos Deputados", "senado": "Dados Abertos do Senado Federal"}
 FONTE_TSE = "Fonte: declarações de bens entregues ao TSE"
-FONTE_SALARIO = " e salário oficial do cargo"
 MUNICIPAIS = {"PREFEITO", "VICE-PREFEITO", "VEREADOR"}
 ESTADUAIS = {"DEPUTADO ESTADUAL", "DEPUTADO DISTRITAL"}
 
@@ -20,26 +19,19 @@ def brl(v):
     return "R$ " + f"{v:,.0f}".replace(",", ".")
 
 
-def vezes(v):
-    return f"{v:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".")
-
-
 def _num(v):
     return v if isinstance(v, (int, float)) and v == v else None  # descarta None e NaN
 
 
 def resumo(linhas):
-    """Numeros do card (regra 8: crescimento somado entre os periodos): anos, crescimento, o que daria para guardar
-    com o salario (so se todos os periodos tem) e quantas vezes isso."""
+    """Numeros do card (regra 8: crescimento somado entre os periodos): anos, crescimento e quantas vezes o patrimonio
+    aumentou sobre o valor do inicio (#62: sem salario e sem reais)."""
     per = sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0))
     cresc = [_num(a.get("cresc")) for a in per]
-    caps = [_num(a.get("cap")) for a in per]
     total = sum(c for c in cresc if c is not None) if any(c is not None for c in cresc) else None
-    guardar = sum(caps) if caps and all(c is not None and c > 0 for c in caps) else None
     ini = _num(per[0].get("pat_ini"))
-    return dict(ano_ini=per[0].get("ano_ini"), ano_fim=per[-1].get("ano_fim"), cresc=total, cap=guardar,
-                aumento=None if total is None or ini is None else graficos.variacao(ini + total, ini),  # #62: sem reais
-                razao=total / guardar if guardar and total and total > 0 else None,
+    return dict(ano_ini=per[0].get("ano_ini"), ano_fim=per[-1].get("ano_fim"), cresc=total,
+                aumento=None if total is None or ini is None else graficos.vezes_aumento(ini + total, ini),  # #62
                 tse=next((a["link_tse"] for a in reversed(per) if str(a.get("link_tse") or "").startswith("https://")),
                          None))
 
@@ -59,10 +51,9 @@ def texto(nome, uf, r, cota=None, projetos=None):
     pontos = []
     cresceu = r.get("cresc") is not None and r["cresc"] > 0
     if cresceu:
-        p = _vi("no site do TSE", r.get("tse")) + " que seu patrimônio declarado aumentou" + (
-            f" {r['aumento'].lstrip('+')}" if r.get("aumento") and r["aumento"][0] in "+−" else "") + f" de {r['ano_ini']} a {r['ano_fim']}."  # "aumentou 200%", sem o +
-        if r.get("razao") and r["razao"] >= 1.05:
-            p += f" O aumento foi {vezes(r['razao'])} vezes o que daria para guardar somente com o salário do cargo."
+        vz = r.get("aumento") or ""
+        p = (_vi("no site do TSE", r.get("tse")) + " que seu patrimônio declarado aumentou"
+             + (f" {vz[:-1]} vezes" if vz.endswith("×") else "") + f" de {r['ano_ini']} a {r['ano_fim']}.")
         pontos.append(p)
     if cota and _num(cota.get("total")):
         pontos.append(_vi(f"nos dados abertos {_da_casa('camara.leg.br' in str(cota.get('link')))}", cota.get("link"))
@@ -148,12 +139,10 @@ def imagem(linhas):
     r = resumo(linhas)
     numeros = []
     if r["aumento"]:
-        numeros.append([r["aumento"], f"no patrimônio de {r['ano_ini']} a {r['ano_fim']}"])
-    if r["razao"]:
-        numeros.append([vezes(r["razao"]) + "×", "o que daria para guardar somente com o salário"])
+        numeros.append([r["aumento"], f"quanto o patrimônio aumentou de {r['ano_ini']} a {r['ano_fim']}"])
     ficha = " · ".join(str(x) for x in (cap(topo.get("cargo")), topo.get("partido"), topo.get("uf")) if x)
     return dict(nome=cap((topo.get("nome_urna") or topo.get("nome") or "").strip()), ficha=ficha, numeros=numeros,
-                url=r["tse"] or TSE_DADOS, fontes=FONTE_TSE + (FONTE_SALARIO if r["cap"] else "") + ".")
+                url=r["tse"] or TSE_DADOS, fontes=FONTE_TSE + ".")
 
 
 def botao(dados):

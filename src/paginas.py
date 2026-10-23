@@ -7,14 +7,10 @@ from texto import cap
 
 SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
-ORDEM = {"forte": 3, "atencao": 2, "informativo": 1, "sem_salario": 0.5}
-SIMBOLO = {"forte": "▲", "atencao": "◆", "informativo": "●", "sem_salario": "○"}  # forma alem da cor
+ORDEM = {"forte": 3, "atencao": 2, "informativo": 1}
+SIMBOLO = {"forte": "▲", "atencao": "◆", "informativo": "●"}  # forma alem da cor
 NUM = ' class="n"'  # colunas numericas (alinhadas a direita)
 e = html.escape
-
-
-def vezes(v):
-    return "Não informado" if v is None else f"{v:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
 
 
 def chip_nivel(nv):
@@ -80,26 +76,24 @@ def ler_vinculos(caminho=ROOT / "config" / "vinculos.csv"):
 
 # ---------------------------------------------------------------- pagina da pessoa
 def _tabela_periodos(linhas):
-    cab = ["Período", "Cargo", "Aumento do patrimônio", "Cresceu quantas vezes isso", "Entre colegas do mesmo cargo",
-           "Faixa"]  # sem valores em reais do patrimonio (#62): quem quiser confere no TSE
+    cab = ["Período", "Cargo", "Quantas vezes o patrimônio aumentou", "Entre colegas do mesmo cargo", "Faixa"]  # sem valores em reais do patrimonio (#62): quem quiser confere no TSE
     corpo = []
     for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0)):
         cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(cap(a.get("cargo"))),
-               graficos.variacao(a.get("pat_fim"), a.get("pat_ini")), vezes(a.get("razao")),
+               graficos.vezes_aumento(a.get("pat_fim"), a.get("pat_ini")),
                graficos.regua_colegas(a), chip_nivel(a.get("nivel"))]
-        corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if 2 <= i <= 3 else ""}>{v}</td>'
+        corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if i == 2 else ""}>{v}</td>'
                                       for i, (c, v) in enumerate(zip(cab, cel))) + "</tr>")
     return ('<div class="tab"><table class="resp"><caption class="sr">Períodos em destaque</caption><thead><tr>'
-            + "".join(f'<th scope="col"{NUM if 2 <= i <= 3 else ""}>{e(c)}</th>' for i, c in enumerate(cab))
+            + "".join(f'<th scope="col"{NUM if i == 2 else ""}>{e(c)}</th>' for i, c in enumerate(cab))
             + "</tr></thead><tbody>" + "".join(corpo) + "</tbody></table></div>")
 
 
 def _resumo(linhas):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("cresc") or 0))
-    rz = max((a["razao"] for a in linhas if a.get("razao") is not None), default=None)
     kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "Não informado"), "Faixa mais alta"),
-            (graficos.variacao(topo.get("pat_fim"), topo.get("pat_ini")), f"Aumento do patrimônio em {topo.get('ano_ini')}–{topo.get('ano_fim')}"),
-            (vezes(rz), "Maior “quantas vezes o possível”"),
+            (graficos.vezes_aumento(topo.get("pat_fim"), topo.get("pat_ini")),
+             f"Quantas vezes o patrimônio aumentou de {topo.get('ano_ini')} a {topo.get('ano_fim')}"),
             (str(len(linhas)), "Períodos em destaque")]
     html_kpis = '<div class="kpis">' + "".join(f'<div class="card kpi"><b>{e(v)}</b><span>{e(r)}</span></div>'
                                                 for v, r in kpis) + "</div>"

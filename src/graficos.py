@@ -9,8 +9,7 @@ from texto import cap as _cap
 
 e = html.escape
 # so a cor da faixa (#62): o significado e a formula ficam na legenda, sem rotulo que soe como julgamento
-ROTULO_NIVEL = {"forte": "Faixa vermelha", "atencao": "Faixa laranja", "informativo": "Faixa azul",
-                "sem_salario": "Sem salário informado"}  # sem cor: fora das faixas, mas nos destaques
+ROTULO_NIVEL = {"forte": "Faixa vermelha", "atencao": "Faixa laranja", "informativo": "Faixa azul"}
 # regua dos colegas (#64): mesma marcacao do painel (RG/COL em template.html)
 P_ALTO = 90  # ponto dourado: cresceu mais que 90 de cada 100 colegas
 PARTE = ("a dos que menos cresceram", "a segunda", "a do meio", "a quarta", "a dos que mais cresceram")
@@ -108,7 +107,7 @@ def _abre(p, w, h, titulo, desc, cls):
 
 
 def _padroes(p):
-    """Hachuras por nivel (forte 45 graus, atencao 135 graus, informativo pontos, sem salario vertical) em currentColor."""
+    """Hachuras por nivel (forte 45 graus, atencao 135 graus, informativo pontos) em currentColor."""
     lin = '<line x1="3" y1="0" x2="3" y2="6" stroke="currentColor" stroke-width="1.5"/>'
     return ("<defs>"
             f'<pattern id="{p}-forte" class="g-hachura" width="6" height="6" patternUnits="userSpaceOnUse" '
@@ -117,9 +116,7 @@ def _padroes(p):
             f'patternTransform="rotate(135)">{lin}</pattern>'
             f'<pattern id="{p}-informativo" class="g-hachura" width="5" height="5" patternUnits="userSpaceOnUse">'
             '<circle cx="2.5" cy="2.5" r="1.1" fill="currentColor" stroke="currentColor" stroke-width=".3"/>'
-            "</pattern>"
-            f'<pattern id="{p}-sem_salario" class="g-hachura" width="6" height="6" patternUnits="userSpaceOnUse">'
-            f"{lin}</pattern></defs>")
+            "</pattern></defs>")
 
 
 def _ponta_dir(x, y, w, h, r=4):
@@ -210,19 +207,20 @@ def _escala(m):
     return passo, max(1, math.ceil(m / passo - 1e-9))
 
 
-def variacao(v, base):
-    """Variacao em porcentagem de `base` ate `v` (#62: o site nao mostra o patrimonio em reais)."""
+def vezes_aumento(v, base):
+    """Quantas vezes o patrimonio aumentou: (v - base) / base, ex. '2,0×' (#62: sem reais na tela, sem salario)."""
     if _nulo(v) or _nulo(base):
         return "Não informado"
     if base <= 0:
-        return "começou do zero" if v > 0 else "0%"
-    pct = (v - base) / base * 100
-    return ("+" if round(pct) > 0 else "−" if round(pct) < 0 else "") + _num(abs(pct)) + "%"
+        return "começou do zero" if v > 0 else "Não informado"
+    if v < base:
+        return "diminuiu"
+    return _num((v - base) / base, 1) + "×"
 
 
 def patrimonio(pontos: list[tuple[int, float]], uid: str,
                titulo: str = "Patrimônio declarado por eleição") -> str:
-    """Colunas na proporcao do patrimonio, rotuladas pela variacao desde a primeira eleicao, sem valores em reais."""
+    """Colunas na proporcao do patrimonio, rotuladas por quantas vezes aumentou desde a primeira eleicao, sem reais."""
     pts = _pontos(pontos)
     if not pts:
         return VAZIO_PATRIMONIO
@@ -235,11 +233,11 @@ def patrimonio(pontos: list[tuple[int, float]], uid: str,
     passo, k = _escala(max(v for _, v in pts))
     topo = passo * k
     base = pts[0][1]
-    rotulos = ["início"] + [variacao(v, base) for _, v in pts[1:]]
+    rotulos = ["início"] + [vezes_aumento(v, base) for _, v in pts[1:]]
     if n == 1:
         desc = f"Só há a declaração da eleição de {pts[0][0]}."
     else:
-        desc = (f"Colunas por eleição, de {pts[0][0]} a {pts[-1][0]}, com a variação desde {pts[0][0]}. "
+        desc = (f"Colunas por eleição, de {pts[0][0]} a {pts[-1][0]}, com quantas vezes o patrimônio aumentou desde {pts[0][0]}. "
                 + "; ".join(f"{a}: {rot}" for (a, _), rot in zip(pts, rotulos)) + ".")
     partes = [_abre(p, W, H, titulo, desc, "g-patrimonio")]
     for i in range(k + 1):  # grade
@@ -266,9 +264,9 @@ def tabela_patrimonio(pontos: list[tuple[int, float]],
     if not pts:
         return ""
     base = pts[0][1]
-    linhas = [(str(ano), "—" if i == 0 else variacao(v, pts[i - 1][1]), "início" if i == 0 else variacao(v, base))
+    linhas = [(str(ano), "—" if i == 0 else vezes_aumento(v, pts[i - 1][1]), "início" if i == 0 else vezes_aumento(v, base))
               for i, (ano, v) in enumerate(pts)]
-    return _tabela(titulo, ("Eleição", "Variação sobre a eleição anterior", f"Variação desde {pts[0][0]}"), linhas)
+    return _tabela(titulo, ("Eleição", "Quantas vezes aumentou sobre a eleição anterior", f"Quantas vezes aumentou desde {pts[0][0]}"), linhas)
 
 
 # ---------------------------------------------------------------- 3. mini grafico de patrimonio
@@ -285,7 +283,7 @@ def mini_patrimonio(pontos: list[tuple[int, float]], uid: str) -> str:
         return M + (a - a0) / (a1 - a0) * (W - 2 * M), y
 
     coords = [xy(a, v) for a, v in pts]
-    rot = f"Patrimônio declarado de {a0} a {a1}: {variacao(v1, v0)}"
+    rot = f"Quantas vezes o patrimônio aumentou de {a0} a {a1}: {vezes_aumento(v1, v0)}"
     linha = " ".join(f"{_n(x)},{_n(y)}" for x, y in coords)
     x, y = coords[-1]
     return (f'<svg xmlns="http://www.w3.org/2000/svg" class="grafico g-mini" viewBox="0 0 {W} {H}" '

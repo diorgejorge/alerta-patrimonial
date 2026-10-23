@@ -32,14 +32,15 @@ def test_reduz_um_grau_com_empresas():
     assert pipeline.REDUZ["informativo"] == "informativo"  # o menor grau nao some do painel
 
 
-def test_sem_salario_fica_sem_cor_mas_nos_destaques():
-    """#62: quem nao recebia salario publico (nao eleito) nao ganha cor, so a marca; empresas nao mudam isso."""
+def test_sem_salario_tambem_ganha_cor():
+    """#62: a cor usa so quantas vezes o patrimonio aumentou e os colegas; quem nao recebia salario entra igual."""
     serie = pd.DataFrame([linha("c", 2018, 100_000, [], "PREFEITO", False), linha("c", 2022, 9_000_000, [], "PREFEITO", False),
                           linha("d", 2018, 100_000, ["X LTDA"], "GOVERNADOR", False),
                           linha("d", 2022, 9_000_000, ["X LTDA"], "GOVERNADOR", False)])
     df = pipeline.pares(serie, REGRAS, {}, P).set_index("chave")
     assert df.loc["c", "cap"] is None or pd.isna(df.loc["c", "cap"])
-    assert list(df["nivel"]) == ["sem_salario", "sem_salario"]
+    assert df.loc["c", "razao"] == 89  # 100 mil -> 9 mi: aumentou 89 vezes o valor original
+    assert list(df["nivel"]) == ["forte", "atencao"]  # d tem empresas: desce um grau
 
 
 def test_teto_para_cargos_sem_subsidio_oficial():

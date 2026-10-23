@@ -20,7 +20,7 @@ COTA_MINIMA = 1000  # variacao da cota (R$) que vira aviso; abaixo disso e so o 
 SITE_PADRAO = "https://diorgejorge.github.io/alerta-patrimonial/"
 RE_PID = re.compile(r"p\d+")
 RE_UF = re.compile(r"[A-Z]{2}")
-ORDEM_NIVEL = {"forte": 3, "atencao": 2, "informativo": 1, "sem_salario": 0.5}
+ORDEM_NIVEL = {"forte": 3, "atencao": 2, "informativo": 1}
 e = html.escape
 
 

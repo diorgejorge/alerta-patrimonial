@@ -13,7 +13,7 @@ P = dict(taxa_poupanca=0.3, crescimento_minimo=100_000, min_pares_grupo=3,
 
 
 def periodo(chave, cargo, cresc):
-    return dict(chave=chave, ano_ini=2018, ano_fim=2022, cargo_ini=cargo, cresc=cresc, cap=100_000.0,
+    return dict(chave=chave, ano_ini=2018, ano_fim=2022, cargo_ini=cargo, cresc=cresc, cap=100_000.0, pat_ini=100_000.0, pat_fim=100_000.0 + cresc,
                 outras_rendas=False)
 
 

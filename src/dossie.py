@@ -34,8 +34,7 @@ PROCESSOS_ATIVO = False
 FALHA = "Fonte não encontrada: as fontes de notícias não responderam nesta execução."
 SEM_TEMPO = "Não informado: busca não realizada nesta execução (limite de tempo)."
 TEMAS = '(patrimônio OR bens OR "declaração de bens" OR empresa OR "Tribunal de Contas" OR TCU)'
-NV = {"forte": "Faixa vermelha", "atencao": "Faixa laranja", "informativo": "Faixa azul",
-      "sem_salario": "Sem salário informado"}  # mesmos rotulos de graficos.ROTULO_NIVEL (#62)
+NV = {"forte": "Faixa vermelha", "atencao": "Faixa laranja", "informativo": "Faixa azul"}  # mesmos rotulos de graficos.ROTULO_NIVEL (#62)
 ONDE = {"titulo": "no título", "resumo": "no resumo", "texto": "no texto"}
 CARGOS = {"DEPUTADO": "deputado OR deputada", "SENADOR": "senador OR senadora",
           "GOVERNADOR": "governador OR governadora", "PREFEITO": "prefeito OR prefeita",
@@ -462,7 +461,6 @@ def bloco_empresas(empresas):
 
 
 def periodo(a):
-    rz = "Não informado" if nulo(a.get("razao")) else f"{a['razao']:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
     pc = graficos.regua_colegas(a)  # mesma regua do painel (#64)
     nv = a.get("nivel") or ""
     novo = ' <span class="novo">novo</span>' if a.get("novo") else ""
@@ -471,8 +469,7 @@ def periodo(a):
                  + (f'; destaque reduzido de {e(NV.get(a.get("nivel_calculado"), ""))}'
                     if a.get("nivel_calculado") and a.get("nivel_calculado") != a.get("nivel") else "") + "</small>")
     return (f"<tr><td>{a['ano_ini']}–{a['ano_fim']}{novo}<br><small>{e(cap(a.get('cargo')))}</small></td>"
-            f'<td class="n" data-label="Aumento do patrimônio">{graficos.variacao(a.get("pat_fim"), a.get("pat_ini"))}</td>'
-            f'<td class="n" data-label="Cresceu quantas vezes isso">{rz}</td>'
+            f'<td class="n" data-label="Quantas vezes o patrimônio aumentou">{graficos.vezes_aumento(a.get("pat_fim"), a.get("pat_ini"))}</td>'
             f'<td class="n" data-label="Entre colegas do mesmo cargo">{pc}</td>'
             f'<td class="nivel {e(nv)}" data-label="Faixa">{e(NV.get(nv, nv))}</td></tr>')
 
