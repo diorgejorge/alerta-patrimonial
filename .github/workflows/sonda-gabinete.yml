@@ -2,10 +2,10 @@ name: Sonda · equipe do gabinete (temporário)
 on:
   workflow_dispatch:
   push:
-    paths: [".github/scripts/sonda_gabinete.py"]
+    paths: [".github/scripts/sonda_gabinete.py", ".github/workflows/sonda-gabinete.yml"]
 jobs:
   sonda:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - run: python3 .github/scripts/sonda_gabinete.py
+      - run: pip install -q pandas && python3 .github/scripts/sonda_gabinete.py
