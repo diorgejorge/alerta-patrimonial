@@ -525,7 +525,7 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
         cab += f'<p class="ficha">Nome de urna: <strong>{e(cap(urna))}</strong></p>'
     cab += f'<p class="ficha">{ficha}</p>'
     if tse:
-        cab += f'<p class="ficha"><a href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura e bens no TSE</a></p>'
+        cab += f'<p class="ficha"><a href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura, bens e contas da campanha no TSE</a></p>'
     if PROCESSOS_ATIVO:
         cab += secao_processos(ult)
     nome = cap(urna or str(ult["nome"]))

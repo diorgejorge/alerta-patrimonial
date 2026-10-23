@@ -108,7 +108,7 @@ def _resumo(linhas):
     html_kpis = '<div class="kpis">' + "".join(f'<div class="card kpi"><b>{e(v)}</b><span>{e(r)}</span></div>'
                                                 for v, r in kpis) + "</div>"
     tse = next((a["link_tse"] for a in linhas if str(a.get("link_tse") or "").startswith("https://")), None)
-    links = (f'<p><a class="botao" href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura e bens no TSE</a></p>'
+    links = (f'<p><a class="botao" href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura, bens e contas da campanha no TSE</a></p>'
              if tse else "")
     return (html_kpis + _tabela_periodos(linhas) + links +
             '<p class="mut"><small><a href="../index.html#como-ler">O que significam estas colunas?</a></small></p>')

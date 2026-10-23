@@ -340,3 +340,11 @@ def test_regua_dos_colegas_cores_e_posicao(abrir):
     assert 'left:90%' in pg.evaluate("RG({percentil:100})")
     assert pg.evaluate("RG({percentil:null})") == ""
     assert "todos os cargos" in pg.evaluate("GRUPO({n_pares:40,cargo_pares:null,ano_ini:2018})")
+
+
+def test_link_para_contas_da_campanha_no_tse(abrir):
+    """Prestação de contas: só o link oficial do TSE, sem cálculo."""
+    pg = abrir()
+    h = pg.evaluate("TSE({link_tse:'https://divulgacandcontas.tse.jus.br/divulga/#/candidato/X',ano_ini:2018,ano_fim:2022})")
+    assert "Contas da campanha" in h and h.count("divulgacandcontas.tse.jus.br") == 2
+    assert pg.evaluate("TSE({link_tse:'javascript:x'})") == ""
