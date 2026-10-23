@@ -102,6 +102,7 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     assert "1 governador, 2 senadores, 3 deputados federais e 8 deputados estaduais" in txt
     assert "Parlamentar exemplar" in txt and "Mão na massa" in txt and "abaixo da média" in txt
     assert pagina.locator('a[href="estado/SP.html"]').count() == 1
+    assert pagina.locator('a[href="feed/uf-SP.xml"]').count() == 1
     pagina.reload()
     pagina.wait_for_selector("#meus-corpo .rep")
     assert pagina.input_value("#meu-uf") == "SP"

@@ -18,6 +18,8 @@
   const rel=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);
   const brl=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",notation:"compact",maximumFractionDigits:1}).format(v);
   const iniciais=n=>n.split(/\s+/).filter(w=>w.length>2).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+  // feed RSS por pessoa (thread RSS): existe para quem tem pessoa/pNNNN.html
+  const feed=u=>{const m=/^pessoa\/(p\d+)\.html$/.exec(u||"");return m?`<a class="lk" href="feed/${m[1]}.xml" title="Receba um aviso (RSS) quando um dado mudar">Acompanhar</a>`:"";};
   const cache=new Map();
   const ler=()=>{try{return localStorage.getItem(CHAVE)||"";}catch(e){return"";}};
   const gravar=uf=>{try{uf?localStorage.setItem(CHAVE,uf):localStorage.removeItem(CHAVE);}catch(e){}};
@@ -39,7 +41,7 @@
     const tags=(p.marcas||[]).filter(m=>MARCA[m]).map(m=>`<span class="tag ${MARCA[m][0]}" title="${esc(MARCA[m][2])}">${ico(m==="selo"?"pata":"estrela")} ${esc(MARCA[m][1])}</span>`).join("");
     const parl=g==="senadores"||g==="federais";
     const links=[https(p.perfil)?`<a class="lk" href="${esc(p.perfil)}" target="_blank" rel="noopener">${parl?"Perfil oficial":"Candidatura no TSE"}</a>`:"",
-      rel(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Dossiê</a>`:""].filter(Boolean).join(" · ");
+      rel(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Dossiê</a>`:"",feed(p.dossie)].filter(Boolean).join(" · ");
     return`<li class="rep"><span class="avatar" aria-hidden="true">${esc(iniciais(p.nome))}${foto}</span><div class="rep-txt">
 <p class="rep-nome"><b>${esc(p.nome)}</b> <small>${esc(cargo)} · ${esc(p.partido||"Não informado")}</small></p>${tags?`<p class="tags">${tags}</p>`:""}
 ${parl?numeros(p):""}${links?`<p class="rep-links">${links}</p>`:""}</div></li>`;
@@ -62,7 +64,7 @@ ${parl?numeros(p):""}${links?`<p class="rep-links">${links}</p>`:""}</div></li>`
   function mostrar(d){
     const uf=d.uf,nome=UFS[uf];
     corpo.innerHTML=`<p class="rep-resumo">${esc(nome)} tem hoje <b>${esc(resumo(d))}</b>. Eles trabalham para você: confira e cobre.</p>
-<p class="rep-acoes"><button type="button" class="botao" id="meus-filtrar">Ver ${esc(uf)} nos destaques</button> <a class="botao" href="estado/${esc(uf)}.html">Gastos de ${esc(nome)}</a></p>
+<p class="rep-acoes"><button type="button" class="botao" id="meus-filtrar">Ver ${esc(uf)} nos destaques</button> <a class="botao" href="estado/${esc(uf)}.html">Gastos de ${esc(nome)}</a> <a class="botao" href="feed/uf-${esc(uf)}.xml" title="Receba um aviso (RSS) quando um dado mudar">Acompanhar ${esc(uf)}</a></p>
 ${d.grupos.map(g=>grupo(g,uf)).join("")}<p class="fonte">Fontes: Câmara dos Deputados, Senado Federal e TSE${d.eleicao_estadual?` (eleitos em ${esc(d.eleicao_estadual)})`:""}. Atualizado em ${esc(d.gerado_em||"Não informado")}.</p>`;
   }
   async function carregar(uf){
