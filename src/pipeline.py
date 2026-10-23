@@ -21,6 +21,7 @@ from cache import Cache, salvar_resultados
 import cifra
 import paginas
 import representantes, shutil
+import acompanhar
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE, DOCS, CFG = ROOT / "data" / "cache", ROOT / "docs", ROOT / "config"
@@ -684,6 +685,12 @@ def main():
                                                      econ=carregar_economia(args.demo, dados_dir))
         except Exception as ex:  # nunca derruba o painel
             print(f"[aviso] paginas por pessoa falharam ({ex!r})", file=sys.stderr)
+        try:  # Acompanhar (#57): feed RSS por pessoa e geral, com um item quando um dado muda entre execucoes
+            n_feeds, novos = acompanhar.publicar(docs, dados_dir / "acompanhar.json", segredo, dados["alertas"],
+                                                 pessoas, ceap, noticias)
+            print(f"Acompanhar: {n_feeds} feeds, {len(novos)} avisos novos.")
+        except Exception as ex:
+            print(f"[aviso] feeds de acompanhamento falharam ({ex!r})", file=sys.stderr)
     # lista completa leve (#43): todas as pessoas com duas declaracoes, em arquivo separado (docs/todos.json)
     pag = {}
     for i, ch in enumerate(vis["chave"]):

@@ -2,7 +2,7 @@
 So usa o id interno (p0001...): CPF, chave e CNPJ nunca entram no HTML."""
 import csv, html, json, re, shutil
 from pathlib import Path
-import economia, graficos, temas
+import acompanhar, economia, graficos, temas
 from texto import cap
 
 SRC = Path(__file__).resolve().parent
@@ -184,7 +184,8 @@ def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, econ=None):
                 RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}", econ),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
-                PROPOSTAS=_propostas(pid), GERADO=e(gerado))
+                PROPOSTAS=_propostas(pid), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
+                FEED=acompanhar.link_head(pid, cap((topo.get("nome_urna") or nome).strip())))
     return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
 
 

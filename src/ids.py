@@ -23,13 +23,13 @@ def sem_documentos(texto):
 
 def varrer(pasta, cpfs=()):
     """Ultima barreira antes de publicar: troca CPF/CNPJ formatados (e os CPFs conhecidos, sem formato)
-    em todos os .html/.json/.txt da pasta. Devolve quantos arquivos foram corrigidos."""
+    em todos os .html/.json/.txt/.xml da pasta. Devolve quantos arquivos foram corrigidos."""
     # CPF conhecido sem formato: so como numero inteiro, nunca dentro de outro numero ou de casas decimais
     nus = (re.compile(r"(?<![\d.])(?:" + "|".join(sorted({re.escape(c) for c in cpfs if len(c) == 11})) + r")(?!\d)")
            if any(len(c) == 11 for c in cpfs) else None)
     n = 0
     for p in Path(pasta).rglob("*"):
-        if p.suffix not in (".html", ".json", ".txt") or not p.is_file():
+        if p.suffix not in (".html", ".json", ".txt", ".xml") or not p.is_file():
             continue
         txt = p.read_text(encoding="utf-8", errors="ignore")
         novo = sem_documentos(txt)

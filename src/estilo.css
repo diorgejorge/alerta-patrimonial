@@ -287,3 +287,17 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 .eco-uf{background:var(--caramelo)}.eco-br{background:var(--info)}.eco-neg{background:var(--forte)}
 .eco-val{font-variant-numeric:tabular-nums;min-width:5ch;text-align:right}
 @media print{.eco-barra{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+
+/* Acompanhar (#57): botao discreto no cabecalho da pessoa; abre a explicacao do feed RSS */
+details.acompanhar{margin:.4em 0 1em}
+details.acompanhar>summary{list-style:none;border:1px solid currentColor;min-height:44px}
+details.acompanhar>summary::-webkit-details-marker{display:none}
+details.acompanhar>summary svg{color:var(--caramelo)}
+details.acompanhar[open]>summary{background:var(--ouro);color:var(--tinta);border-color:var(--ouro)}
+details.acompanhar[open]>summary svg{color:var(--tinta)}
+details.acompanhar .card{margin-top:8px;max-width:60ch}
+details.acompanhar ol{margin:.4em 0;padding-left:1.3em}
+.copiar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.copiar input{flex:1 1 220px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:999px;
+  background:var(--card);color:var(--fg);font:inherit;font-size:.875rem}
+@media print{details.acompanhar{display:none}}
