@@ -709,7 +709,7 @@ def main():
         dados["cota"] = parlamentares.ranking_cota(parl) or dados["cota"]
         dados["projetos"] = parlamentares.ranking_projetos(parl) or dados["projetos"]
 
-    # como cobrar (#60): contato oficial do gabinete (so de quem tem pagina), cota e projetos de cada pessoa
+    # como cobrar (#60): canais oficiais do gabinete (so de quem tem pagina), cota e projetos para o texto sugerido
     cobranca = {}
     try:
         cobranca = montar_cobranca(pessoas, parl, ceap, proj, caches.get("contatos"), args.demo)

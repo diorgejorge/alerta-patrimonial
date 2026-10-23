@@ -189,14 +189,13 @@ def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, cobranca=Non
     """`cobranca`: contato do gabinete, cota e projetos da pessoa para a aba "Como cobrar" (#60, cobrar.secao)."""
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
-    site = cobrar.site()
-    compartilhar = cobrar.botao(cobrar.imagem(linhas, f"pessoa/{pid}.html", site))
+    compartilhar = cobrar.botao(cobrar.imagem(linhas))
     vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())),
                 CABECALHO=_cabecalho(topo, nome, foto(linhas), compartilhar),
                 RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
-                PROPOSTAS=_propostas(pid), COBRAR=cobrar.secao(linhas, cobranca, site + f"pessoa/{pid}.html"), VOTOS=_votos(votos), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
+                PROPOSTAS=_propostas(pid), COBRAR=cobrar.secao(linhas, cobranca), VOTOS=_votos(votos), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
                 FEED=acompanhar.link_head(pid, cap((topo.get("nome_urna") or nome).strip())))
     return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
 

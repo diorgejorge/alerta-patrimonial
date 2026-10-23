@@ -261,14 +261,14 @@ const TSE=a=>/^https:\/\//.test(a.link_tse||"")?`<a class="lk" href="${esc(a.lin
 const PROC_ON=D?.processos_ativo===true;
 if(PROC_ON)for(const e of document.querySelectorAll("[data-processos]"))e.hidden=false;
 // links da pessoa: TSE (so com um periodo; com varios, cada periodo traz o seu), dossie, noticias e busca de processos
-const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}#cobrar" title="Contatos oficiais do gabinete e um texto pronto para pedir explicações">Como cobrar</a>`:"",SHARE(p),REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}"${p.mencoes?` title="${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias"`:""}>Notícias${p.mencoes?` (${p.mencoes})`:""}</a>`:"",
+const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}#cobrar" title="Canais oficiais do gabinete e uma sugestão de texto para copiar">Como cobrar</a>`:"",SHARE(p),REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}"${p.mencoes?` title="${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias"`:""}>Notícias${p.mencoes?` (${p.mencoes})`:""}</a>`:"",
   PROC_ON&&`<a class="lk" href="${esc(PROC(p))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`].filter(Boolean).join(" · ");
 // compartilhar (#61): o compartilhar.js desenha o card numa imagem com estes dados (mesmos numeros da face do card)
 const SHARE=p=>{if(!REL(p.pagina))return"";const cap=p.per.reduce((s,a)=>a.cap>0&&s!=null?s+a.cap:null,0);
   const n=p.cresc==null?[]:[[(p.cresc>0?"+":"")+R(p.cresc),`a mais no patrimônio de ${p.ano_ini} a ${p.ano_fim}`]];
   if(cap){n.push([R(cap),"daria para guardar só com o salário"]);if(p.cresc>0)n.push([VZ(p.cresc/cap),"o que daria para guardar com o salário"]);}
   const d={nome:CAP(p.nome_urna||p.nome),ficha:[p.cargos.length?CAP(p.cargos[p.cargos.length-1]):"",p.partidos[p.partidos.length-1],p.ufs[p.ufs.length-1]].filter(Boolean).join(" · "),
-    nivel:p.nivel,nivel_rotulo:NV[p.nivel]||"",numeros:n,url:new URL(p.pagina,location.href).href,fontes:"Fontes oficiais: TSE, Portal da Transparência, Câmara e Senado"};
+    numeros:n,url:[...p.per].reverse().find(a=>/^https:\/\//.test(a.link_tse||""))?.link_tse||"https://dadosabertos.tse.jus.br/",fontes:"Fonte: declarações de bens entregues ao TSE"+(cap?" e salário oficial do cargo":"")+"."};
   return`<button type="button" class="lk" data-compartilhar="${esc(JSON.stringify(d))}" title="Gera uma imagem deste card para mandar no WhatsApp e nas redes">Compartilhar</button>`;};
 // busca para o proprio leitor conferir processos pelo nome (o robo nao consulta esses sites)
 const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);

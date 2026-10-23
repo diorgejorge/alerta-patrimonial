@@ -1,25 +1,18 @@
-"""Como cobrar (#60) e compartilhar (#61) na pagina da pessoa: contatos oficiais do gabinete, texto pronto de cobranca
-montado com os numeros do proprio card (educado e sem acusacoes) e os dados da imagem de compartilhar, que o
-compartilhar.js desenha no navegador. Nada aqui consulta a rede: os contatos chegam prontos (contatos.py)."""
-import html, json, os, re, urllib.parse
-import estados
+"""Como cobrar (#60) e compartilhar (#61) na pagina da pessoa: canais oficiais do gabinete, texto sugerido so para
+copiar (educado, sem acusacao) e os dados da imagem de compartilhar, que o compartilhar.js desenha no navegador.
+Texto e imagem citam so as fontes oficiais (TSE, Camara, Senado), nunca o site como origem (pedido do usuario).
+Nada aqui consulta a rede: os contatos chegam prontos (contatos.py)."""
+import html, json, re, urllib.parse
+from estados import UFS
 from texto import cap, de_estado
 
 e = html.escape
-SITE = "https://diorgejorge.github.io/alerta-patrimonial/"
-ASSUNTO = "Pedido de esclarecimento sobre dados públicos do mandato"
+TSE_DADOS = "https://dadosabertos.tse.jus.br/"
 CASAS = {"camara": "Dados Abertos da Câmara dos Deputados", "senado": "Dados Abertos do Senado Federal"}
-NIVEL = {"forte": "Muito acima do esperado", "atencao": "Acima do esperado", "informativo": "Para conhecer"}
-FONTES_IMAGEM = "Fontes oficiais: TSE, Portal da Transparência, Câmara e Senado"
+FONTE_TSE = "Fonte: declarações de bens entregues ao TSE"
+FONTE_SALARIO = " e salário oficial do cargo"
 MUNICIPAIS = {"PREFEITO", "VICE-PREFEITO", "VEREADOR"}
 ESTADUAIS = {"DEPUTADO ESTADUAL", "DEPUTADO DISTRITAL"}
-
-
-def site(repo=None):
-    """Endereco publico do site: GitHub Pages do repositorio (GITHUB_REPOSITORY) ou o padrao."""
-    repo = repo if repo is not None else os.getenv("GITHUB_REPOSITORY") or ""
-    m = re.fullmatch(r"([\w.-]+)/([\w.-]+)", repo)
-    return f"https://{m[1].lower()}.github.io/{m[2]}/" if m else SITE
 
 
 def brl(v):
@@ -48,44 +41,45 @@ def resumo(linhas):
                          None))
 
 
-def _fonte(link):
-    return f" Fonte: {link}" if str(link or "").startswith("https://") else ""
+def _da_casa(camara):
+    return "da Câmara dos Deputados" if camara else "do Senado Federal"
 
 
-def texto(nome, uf, r, cota=None, projetos=None, url=SITE, extra=None):
-    """Texto pronto de cobranca: pede explicacao publica com base em dados oficiais, cada numero com a sua fonte.
-    Nunca afirma irregularidade. `extra`: frase pronta de outro modulo ."""
+def _vi(onde, link):
+    """'Vi no site do TSE (https://...)': o cidadao cita a fonte oficial com o link direto (nunca o nosso site)."""
+    return f"Vi {onde}" + (f" ({link})" if str(link or "").startswith("https://") else "")
+
+
+def texto(nome, uf, r, cota=None, projetos=None):
+    """Texto sugerido de cobranca, na voz do cidadao ("Vi no site do TSE (link) que..."): cada numero com o link da
+    fonte oficial e um pedido de explicacao publica. Nunca afirma irregularidade nem cita o nosso site."""
     pontos = []
     cresceu = r.get("cresc") is not None and r["cresc"] > 0
     if cresceu:
-        p = f"Seu patrimônio declarado ao TSE cresceu {brl(r['cresc'])} de {r['ano_ini']} a {r['ano_fim']}."
+        p = (_vi("no site do TSE", r.get("tse")) + f" que seu patrimônio declarado aumentou {brl(r['cresc'])} de "
+             f"{r['ano_ini']} a {r['ano_fim']}.")
         if r.get("cap"):
-            p += f" Só com o salário, daria para guardar {brl(r['cap'])}."
+            p += f" Só com o salário do cargo, daria para guardar {brl(r['cap'])}."
             if r.get("razao") and r["razao"] >= 1.05:
-                p += f" Cresceu {vezes(r['razao'])} vezes isso."
-        pontos.append(p + _fonte(r.get("tse")))
-    if extra:
-        pontos.append(extra.strip())
+                p += f" O aumento foi {vezes(r['razao'])} vezes isso."
+        pontos.append(p)
     if cota and _num(cota.get("total")):
-        pontos.append(f"A cota parlamentar (verba do mandato) somou {brl(cota['total'])} de {cota.get('de')} a {cota.get('ate')}."
-                      + _fonte(cota.get("link")))
+        pontos.append(_vi(f"nos dados abertos {_da_casa('camara.leg.br' in str(cota.get('link')))}", cota.get("link"))
+                      + f" que sua cota parlamentar (verba do mandato) somou {brl(cota['total'])} de {cota.get('de')} "
+                      f"a {cota.get('ate')}.")
     if projetos and projetos.get("apresentados"):
-        pontos.append(f"De {projetos.get('de')} a {projetos.get('ate')}, foram {projetos['apresentados']} projetos "
-                      f"apresentados e {projetos.get('aprovados') or 0} aprovados." + _fonte(projetos.get("link")))
+        camara = projetos.get("casa") == "camara" or "camara.leg.br" in str(projetos.get("link"))
+        pontos.append(_vi(f"no site {_da_casa(camara)}", projetos.get("link"))
+                      + f" que, de {projetos.get('de')} a {projetos.get('ate')}, você apresentou "
+                      f"{projetos['apresentados']} projetos e {projetos.get('aprovados') or 0} foram aprovados.")
     pedido = ("Pode explicar, de forma pública, de onde veio esse crescimento? Por exemplo: herança, venda de bens, "
               "outra atividade ou renda da família." if cresceu else
               "Peço que continue prestando contas do mandato de forma clara e pública.")
-    de = f" {de_estado(uf, estados.UFS[uf][1])}" if uf in estados.UFS else f" de {uf}" if uf else ""
+    de = f" {de_estado(uf, UFS[uf][1])}" if uf in UFS else f" de {uf}" if uf else ""
     corpo = "\n\n" + "\n".join(f"- {p}" for p in pontos) if pontos else ""
     return (f"Prezado(a) {nome},\n\n"
             f"Sou eleitor(a){de} e acompanho os dados oficiais do seu mandato.{corpo}\n\n{pedido}\n\n"
-            "Aguardo sua resposta. Obrigado(a)!\n[seu nome]\n\n"
-            f"Dados oficiais reunidos pelo Caramelo Vasculha: {url}")
-
-
-def mailto(email, corpo):
-    q = urllib.parse.urlencode(dict(subject=ASSUNTO, body=corpo), quote_via=urllib.parse.quote)
-    return f"mailto:{email}?{q}"
+            "Aguardo sua resposta. Obrigado(a)!\n[seu nome]")
 
 
 def _tel(fone):
@@ -131,33 +125,26 @@ def _contatos(cargo, uf, ctx):
             f"Procure os canais {onde}.</p>")
 
 
-def secao(linhas, ctx=None, url=SITE):  # url: endereco da pagina da pessoa (vai no fim do texto)
-    """HTML da aba "Como cobrar". `ctx`: contato (dict, ou None quando a fonte falhou; ausente = nao e parlamentar
-    federal), assembleia (nome, site), cota e projetos (como no pipeline) e extra (frase pronta)."""
+def secao(linhas, ctx=None):
+    """HTML da aba "Como cobrar": canais oficiais e texto sugerido para copiar. `ctx`: contato (dict, ou None quando a
+    fonte falhou; ausente = nao e parlamentar federal), assembleia (nome, site), cota e projetos (como no pipeline)."""
     ctx = ctx or {}
     topo = max(linhas, key=lambda a: a.get("ano_fim") or 0)
     nome = cap((topo.get("nome_urna") or topo.get("nome") or "").strip())
-    corpo = texto(nome, topo.get("uf"), resumo(linhas), ctx.get("cota"), ctx.get("projetos"), url, ctx.get("extra"))
-    email = (ctx.get("contato") or {}).get("email")
-    enviar = (f'<a class="botao secundario" data-mailto="cobrar-texto" href="{e(mailto(email, corpo))}">'
-              "Enviar por e-mail</a>" if email else "")
-    return ("<p><strong>Você paga o salário de quem foi eleito. Perguntar é seu direito.</strong> Use o contato "
-            "oficial e o texto pronto abaixo; dá para editar antes de mandar.</p>"
-            f'<h3>Fale com o gabinete</h3>{_contatos(topo.get("cargo"), topo.get("uf"), ctx)}'
-            '<h3><label for="cobrar-texto">Texto pronto</label></h3>'
-            f'<textarea id="cobrar-texto" class="cobrar-texto" rows="14" spellcheck="true">{e(corpo)}</textarea>'
-            f'<p class="cobrar-acoes"><button type="button" class="botao" data-copiar-texto="cobrar-texto">'
-            f'Copiar texto</button>{enviar}<span class="cobrar-aviso" role="status"></span></p>'
-            '<p class="mut"><small>Dica: troque “[seu nome]” pelo seu nome e guarde a resposta. Quanto mais gente '
-            "pergunta, mais difícil é ignorar.</small></p>")
+    corpo = texto(nome, topo.get("uf"), resumo(linhas), ctx.get("cota"), ctx.get("projetos"))
+    return ("<p><strong>Você paga o salário de quem foi eleito. Perguntar é seu direito.</strong></p>"
+            f'<h3>Canais oficiais do gabinete</h3>{_contatos(topo.get("cargo"), topo.get("uf"), ctx)}'
+            '<h3><label for="cobrar-texto">Sugestão de texto</label></h3>'
+            f'<textarea id="cobrar-texto" class="cobrar-texto" rows="12" readonly>{e(corpo)}</textarea>'
+            '<p class="cobrar-acoes"><button type="button" class="botao" data-copiar-texto="cobrar-texto">Copiar texto'
+            '</button><span class="cobrar-aviso" role="status"></span></p>')
 
 
-def imagem(linhas, pagina, url=SITE):
-    """Dados do card para a imagem de compartilhar (JSON no atributo data-compartilhar do botao)."""
+def imagem(linhas):
+    """Dados do card para a imagem de compartilhar (JSON no atributo data-compartilhar do botao). O link e o da
+    fonte oficial (candidatura no TSE), nunca o do nosso site."""
     topo = max(linhas, key=lambda a: a.get("ano_fim") or 0)
     r = resumo(linhas)
-    nivel = max((a.get("nivel") for a in linhas if a.get("nivel") in NIVEL),
-                key=["informativo", "atencao", "forte"].index, default=None)
     numeros = []
     if r["cresc"] is not None:
         numeros.append([("+" if r["cresc"] > 0 else "−" if r["cresc"] < 0 else "") + brl(abs(r["cresc"])),
@@ -167,8 +154,8 @@ def imagem(linhas, pagina, url=SITE):
     if r["razao"]:
         numeros.append([vezes(r["razao"]) + "×", "o que daria para guardar com o salário"])
     ficha = " · ".join(str(x) for x in (cap(topo.get("cargo")), topo.get("partido"), topo.get("uf")) if x)
-    return dict(nome=cap((topo.get("nome_urna") or topo.get("nome") or "").strip()), ficha=ficha, nivel=nivel,
-                nivel_rotulo=NIVEL.get(nivel, ""), numeros=numeros, url=url + pagina, fontes=FONTES_IMAGEM)
+    return dict(nome=cap((topo.get("nome_urna") or topo.get("nome") or "").strip()), ficha=ficha, numeros=numeros,
+                url=r["tse"] or TSE_DADOS, fontes=FONTE_TSE + (FONTE_SALARIO if r["cap"] else "") + ".")
 
 
 def botao(dados):
