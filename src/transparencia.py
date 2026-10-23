@@ -101,8 +101,9 @@ class Api:
             self.seguidas += 1
         print(f"[aviso] API do Portal da Transparencia falhou em {caminho} ({ex})", file=sys.stderr)
 
-    def paginas(self, caminho, max_paginas=20, **params):
-        """Junta as paginas (a API devolve listas; pagina vazia = fim). None se a primeira falhar."""
+    def paginas(self, caminho, max_paginas=20, ao_ler=None, **params):
+        """Junta as paginas (a API devolve listas; pagina vazia = fim). None se a primeira falhar.
+        ao_ler(pagina, itens_ate_agora): opcional, para mostrar andamento."""
         out = []
         for pg in range(1, max_paginas + 1):
             d = self.get(caminho, pagina=pg, **params)
@@ -111,6 +112,8 @@ class Api:
             if not isinstance(d, list) or not d:
                 break
             out += d
+            if ao_ler:
+                ao_ler(pg, len(out))
         return out
 
 # flag de /pessoa-fisica -> (nome, caminho, parametro do CPF)

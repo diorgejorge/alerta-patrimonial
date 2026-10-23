@@ -7,7 +7,7 @@ com gasto no estado. Fontes oficiais e gratuitas:
 O unico elo oficial entre parlamentar e gasto e a autoria da emenda: o texto diz "autor da emenda", nunca "envolvido".
 Pagina leve por UF (docs/estado/UF.html); municipios e deputados estaduais vao em docs/estado/UF.json, baixado so
 quando o leitor abre a secao. Sem CPF/CNPJ em nenhum arquivo."""
-import csv, datetime as dt, html, json, re, sys, time, unicodedata, urllib.error, urllib.parse, urllib.request
+import csv, datetime as dt, html, json, os, re, sys, time, unicodedata, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 import transparencia
 
@@ -77,6 +77,74 @@ def mandato_estadual(anos, hoje=None):
 
 
 # ---------------------------------------------------------------- SICONFI
+def duracao(seg):
+    """Segundos -> "1h 05min", "12min 30s" ou "8s"."""
+    seg = int(seg)
+    if seg >= 3600:
+        return f"{seg // 3600}h {seg % 3600 // 60:02d}min"
+    return f"{seg // 60}min {seg % 60:02d}s" if seg >= 60 else f"{seg}s"
+
+
+class Andamento:
+    """Andamento no log do Actions: etapa, contador, %, tempo decorrido e estimativa do que falta (no maximo uma
+    linha a cada `intervalo` segundos por etapa), e um resumo em tabela no GITHUB_STEP_SUMMARY. So contagens e
+    nomes de UF/municipio: nada de CPF/CNPJ."""
+    ETAPAS = ("Estados no SICONFI", "Emendas no Portal", "Municípios no SICONFI", "Reconhecimentos no S2iD",
+              "Notícias e páginas")
+
+    def __init__(self, intervalo=30, relogio=time.monotonic, saida=print):
+        self.intervalo, self.relogio, self.saida = intervalo, relogio, saida
+        self.inicio = relogio()
+        self.feitas = []  # (nome, segundos, detalhe)
+        self._atual = None
+
+    def etapa(self, nome):
+        self._fechar()
+        self._atual = dict(nome=nome, ini=self.relogio(), ultimo=float("-inf"), detalhe="")
+        n = self.ETAPAS.index(nome) + 1 if nome in self.ETAPAS else len(self.feitas) + 1
+        self.saida(f"[{n}/{len(self.ETAPAS)}] {nome} · {duracao(self.relogio() - self.inicio)} desde o início", flush=True)
+
+    def passo(self, i, total, rotulo=""):
+        """Mostra i/total da etapa atual, com % e estimativa; total None = so contagem."""
+        a, agora = self._atual, self.relogio()
+        if a is None or (i != total and agora - a["ultimo"] < self.intervalo):
+            return
+        a["ultimo"] = agora
+        gasto = agora - a["ini"]
+        if total:
+            pct = i / total
+            falta = f" · faltam ~{duracao(gasto / pct * (1 - pct))}" if 0 < pct < 1 else ""
+            conta = f"{i:,}/{total:,} · {pct:.0%}".replace(",", ".")
+        else:
+            conta, falta = f"{i:,}".replace(",", "."), ""
+        self.saida(f"    {a['nome']}: {rotulo + ' · ' if rotulo else ''}{conta} · {duracao(gasto)}{falta}", flush=True)
+
+    def fim(self, detalhe):
+        """Resultado da etapa atual (vai para o resumo)."""
+        if self._atual:
+            self._atual["detalhe"] = detalhe
+
+    def _fechar(self):
+        if self._atual:
+            a = self._atual
+            self.feitas.append((a["nome"], self.relogio() - a["ini"], a["detalhe"]))
+            self._atual = None
+
+    def resumo(self, arquivo=None):
+        """Fecha a etapa atual, imprime o total e grava a tabela no GITHUB_STEP_SUMMARY (se houver)."""
+        self._fechar()
+        total = duracao(self.relogio() - self.inicio)
+        self.saida(f"Dossiê por estado: concluído em {total}.", flush=True)
+        arquivo = arquivo or os.getenv("GITHUB_STEP_SUMMARY")
+        if not arquivo:
+            return
+        linhas = ["## Dossiê por estado", "", "| Etapa | Tempo | Resultado |", "|---|---|---|"]
+        linhas += [f"| {n} | {duracao(s)} | {d or '-'} |" for n, s, d in self.feitas]
+        linhas += [f"| **Total** | **{total}** | |", ""]
+        with open(arquivo, "a", encoding="utf-8") as f:
+            f.write("\n".join(linhas) + "\n")
+
+
 class Buscador:
     """GET de JSON com ritmo controlado. O SICONFI responde 429 (Too Many Requests) se receber consultas seguidas:
     espera `intervalo` entre consultas e, no 429, o Retry-After ou um recuo crescente (10s, 30s, 60s)."""
@@ -200,7 +268,7 @@ def financas(buscar, id_ente, ano, cache=None):
                 ano_receita=a_rec, receita="falha" if rec is None else rec)
 
 
-def municipios(buscar, entes, ano, cache=None, tempo_max=TEMPO_MUNICIPIOS):
+def municipios(buscar, entes, ano, cache=None, tempo_max=TEMPO_MUNICIPIOS, prog=None):
     """{cod_ibge: dict(total, tipos)} das verbas da Uniao a cada municipio (DCA I-C), em partes: cada municipio lido
     fica no cache, e a execucao seguinte so consulta quem falta. Com prazo e parada apos falhas seguidas: quem fica
     de fora sai sem valor ("Não informado") nesta semana."""
@@ -224,6 +292,8 @@ def municipios(buscar, entes, ano, cache=None, tempo_max=TEMPO_MUNICIPIOS):
             for _, v, t in rec:
                 tipos[t] = tipos.get(t, 0.0) + v
             out[cod] = dict(total=round(sum(tipos.values()), 2), tipos={k: round(v, 2) for k, v in tipos.items()})
+        if prog:
+            prog.passo(n, len(entes), f"{ent['nome']} ({ent['uf']}), {consultados} consultados agora")
     print(f"SICONFI municipios: {len(out)}/{len(entes)} com verbas da Uniao, {consultados} consultados nesta execucao.")
     return out
 
@@ -261,7 +331,7 @@ def enxuta(d):
 VERSAO_EMENDAS = 2  # mude ao mudar enxuta(): invalida os anos guardados
 
 
-def emendas(api, anos, cache=None, hoje=None):
+def emendas(api, anos, cache=None, hoje=None, prog=None):
     """Emendas dos `anos` (lista enxuta) e os anos que faltaram. O ano so vai para o cache se veio inteiro; anos
     recentes sao sempre relidos (restos a pagar continuam sendo pagos)."""
     hoje = hoje or dt.date.today()
@@ -271,13 +341,16 @@ def emendas(api, anos, cache=None, hoje=None):
         lista = cache.get(("emendas", VERSAO_EMENDAS, ano)) if guardavel else None
         if lista is None:
             antes = api.falhas
-            bruto = api.paginas("/emendas", max_paginas=5000, ano=ano) if api.ativa() else None
+            ler = (lambda pg, n, ano=ano: prog.passo(n, None, f"ano {ano}, página {pg}")) if prog else None
+            bruto = api.paginas("/emendas", max_paginas=5000, ao_ler=ler, ano=ano) if api.ativa() else None
             if bruto is None or api.falhas != antes:
                 faltou.append(ano)
             lista = [enxuta(d) for d in bruto or ()]
             if guardavel and ano not in faltou:
                 cache.set(("emendas", VERSAO_EMENDAS, ano), lista)
         out += lista
+        if prog:
+            prog.saida(f"    ano {ano}: {len(lista):,} emendas{' (faltou)' if ano in faltou else ''}".replace(",", "."), flush=True)
     return out, faltou
 
 
@@ -565,20 +638,35 @@ def abre(url, timeout=20):
 
 
 def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=None, checar=None,
-            baixar_=baixar, buscar_txt=None):
+            baixar_=baixar, buscar_txt=None, prog=None):
     """Dados de todas as UFs para gerar(). Cada fonte que falha vira NAO_ACHOU na sua secao, sem derrubar o resto.
     parl/estaduais/ano_est: da base gravada pelo pipeline (base())."""
     hoje = hoje or dt.date.today()
+    prog = prog or Andamento()
     ano = ano_dca(hoje)
-    fin = {uf: financas(buscar, cod, ano, cache) for uf, (cod, _) in UFS.items()}
+    prog.etapa("Estados no SICONFI")
+    fin = {}
+    for i, (uf, (cod, _)) in enumerate(UFS.items(), 1):
+        fin[uf] = financas(buscar, cod, ano, cache)
+        prog.passo(i, len(UFS), uf)
+    prog.fim(f"{sum(f['despesa'] != 'falha' for f in fin.values())}/{len(UFS)} com balanço de {ano}")
+    prog.etapa("Emendas no Portal")
     anos = list(range(hoje.year - ANOS_EMENDAS + 1, hoje.year + 1))
-    lista, faltou = emendas(api, anos, cache, hoje) if api else ([], anos)
+    lista, faltou = emendas(api, anos, cache, hoje, prog) if api else ([], anos)
+    prog.fim(f"{len(lista):,} emendas de {anos[0]} a {anos[-1]}".replace(",", ".")
+             + (f"; faltou {', '.join(map(str, faltou))}" if faltou else ""))
+    prog.etapa("Municípios no SICONFI")
     entes = entes_municipais(buscar) or []
-    mun = municipios(buscar, entes, ano, cache) if entes else {}
+    mun = municipios(buscar, entes, ano, cache, prog=prog) if entes else {}
+    prog.fim(f"{len(mun):,}/{len(entes):,} com verbas da União".replace(",", "."))
     if hasattr(buscar, "req"):
         print(f"SICONFI: {buscar.req} consultas, {buscar.falhas} sem resposta.")
+    prog.etapa("Reconhecimentos no S2iD")
     rec = reconhecimentos(buscar, baixar_)
+    prog.fim("lidos" if rec is not None else NAO_ACHOU)
+    prog.etapa("Notícias e páginas")
     cars = noticias_apoio(carimbos(lista, rec, entes), buscar_txt)
+    prog.fim(f"{sum(map(len, cars.values()))} emendas com carimbo de emergência")
     if cache:
         cache.salvar()
     assembleias = carregar_assembleias()
@@ -604,7 +692,6 @@ def base(parl, serie=None, paginas=None, link=None, hoje=None):
 
 def main(raiz=ROOT):
     """Workflow "2 · Dossiê por estado" (estados.yml): le a base do pipeline, consulta SICONFI, Portal e S2iD e grava docs/estado."""
-    import os
     from cache import Cache
     from ids import varrer
     arq = Path(raiz) / "data" / BASE.name
@@ -614,10 +701,13 @@ def main(raiz=ROOT):
         sys.exit(f"Sem {arq.name} ({ex!r}): rode antes o workflow '1 · Dados dos políticos'.")
     seg = os.getenv("ID_SEGREDO")
     cache = Cache(Path(raiz) / "data" / "cache" / "estados.cache", 90 * 86400, seg) if seg else None
+    prog = Andamento()
     pag, extra = coletar(Buscador(), cliente_portal(os.getenv("TRANSPARENCIA_TOKEN")), b["parlamentares"],
-                         b["estaduais"], b["eleicao_estadual"], cache, checar=abre, buscar_txt=texto)
+                         b["estaduais"], b["eleicao_estadual"], cache, checar=abre, buscar_txt=texto, prog=prog)
     docs = Path(raiz) / "docs"
-    print(f"Dossie por estado: {gerar(docs, pag, extra, dt.datetime.now().strftime('%Y-%m-%d %H:%M'))} paginas.")
+    n = gerar(docs, pag, extra, dt.datetime.now().strftime('%Y-%m-%d %H:%M'))
+    prog.fim(f"{n} páginas geradas")
+    prog.resumo()
     if varrer(docs / "estado"):
         print("[aviso] CPF/CNPJ removido de paginas do dossie por estado", file=sys.stderr)
 

@@ -409,7 +409,11 @@ def test_main_do_workflow_le_a_base_e_grava_as_paginas(tmp_path, monkeypatch):
     monkeypatch.setattr(estados, "abre", lambda url: True)
     monkeypatch.setattr(estados, "texto", lambda url: "")
     monkeypatch.setattr(estados, "baixar", lambda url, **k: S2ID_CSV)
+    resumo = tmp_path / "resumo.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(resumo))
     estados.main(tmp_path)
+    tabela = resumo.read_text(encoding="utf-8")
+    assert "| Estados no SICONFI |" in tabela and "| **Total** |" in tabela and "páginas geradas" in tabela
     sp = (tmp_path / "docs" / "estado" / "SP.html").read_text(encoding="utf-8")
     assert 'href="../pessoa/p0001.html">Fulana Dep' in sp and "Período dos dados:" in sp
     assert "Período dos dados:" in (tmp_path / "docs" / "estado" / "index.html").read_text(encoding="utf-8")
@@ -418,3 +422,46 @@ def test_main_do_workflow_le_a_base_e_grava_as_paginas(tmp_path, monkeypatch):
 def test_main_sem_base_avisa(tmp_path):
     with pytest.raises(SystemExit):
         estados.main(tmp_path)
+
+
+class Relogio:
+    def __init__(self):
+        self.t = 0.0
+
+    def __call__(self):
+        return self.t
+
+
+def test_andamento_mostra_contagem_percentual_e_estimativa(tmp_path):
+    rel, linhas = Relogio(), []
+    prog = estados.Andamento(intervalo=30, relogio=rel, saida=lambda txt, **k: linhas.append(txt))
+    prog.etapa("Municípios no SICONFI")
+    assert linhas[-1].startswith("[3/5] Municípios no SICONFI")
+    rel.t = 60
+    prog.passo(1000, 4000, "Campinas (SP)")
+    assert "1.000/4.000 · 25%" in linhas[-1] and "1min 00s" in linhas[-1] and "faltam ~3min 00s" in linhas[-1]
+    rel.t = 70
+    prog.passo(1100, 4000)  # menos de 30 s depois: nao repete a linha
+    assert "1.000/4.000" in linhas[-1]
+    prog.passo(4000, 4000)  # o ultimo sempre aparece
+    assert "100%" in linhas[-1] and "faltam" not in linhas[-1]
+    prog.fim("3.900/4.000 com verbas")
+    rel.t = 3725
+    arq = tmp_path / "resumo.md"
+    prog.resumo(arq)
+    assert "concluído em 1h 02min" in linhas[-1]
+    assert "| Municípios no SICONFI | 1h 02min | 3.900/4.000 com verbas |" in arq.read_text(encoding="utf-8")
+
+
+def test_andamento_das_emendas_por_pagina():
+    linhas = []
+    prog = estados.Andamento(intervalo=0, saida=lambda txt, **k: linhas.append(txt))
+
+    class Api(ApiFalsa):
+        def paginas(self, caminho, max_paginas=20, ao_ler=None, **params):
+            ao_ler(1, 100)
+            return super().paginas(caminho, max_paginas, **params)
+
+    prog.etapa("Emendas no Portal")
+    estados.emendas(Api({2026: [emenda("A", "CAMPINAS - SP", 1)]}), [2026], None, dt.date(2026, 10, 23), prog)
+    assert any("ano 2026, página 1 · 100" in l for l in linhas) and any("ano 2026: 1 emendas" in l for l in linhas)
