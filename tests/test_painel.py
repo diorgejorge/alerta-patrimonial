@@ -43,8 +43,10 @@ def test_avisos_recolhidos_em_como_funciona(html):
     assert "apenas um agregador" in sobre and "custo histórico" in sobre and 'id="contrib"' in sobre
 
 
-def test_legenda_e_filtros_recolhidos(html):
-    assert re.search(r'<details class="ajuda" id="legenda-box">.*?id="legenda"', html, re.S)
+def test_legenda_sempre_aberta_e_filtros_recolhidos(html):
+    leg = re.search(r'<section class="legenda" id="legenda".*?</section>', html, re.S).group(0)
+    assert "<details" not in leg and all(f'data-v="{v}"' in leg for v in ("exemplar", "selo", "renda"))
+    assert "concentram" not in html  # cores de concentracao sairam (#52)
     filtros = re.search(r'<div class="filtros" id="filtros">(.*?)</div>', html, re.S).group(1)
     assert all(f'id="{i}"' in filtros for i in ("cg", "rg", "nv"))
 
@@ -84,7 +86,7 @@ def abrir(servidor):
         pg.close()
 
 
-PERIODO = dict(nome="MARIA DA SILVA", uf="MS", pessoa="x1", nivel="atencao", cap=500000, razao=2.5, percentil=96,
+PERIODO = dict(nome="MARIA DA SILVA", uf="MS", pessoa="x1", nivel="atencao", cap=250000, razao=2.5, percentil=96,
                pagina="pessoa/p0001.html", dossie="dossie/p0001.html", mencoes=3)
 DOIS_PERIODOS = [
     {**PERIODO, "cargo": "DEPUTADO ESTADUAL", "partido": "PSDB", "ano_ini": 2018, "ano_fim": 2022,
@@ -117,7 +119,7 @@ def test_card_um_periodo_esconde_zeros_e_detalha_sob_demanda(abrir):
     assert c.locator(".tags").count() == 0  # nenhuma marcacao: nada de "Nenhuma empresa" na face
     det = c.locator("details.det")
     assert det.locator("summary").text_content() == "Ver detalhes" and not det.get_attribute("open")
-    assert "Nenhuma empresa declarada" in det.text_content() and "Quantas vezes o possível" in det.text_content()
+    assert "Nenhuma empresa declarada" in det.text_content() and "Cresceu quantas vezes isso" in det.text_content()
     assert not det.locator(".contadores").is_visible()
     det.locator("summary").click()
     assert det.locator(".contadores").is_visible()
@@ -132,6 +134,33 @@ def test_card_dois_periodos(abrir):
     assert "Mão na massa" in face and "3 empresas" in face
     assert "R$ 3.000.000" in c.locator(":scope > .cresc b").text_content()  # soma dos periodos
     assert "Notícias (3)" in c.locator(".links").text_content()
+
+
+def test_vezes_o_salario(abrir):
+    pg = abrir()
+    assert "<b>4,0×</b>" in pg.evaluate("l=>VEZES(agrupaPessoas(l)[0])", UM_PERIODO[:1] and [{**UM_PERIODO[0], "cap": 250000}])
+    assert "6,0×" in pg.evaluate("l=>VEZES(agrupaPessoas(l)[0])", DOIS_PERIODOS)  # 3 mi / (2 x 250 mil)
+    assert pg.evaluate("l=>VEZES(agrupaPessoas(l)[0])", [{**UM_PERIODO[0], "cap": None}]) == ""
+
+
+def test_legenda_explica_niveis_em_linguagem_simples(abrir):
+    pg = abrir()
+    assert pg.is_visible("#legenda")
+    niveis = pg.locator("#leg-niveis li")
+    assert niveis.count() == 3 and "salário" in niveis.first.inner_text()
+    for b in pg.locator("#legenda button[data-f=flag]:visible").all():  # sem ninguem com a marcacao: desativado e explicado
+        if b.get_attribute("aria-disabled") == "true":
+            assert "nesta atualização" in b.locator("xpath=..").inner_text() or b.get_attribute("data-todos")
+        else:
+            b.click()
+            assert "filtro:" in pg.inner_text("#contagem")
+            break
+
+
+def test_tabela_completa_abre_sem_erro(abrir):
+    pg = abrir()
+    pg.click("#tabela summary")
+    assert pg.locator("#tb tr").count() == pg.locator("#cards li").count() or pg.locator("#tb tr").count() > 0
 
 
 def test_abre_em_destaques_sem_rolar(abrir):

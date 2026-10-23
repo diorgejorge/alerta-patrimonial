@@ -72,7 +72,7 @@ def ler_vinculos(caminho=ROOT / "config" / "vinculos.csv"):
 # ---------------------------------------------------------------- pagina da pessoa
 def _tabela_periodos(linhas):
     cab = ["Período", "Cargo", "Patrimônio no início", "Patrimônio no fim", "Crescimento",
-           "Poderia juntar com o salário", "Quantas vezes o possível", "Comparado aos colegas", "Nível"]
+           "Daria para guardar com o salário", "Cresceu quantas vezes isso", "Entre colegas do mesmo cargo", "Nível"]
     corpo = []
     for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0)):
         cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(a.get("cargo") or ""), brl(a.get("pat_ini")),

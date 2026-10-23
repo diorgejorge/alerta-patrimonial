@@ -471,9 +471,9 @@ def periodo(a):
             f'<td class="n" data-label="Patrimônio no início">{brl(a.get("pat_ini"))}</td>'
             f'<td class="n" data-label="Patrimônio no fim">{brl(a.get("pat_fim"))}</td>'
             f'<td class="n" data-label="Crescimento">{brl(a.get("cresc"))}</td>'
-            f'<td class="n" data-label="Poderia juntar com o salário">{brl(a.get("cap"))}</td>'
-            f'<td class="n" data-label="Quantas vezes o possível">{rz}</td>'
-            f'<td class="n" data-label="Comparado aos colegas">{pc}</td>'
+            f'<td class="n" data-label="Daria para guardar com o salário">{brl(a.get("cap"))}</td>'
+            f'<td class="n" data-label="Cresceu quantas vezes isso">{rz}</td>'
+            f'<td class="n" data-label="Entre colegas do mesmo cargo">{pc}</td>'
             f'<td class="nivel {e(nv)}" data-label="Nível">{e(NV.get(nv, nv))}</td></tr>')
 
 
