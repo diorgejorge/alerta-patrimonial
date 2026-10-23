@@ -31,7 +31,7 @@
     const proj=p.apresentados==null?"Não informado":`${(p.aprovados??0).toLocaleString("pt-BR")} de ${p.apresentados.toLocaleString("pt-BR")} apresentados`;
     const pr=p.presenca,pres=pr&&pr.pct!=null?`<div><dt>Presença</dt><dd>${pr.link&&https(pr.link)?`<a href="${esc(pr.link)}" target="_blank" rel="noopener">${esc(pr.pct)}%</a>`:`${esc(pr.pct)}%`}${pr.media_casa!=null?` <small>média da casa ${esc(pr.media_casa)}%</small>`:""}</dd></div>`:"";
     const votos=p.votos?`<div><dt>Temas importantes</dt><dd>Votou em ${p.votos[0]} de ${p.votos[1]}</dd></div>`:"";
-    return`<dl class="rep-num"><div><dt>Cota em 4 anos</dt><dd>${cota}</dd></div><div><dt>Projetos aprovados</dt><dd>${proj}</dd></div>${pres}${votos}</dl>`;
+    return`<dl class="rep-num"><div><dt>Gastou da cota (4 anos)</dt><dd>${cota}</dd></div><div><dt>Projetos aprovados</dt><dd>${proj}</dd></div>${pres}${votos}</dl>`;
   }
   function pessoa(p,g,uf){
     const cargo=g==="estaduais"&&uf==="DF"?"Deputado distrital":CARGO[g];
@@ -61,7 +61,7 @@ ${parl?numeros(p):""}${links?`<p class="rep-links">${links}</p>`:""}</div></li>`
   }
   function mostrar(d){
     const uf=d.uf,nome=UFS[uf];
-    corpo.innerHTML=`<p class="rep-resumo">${esc(nome)} tem hoje <b>${esc(resumo(d))}</b> no cargo.</p>
+    corpo.innerHTML=`<p class="rep-resumo">${esc(nome)} tem hoje <b>${esc(resumo(d))}</b>. Eles trabalham para você: confira e cobre.</p>
 <p class="rep-acoes"><button type="button" class="botao" id="meus-filtrar">Ver ${esc(uf)} nos destaques</button> <a class="botao" href="estado/${esc(uf)}.html">Gastos de ${esc(nome)}</a></p>
 ${d.grupos.map(g=>grupo(g,uf)).join("")}<p class="fonte">Fontes: Câmara dos Deputados, Senado Federal e TSE${d.eleicao_estadual?` (eleitos em ${esc(d.eleicao_estadual)})`:""}. Atualizado em ${esc(d.gerado_em||"Não informado")}.</p>`;
   }
