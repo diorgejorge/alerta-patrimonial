@@ -160,7 +160,8 @@ def test_legenda_explica_niveis_em_linguagem_simples(abrir):
 def test_tabela_completa_abre_sem_erro(abrir):
     pg = abrir()
     pg.click("#tabela summary")
-    assert pg.locator("#tb tr").count() == pg.locator("#cards li").count() or pg.locator("#tb tr").count() > 0
+    pg.wait_for_selector("#tb tr", state="attached")  # a tabela e montada no evento toggle, que e assincrono
+    assert pg.locator("#tb tr").count() > 0  # abrir nao gera erro de pagina (conferido no fixture)
 
 
 def test_abre_em_destaques_sem_rolar(abrir):
