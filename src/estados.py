@@ -611,7 +611,7 @@ def main(raiz=ROOT):
     try:
         b = json.loads(arq.read_text(encoding="utf-8"))
     except (OSError, ValueError) as ex:
-        sys.exit(f"Sem {arq.name} ({ex!r}): rode antes o workflow "1 · Dados dos políticos".")
+        sys.exit(f"Sem {arq.name} ({ex!r}): rode antes o workflow '1 · Dados dos políticos'.")
     seg = os.getenv("ID_SEGREDO")
     cache = Cache(Path(raiz) / "data" / "cache" / "estados.cache", 90 * 86400, seg) if seg else None
     pag, extra = coletar(Buscador(), cliente_portal(os.getenv("TRANSPARENCIA_TOKEN")), b["parlamentares"],
