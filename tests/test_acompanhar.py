@@ -105,7 +105,7 @@ def test_rss_bem_formado_com_guid_e_data():
     xml = acompanhar.rss("T", "D", PAG, "https://x/feed.xml", est["p0001"]["itens"], com_nome=True)
     c = ET.fromstring(xml).find("channel")
     itens = c.findall("item")
-    assert len(itens) == 2 and itens[0].find("title").text.startswith("Fulano: Destaque")
+    assert len(itens) == 2 and itens[0].find("title").text.startswith("Fulano: Faixa")
     assert itens[0].find("pubDate").text.endswith("+0000") and itens[0].find("guid").text.startswith("cv-")
 
 

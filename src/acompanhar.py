@@ -132,8 +132,8 @@ def mudancas(antes, agora, pagina, detalhes=None):
                            f"Antes: {brl(antes.get('pat'))} em {antes.get('ano') or 'Não informado'}. Diferença: "
                            f"{'+' if dif >= 0 else '−'}{brl(abs(dif))}. Fonte: TSE.", agora.get("tse") or pagina))
     if agora["nivel"] != antes.get("nivel"):
-        rot = lambda n: graficos.ROTULO_NIVEL.get(n, "sem destaque")
-        itens.append(_item("nivel", f"Destaque do patrimônio mudou: de “{rot(antes.get('nivel'))}” para "
+        rot = lambda n: graficos.ROTULO_NIVEL.get(n, "sem faixa")
+        itens.append(_item("nivel", f"Faixa do patrimônio mudou: de “{rot(antes.get('nivel'))}” para "
                                     f"“{rot(agora['nivel'])}”",
                            "Compara quanto o patrimônio cresceu com o que daria para juntar só com o salário. "
                            "Fonte: declarações de bens ao TSE.", agora.get("tse") or pagina))
