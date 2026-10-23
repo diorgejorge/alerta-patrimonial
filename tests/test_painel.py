@@ -204,7 +204,7 @@ def test_vezes_o_valor_original(abrir):
     assert pg.evaluate("VO({cresc:-1,pat_ini:1e6})") == "diminuiu"
     assert pg.evaluate("VO({cresc:5,pat_ini:0})") == "começou do zero"
     assert pg.evaluate("VO({cresc:null,pat_ini:1})") == "Não informado"
-    vn = pg.evaluate("PES.filter(p=>!p.presidente).map(VN)")
+    vn = pg.evaluate("PES.filter(p=>!TOPO(p)).map(VN)")
     assert vn == sorted(vn, reverse=True)
 
 
