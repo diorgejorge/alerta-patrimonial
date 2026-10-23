@@ -44,6 +44,20 @@ def avatar(nome, grande=False, foto=None):
     return f'<span class="avatar{" g" if grande else ""}" aria-hidden="true">{e(iniciais(nome))}{img}</span>'
 
 
+FOTO_TSE = "https://divulgacandcontas.tse.jus.br/divulga/rest/arquivo/img"
+
+
+def foto(linhas):
+    """Foto oficial do periodo mais recente; linhas antigas do cache so tem link_tse, entao a foto sai dele."""
+    for a in sorted(linhas, key=lambda x: x.get("ano_fim") or 0, reverse=True):
+        if str(a.get("link_foto") or "").startswith("https://"):
+            return a["link_foto"]
+        m = re.search(r"/divulga/#/candidato/[A-Z]+/[A-Z]{2}/(\d+)/(\d+)/\d{4}/(\w+)$", str(a.get("link_tse") or ""))
+        if m:
+            return f"{FOTO_TSE}/{m[1]}/{m[2]}/{m[3]}"
+    return None
+
+
 def _alt(tabela):
     return f'<details class="alt"><summary>Ver dados em tabela</summary><div class="tab">{tabela}</div></details>'
 
@@ -155,10 +169,10 @@ def _propostas(pid):
     return f'<p class="mut">{len(props)} propostas registradas; {len(vinc)} vínculos aprovados.</p>'
 
 
-def _cabecalho(a, nome):
+def _cabecalho(a, nome, img=None):
     urna = (a.get("nome_urna") or "").strip()
     ficha = " · ".join(e(str(x)) for x in (cap(a.get("cargo")), a.get("partido"), a.get("uf")) if x)
-    return (f'<header class="cab">{avatar(urna or nome, grande=True, foto=a.get("link_foto"))}<div><h1>{e(cap(nome))}</h1>'
+    return (f'<header class="cab">{avatar(urna or nome, grande=True, foto=img)}<div><h1>{e(cap(nome))}</h1>'
             + (f'<p class="ficha">Nome de urna: <strong>{e(cap(urna))}</strong></p>' if urna and urna.upper() != nome.upper() else "")
             + f'<p class="ficha">{ficha}</p>{chip_nivel(a.get("nivel"))}</div></header>')
 
@@ -166,7 +180,7 @@ def _cabecalho(a, nome):
 def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
-    vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())), CABECALHO=_cabecalho(topo, nome),
+    vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())), CABECALHO=_cabecalho(topo, nome, foto(linhas)),
                 RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
@@ -181,7 +195,7 @@ def cartao(pid, linhas, hist):
     ficha = " · ".join(e(str(x)) for x in (topo.get("cargo"), topo.get("partido"), topo.get("uf")) if x)
     mini = graficos.mini_patrimonio(hist, uid=f"mn-{pid}")
     # so o nome e link: as tags (montadas no painel a partir de data-pagina) sao botoes de filtro
-    return (f'<li class="card pessoa" data-pagina="pessoa/{e(pid)}.html">{avatar(nome, foto=topo.get("link_foto"))}'
+    return (f'<li class="card pessoa" data-pagina="pessoa/{e(pid)}.html">{avatar(nome, foto=foto(linhas))}'
             f'<span class="info"><a class="nome" href="pessoa/{e(pid)}.html">{e(nome)}</a>'
             f'<small class="ficha">{ficha}</small>{chip_nivel(topo.get("nivel"))}</span>'
             f'<span class="mini">{mini}</span></li>')

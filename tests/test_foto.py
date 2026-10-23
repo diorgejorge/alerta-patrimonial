@@ -26,3 +26,11 @@ def test_avatar_com_foto_mantem_iniciais_por_baixo():
 
 def test_avatar_ignora_foto_que_nao_e_https():
     assert "<img" not in avatar("MARIA", foto="javascript:alert(1)") and "<img" not in avatar("MARIA")
+
+
+def test_foto_sai_do_link_tse_quando_a_linha_e_antiga():
+    from paginas import foto
+    antiga = {"ano_fim": 2022, "link_tse": "https://divulgacandcontas.tse.jus.br/divulga/#/candidato/NORTE/RR/2040602022/230001234567/2022/RR"}
+    assert foto([antiga]) == "https://divulgacandcontas.tse.jus.br/divulga/rest/arquivo/img/2040602022/230001234567/RR"
+    nova = {"ano_fim": 2026, "link_foto": "https://divulgacandcontas.tse.jus.br/divulga/rest/arquivo/img/1/2/RR"}
+    assert foto([antiga, nova]) == nova["link_foto"] and foto([{"ano_fim": 2022}]) is None
