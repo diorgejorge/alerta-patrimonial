@@ -63,6 +63,8 @@ small,.mut{color:var(--mut)}
 .marca .lema{margin:.25em 0 0;font-size:.95rem;color:var(--creme);max-width:60ch}
 .voltar img{width:32px;height:32px;border-radius:50%;margin-right:8px;border:2px solid var(--ouro);background:#fff}
 .rodape{text-align:center;color:var(--mut);margin:2em 0 .5em;font-size:.9rem}
+.rodape-legal{max-width:60rem;margin:2.5em auto 1.5em;padding:1em 16px 0;border-top:1px solid var(--line);text-align:center;color:var(--mut);font-size:.8rem;line-height:1.5}.rodape-legal a{color:inherit;text-decoration:underline}
+.legal-rotulos dt{font-weight:700;margin-top:1em}.legal-rotulos dd{margin:.3em 0 0}
 .agregador{max-width:75ch;margin:1em 0;padding:.6em 1em;border:2px dashed var(--caramelo);border-radius:14px;color:var(--fg)}
 /* aviso de cookies do Google Analytics (medicao.js): so existe com config/analytics.json preenchido */
 .consentimento{position:fixed;left:12px;right:12px;bottom:12px;z-index:20;max-width:640px;margin:0 auto;padding:12px 16px;
@@ -275,3 +277,58 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
   .multi,.contador{background:none;border-color:#999;color:#000}.contador b{color:#000}
   html .tag.reu{background:none;color:#000;border-color:#000}html .alerta.exemplar{border-color:#000;box-shadow:none}html .estrela{color:#000}
 }
+
+/* Acompanhar (#57): botao discreto no cabecalho da pessoa; abre a explicacao do feed RSS */
+details.acompanhar{margin:.4em 0 1em}
+details.acompanhar>summary{list-style:none;border:1px solid currentColor;min-height:44px}
+details.acompanhar>summary::-webkit-details-marker{display:none}
+details.acompanhar>summary svg{color:var(--caramelo)}
+details.acompanhar[open]>summary{background:var(--ouro);color:var(--tinta);border-color:var(--ouro)}
+details.acompanhar[open]>summary svg{color:var(--tinta)}
+details.acompanhar .card{margin-top:8px;max-width:60ch}
+.acompanhar .apps{display:flex;flex-wrap:wrap;gap:8px}
+.acompanhar .apps .botao.secundario{border:1px solid currentColor}
+@media print{details.acompanhar{display:none}}
+
+/* como cobrar (#60): canais oficiais e texto para copiar; compartilhar (#61): botoes so aparecem quando o compartilhar.js confirma que o navegador consegue */
+html:not(.pode-compartilhar) [data-compartilhar],html:not(.pode-copiar) [data-copiar-texto]{display:none}
+.cab .acoes{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.cobrar-contatos{list-style:none;margin:0 0 .4em;padding:0;display:grid;gap:8px;max-width:75ch}
+.cobrar-contatos li{display:grid;grid-template-columns:9.5em minmax(0,1fr);gap:4px 12px;padding:.6em .9em;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow-wrap:anywhere}
+.cobrar-contatos li>span{color:var(--mut);font-size:.875rem}
+@media (max-width:599.98px){.cobrar-contatos li{grid-template-columns:1fr}}
+.cobrar-texto{display:block;width:100%;max-width:75ch;min-height:16em;padding:.8em 1em;font:inherit;font-size:.95rem;line-height:1.5;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:14px;resize:vertical}
+.cobrar-acoes,.compartilhar-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:.8em 0}
+.cobrar-aviso,.compartilhar-aviso{color:var(--mut);font-size:.875rem}
+.compartilhar-acoes .botao.secundario{border:2px solid currentColor}
+dialog.compartilhar{max-width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;padding:16px;border:1px solid var(--line);border-radius:var(--raio);background:#1b2f4e;color:#fff;box-shadow:var(--elev-alto)}
+dialog.compartilhar::backdrop{background:rgba(4,10,20,.6)}
+dialog.compartilhar img{display:block;width:100%;height:auto;border-radius:12px}
+@media print{.cab .acoes,.cobrar-acoes{display:none}}
+/* Como votou (#56) e Presença (#58): voto em etiqueta colorida (com texto, não só cor) e barra com a média da casa */
+ul.votos li p{margin:.35em 0}ul.votos summary{cursor:pointer;min-height:44px;display:flex;align-items:center;flex-wrap:wrap;gap:.2em .4em}
+ul.votos summary small{color:var(--mut)}
+.voto{display:inline-block;font-weight:700;padding:.05em .55em;border-radius:999px;border:1px solid var(--line);margin-right:.4em}
+.voto.sim{background:color-mix(in srgb,var(--info) 18%,transparent);border-color:var(--info)}
+.voto.nao{background:color-mix(in srgb,var(--caramelo) 22%,transparent);border-color:var(--caramelo)}
+.voto.ausente{border-style:dashed;color:var(--mut)}.voto{min-width:4.5em;text-align:center}
+.pres .grande{font-size:1.5rem;color:var(--ouro)}
+.pres{margin:.6em 0 1em;max-width:60ch}.pres p{margin:.2em 0}
+.pres .barra{position:relative;height:10px;border-radius:999px;background:color-mix(in srgb,var(--mut) 22%,transparent)}
+.pres .barra>span:first-child{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--ouro)}
+.pres .barra .media{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:var(--fg);border-radius:2px}
+@media print{.pres .barra>span{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+.voto-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.voto-aviso{color:var(--mut);font-size:.875rem}
+
+/* regua dos colegas (#64): 5 partes iguais de colegas do mesmo cargo, do menor ao maior crescimento;
+   o ponto marca a parte da pessoa (sem valor exato) e fica dourado acima de 90 de cada 100 colegas */
+.regua{position:relative;display:inline-grid;grid-template-columns:repeat(5,1fr);gap:2px;width:8em;height:.6em;vertical-align:middle;margin:0 .2em}
+.regua i{border-radius:2px;background:color-mix(in srgb,var(--mut) 35%,transparent)}
+.regua b{position:absolute;top:50%;width:.9em;height:.9em;margin:-.45em 0 0 -.45em;border-radius:50%;background:var(--fg);border:2px solid var(--bg)}
+.regua.alto i:last-child{background:color-mix(in srgb,var(--ouro) 85%,transparent)}
+.regua.alto b{background:var(--ouro);border-color:var(--tinta)}
+.colegas small{display:block;color:var(--mut);font-size:.8em;line-height:1.3}
+.colegas .regua-linha{display:inline-flex;align-items:center;gap:.25em;white-space:nowrap}.colegas .regua-linha small{display:inline}
+.periodos .periodo dl div.col{grid-column:1/-1}
+td .regua{width:5.5em}
+@media print{.regua i,.regua b{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
