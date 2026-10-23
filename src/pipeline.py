@@ -315,7 +315,12 @@ def _classifica(df, p):
     pct_grupo = df.groupby(gk)["cresc"].rank(pct=True) * 100
     pct_periodo = df.groupby(["ano_ini", "ano_fim"])["cresc"].rank(pct=True) * 100
     n = df.groupby(gk)["cresc"].transform("size")
-    df["percentil"] = pct_grupo.where(n >= p["min_pares_grupo"], pct_periodo)
+    n_periodo = df.groupby(["ano_ini", "ano_fim"])["cresc"].transform("size")
+    do_cargo = n >= p["min_pares_grupo"]
+    df["percentil"] = pct_grupo.where(do_cargo, pct_periodo)
+    # regua dos colegas (#64): tamanho do grupo usado e o cargo dele (None = todos os cargos do periodo)
+    df["n_pares"] = n.where(do_cargo, n_periodo).astype(int)
+    df["cargo_pares"] = df["cargo_ini"].where(do_cargo, None)
     df["nivel_calculado"] = df.apply(lambda r: nivel(r, p), axis=1)
     # outras rendas (empresas declaradas): o salario nao e a unica fonte, entao o destaque desce um grau
     df["nivel"] = [REDUZ.get(n, n) if o else n for n, o in zip(df["nivel_calculado"], df["outras_rendas"])]
@@ -552,7 +557,8 @@ def main():
     fontes = carregar_fontes()
     dados["repo"] = os.getenv("GITHUB_REPOSITORY")  # links "sugerir fonte" do painel
     dados["metodo"] = dict(taxa=p["taxa_poupanca"], minimo=p["crescimento_minimo"], forte=p["limiar_forte"],
-                           atencao=p["limiar_atencao"], informativo=p["limiar_informativo"])  # texto "Como ler"
+                           atencao=p["limiar_atencao"], informativo=p["limiar_informativo"],
+                           min_pares=p["min_pares_grupo"])  # texto "Como ler"
     dados["fontes"] = [dict(nome=f["nome"], uf=f["uf"]) for f in fontes]
     # Portal da Transparencia: uma consulta por pessoa (nome+UF), na ordem do painel; CPF/CNPJ ficam so aqui
     pessoas = {}

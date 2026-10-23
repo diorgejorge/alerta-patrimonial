@@ -319,3 +319,16 @@ ul.votos summary small{color:var(--mut)}
 .barra .media{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:var(--fg);border-radius:2px}
 @media print{.barra>span{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
 .voto-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.voto-aviso{color:var(--mut);font-size:.875rem}
+
+/* regua dos colegas (#64): 5 partes iguais de colegas do mesmo cargo, do menor ao maior crescimento;
+   o ponto marca a parte da pessoa (sem valor exato) e fica dourado acima de 90 de cada 100 colegas */
+.regua{position:relative;display:inline-grid;grid-template-columns:repeat(5,1fr);gap:2px;width:8em;height:.6em;vertical-align:middle;margin:0 .2em}
+.regua i{border-radius:2px;background:color-mix(in srgb,var(--mut) 35%,transparent)}
+.regua b{position:absolute;top:50%;width:.9em;height:.9em;margin:-.45em 0 0 -.45em;border-radius:50%;background:var(--fg);border:2px solid var(--bg)}
+.regua.alto i:last-child{background:color-mix(in srgb,var(--ouro) 85%,transparent)}
+.regua.alto b{background:var(--ouro);border-color:var(--tinta)}
+.colegas small{display:block;color:var(--mut);font-size:.8em;line-height:1.3}
+.colegas .regua-linha{display:inline-flex;align-items:center;gap:.25em;white-space:nowrap}.colegas .regua-linha small{display:inline}
+.periodos .periodo dl div.col{grid-column:1/-1}
+td .regua{width:5.5em}
+@media print{.regua i,.regua b{print-color-adjust:exact;-webkit-print-color-adjust:exact}}

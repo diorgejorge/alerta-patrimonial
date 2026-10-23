@@ -5,11 +5,37 @@ Classes: nv-forte/nv-atencao/nv-informativo e tag-<tema> nas marcas; g-txt/g-mut
 g-eixo nas linhas de grade/base; g-padrao na camada de hachura; g-hachura nos <pattern>;
 g-barra/g-coluna nas marcas; g-tabela nas tabelas alternativas."""
 import html, math, re
+from texto import cap as _cap
 
 e = html.escape
 # so a cor da faixa (#62): o significado e a formula ficam na legenda, sem rotulo que soe como julgamento
 ROTULO_NIVEL = {"forte": "Faixa vermelha", "atencao": "Faixa laranja", "informativo": "Faixa azul",
                 "sem_salario": "Sem salário informado"}  # sem cor: fora das faixas, mas nos destaques
+# regua dos colegas (#64): mesma marcacao do painel (RG/COL em template.html)
+P_ALTO = 90  # ponto dourado: cresceu mais que 90 de cada 100 colegas
+PARTE = ("a dos que menos cresceram", "a segunda", "a do meio", "a quarta", "a dos que mais cresceram")
+
+
+def regua_colegas(a):
+    """Em qual das 5 partes iguais de colegas (do menor ao maior crescimento) a pessoa esta, com o valor ao lado
+    (para conferir a faixa) e a legenda do grupo comparado. Sem percentil: 'Não informado'."""
+    p = a.get("percentil")
+    if p is None or (isinstance(p, float) and math.isnan(p)):
+        return "Não informado"
+    q, alto = min(4, int(p // 20)), p >= P_ALTO
+    rotulo = (f"Posição do crescimento entre os colegas: parte {q + 1} de 5, {PARTE[q]}"
+              + (f"; cresceu mais que {P_ALTO} de cada 100" if alto else ""))
+    valor = "o maior do grupo" if p >= 99.5 else f"acima de {p:.0f}% dos colegas"
+    n, cargo = int(a.get("n_pares") or 0), a.get("cargo_pares")
+    n_txt = f"{n:,}".replace(",", ".")
+    grupo = ("" if not n else f"Entre {n_txt} candidatos a {e(_cap(cargo))} em {a.get('ano_ini')}" if cargo
+             else f"Entre {n_txt} pessoas de todos os cargos em {a.get('ano_ini')} (poucos colegas de cargo)")
+    return ('<span class="colegas"><span class="regua-linha"><small aria-hidden="true">menos</small>'
+            f'<span class="regua{" alto" if alto else ""}" role="img" aria-label="{e(rotulo)}">' + "<i></i>" * 5
+            + f'<b style="left:{q * 20 + 10}%"></b></span><small aria-hidden="true">mais</small></span>'
+            f' {valor}<small>{grupo}</small></span>')
+
+
 ROTULO_TAG = {"politico": "Político", "eleitoral": "Eleitoral", "legislativo": "Legislativo",
               "gestao": "Gestão", "patrimonial": "Patrimonial", "judicial": "Judicial",
               "criminal": "Segurança", "outros": "Outros"}

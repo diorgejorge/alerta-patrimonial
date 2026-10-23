@@ -320,3 +320,21 @@ def test_cobrar_sobre_um_voto_leva_o_texto_para_como_cobrar(servidor, site):
         or "o motivo" in pg.input_value("#cobrar-texto")
     assert not erros, erros
     pg.close()
+
+
+def test_regua_dos_colegas_na_face_sem_valor_e_com_valor_nos_detalhes(abrir):
+    """#64: na face, so a posicao (sem numero); nos detalhes, a regua com o valor para conferir a faixa."""
+    c = card(abrir(), [{**UM_PERIODO[0], "n_pares": 81, "cargo_pares": "SENADOR"}])
+    face = c.locator(".fatos")
+    assert face.locator(".regua.alto").count() == 1
+    assert "Entre 81 candidatos a Senador em 2018" in face.text_content() and "%" not in face.text_content()
+    assert "parte 5 de 5" in face.locator(".regua").get_attribute("aria-label")
+    assert "acima de 96% dos colegas" in c.locator(".det").text_content()
+
+
+def test_regua_dos_colegas_cores_e_posicao(abrir):
+    pg = abrir()
+    assert 'left:50%' in pg.evaluate("RG({percentil:45})") and "alto" not in pg.evaluate("RG({percentil:45})")
+    assert 'left:90%' in pg.evaluate("RG({percentil:100})")
+    assert pg.evaluate("RG({percentil:null})") == ""
+    assert "todos os cargos" in pg.evaluate("GRUPO({n_pares:40,cargo_pares:null,ano_ini:2018})")

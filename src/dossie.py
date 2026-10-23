@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from email.utils import parsedate_to_datetime
 from pathlib import Path
-import temas
+import graficos, temas
 from texto import cap
 
 TPL = Path(__file__).resolve().parent / "dossie.html"
@@ -463,9 +463,7 @@ def bloco_empresas(empresas):
 
 def periodo(a):
     rz = "Não informado" if nulo(a.get("razao")) else f"{a['razao']:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
-    p = a.get("percentil")
-    pc = ("Não informado" if nulo(p) else "o maior<br><small>do grupo</small>" if p >= 99.5
-          else f"acima de {p:.0f}%<br><small>dos colegas</small>")  # mesmo texto do painel
+    pc = graficos.regua_colegas(a)  # mesma regua do painel (#64)
     nv = a.get("nivel") or ""
     novo = ' <span class="novo">novo</span>' if a.get("novo") else ""
     if a.get("outras_rendas"):  # empresas declaradas: destaque reduzido um grau (pipeline.REDUZ)

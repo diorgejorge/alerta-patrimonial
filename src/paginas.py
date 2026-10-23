@@ -21,10 +21,6 @@ def vezes(v):
     return "Não informado" if v is None else f"{v:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
 
 
-def colegas(p):
-    return "Não informado" if p is None else "o maior do grupo" if p >= 99.5 else f"acima de {p:.0f}% dos colegas"
-
-
 def chip_nivel(nv):
     if not nv:
         return ""
@@ -94,7 +90,7 @@ def _tabela_periodos(linhas):
     for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0)):
         cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(cap(a.get("cargo"))), brl(a.get("pat_ini")),
                brl(a.get("pat_fim")), brl(a.get("cresc")), brl(a.get("cap")), vezes(a.get("razao")),
-               colegas(a.get("percentil")), chip_nivel(a.get("nivel"))]
+               graficos.regua_colegas(a), chip_nivel(a.get("nivel"))]
         corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if 2 <= i <= 6 else ""}>{v}</td>'
                                       for i, (c, v) in enumerate(zip(cab, cel))) + "</tr>")
     return ('<div class="tab"><table class="resp"><caption class="sr">Períodos em destaque</caption><thead><tr>'
