@@ -1,6 +1,7 @@
 """Processos em que a pessoa e re: validacao da issue aprovada e leitura de config/processos.csv. Sem rede."""
 import json, sys
 from pathlib import Path
+import pytest
 
 RAIZ = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(RAIZ / "src"))
@@ -53,3 +54,15 @@ def test_pipeline_le_so_links_validos(tmp_path, monkeypatch):
     monkeypatch.setattr(pipeline, "CFG", tmp_path)
     p = pipeline.carregar_processos()
     assert p == {("FULANO DE TAL", "MG"): [dict(tribunal="STF", numero="AP 1044", link=STF)]}
+
+
+def test_processos_desligados_nada_publicado(tmp_path, monkeypatch):
+    """#51: com PROCESSOS_ATIVO False, o pipeline nao le a lista e nada sobre processos sai nos dossies ou nos dados."""
+    from test_fase0 import rodar
+    monkeypatch.setattr(pipeline, "carregar_processos", lambda: pytest.fail("lista de processos lida com a chave desligada"))
+    rodar(tmp_path / "out", monkeypatch)
+    docs = tmp_path / "out" / "docs"
+    dossies = list((docs / "dossie").glob("*.html"))
+    assert dossies and not any("processo" in p.read_text(encoding="utf-8").lower() for p in dossies)
+    painel = (docs / "index.html").read_text(encoding="utf-8")
+    assert '"processos_ativo": false' in painel and '"processos":' not in painel

@@ -125,7 +125,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <tr><th scope="row"><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button></th><td>Patrimônio compatível com o salário, cota abaixo da média e sem sanções</td></tr>
 <tr><th scope="row"><button type="button" class="tag selo" data-f="flag" data-v="selo"><span aria-hidden="true">🐾</span> Mão na massa</button></th><td>Entre os 10% da sua casa com mais projetos aprovados em 4 anos</td></tr>
 <tr><th scope="row"><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button></th><td>Declarou ao TSE participação em empresas; o destaque desce um grau</td></tr>
-<tr><th scope="row"><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo?</button></th><td>Nome em lista revisada por leitores; pode ser homônimo, confira o processo</td></tr>
+<tr data-processos hidden><th scope="row"><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo?</button></th><td>Nome em lista revisada por leitores; pode ser homônimo, confira o processo</td></tr>
 </tbody></table>
 <ul class="alertas" id="cards"></ul>
 <div id="vz" class="vazio" hidden>O Caramelo não farejou nenhum destaque com este filtro.</div>
@@ -166,9 +166,12 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
 // link do TSE de um periodo
 const TSE=a=>/^https:\/\//.test(a.link_tse||"")?`<a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE), período ${a.ano_ini}–${a.ano_fim}">TSE</a>`:"";
+// processos (#51): desligados ate haver base oficial e gratuita por CPF; o pipeline liga com D.processos_ativo
+const PROC_ON=D?.processos_ativo===true;
+if(PROC_ON)for(const e of document.querySelectorAll("[data-processos]"))e.hidden=false;
 // links da pessoa: TSE (so com um periodo; com varios, cada periodo traz o seu), dossie, noticias e busca de processos
 const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Notícias</a>`:"",
-  `<a class="lk" href="${esc(PROC(p))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`].filter(Boolean).join(" · ");
+  PROC_ON&&`<a class="lk" href="${esc(PROC(p))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`].filter(Boolean).join(" · ");
 // busca para o proprio leitor conferir processos pelo nome (o robo nao consulta esses sites)
 const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);
 const NIVEIS=["forte","atencao","informativo"];
@@ -179,6 +182,7 @@ const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar,"Nenhuma pessoa em de
   selo:["Mão na massa",a=>a.selo,"Nenhuma pessoa em destaque tem o selo Mão na massa nesta atualização"],
   renda:["Tem empresas declaradas",a=>a.outras_rendas,"Nenhuma pessoa em destaque tem empresas declaradas nesta atualização"],
   reu:["Responde a processo?",a=>(a.processos||[]).length>0,"Nenhuma pessoa em destaque está na lista de processos revisada por leitores nesta atualização"]};
+if(!PROC_ON)delete FLAG.reu;
 const CONC_ROT={q0:"poucos",q1:"alguns",q2:"muitos",q3:"os que mais concentram"};
 const REGIOES={Norte:"AC AM AP PA RO RR TO",Nordeste:"AL BA CE MA PB PE PI RN SE","Centro-Oeste":"DF GO MS MT",Sudeste:"ES MG RJ SP",Sul:"PR RS SC"};
 const REG={BR:"Nacional",ZZ:"Exterior"};for(const [r,ufs] of Object.entries(REGIOES))for(const u of ufs.split(" "))REG[u]=r;
@@ -325,7 +329,7 @@ const CONT=(p,tag="p",cls="contadores")=>{
   const s=(z,t,txt,c="")=>`<span class="contador${c}${z?" zero":""}"${t?` title="${esc(t)}"`:""}>${txt}</span>`,ic=e=>`<span aria-hidden="true">${e}</span> `;
   const pr=`<b>${n(np)}</b> ${np===1?"processo?":"processos?"}`;
   return`<${tag} class="${cls}">`+(!ne&&p.sem_qtd&&p.outras_rendas?s(0,"",ic("🏢")+"Tem empresas declaradas"):s(!ne,"",ic("🏢")+(ne?`<b>${n(ne)}</b> ${ne===1?"empresa declarada":"empresas declaradas"}`:"Nenhuma empresa declarada")))+" "
-    +s(!np,REU_OBS,ic("⚖️")+(np?(lk?`<a href="${esc(lk)}" target="_blank" rel="noopener">${pr}</a>`:pr):"Nenhum processo informado")," processos")+" "
+    +(PROC_ON?s(!np,REU_OBS,ic("⚖️")+(np?(lk?`<a href="${esc(lk)}" target="_blank" rel="noopener">${pr}</a>`:pr):"Nenhum processo informado")," processos")+" ":"")
     +(p.parlamentar?s(j&&!j.aprovados,j?"Projetos de lei, de lei complementar e PECs como autor ou coautor; aprovados = viraram norma jurídica":"",ic("🐾")+(j?`<b>${n(j.aprovados)}</b> ${j.aprovados===1?"projeto aprovado":"projetos aprovados"} de ${n(j.apresentados)} ${j.apresentados===1?"apresentado":"apresentados"}${j.de?` (${j.de}–${j.ate})`:""}${/^https:\/\//.test(j.link||"")?` · <a href="${esc(j.link)}" target="_blank" rel="noopener" aria-label="Ver os projetos no site oficial">ver</a>`:""}`:"Projetos: Não informado")):"")
     +`</${tag}>`;};
 const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
@@ -467,7 +471,7 @@ function leitura(){
 <li><span class="nivel informativo">${NV.informativo}</span>: acima de ${m.informativo.percentil}% dos colegas, sem os outros critérios.</li></ul>
 <p><b>Cor das tags</b>: cargo, partido e estado ficam mais escuros (do bege ao vermelho-escuro) quanto mais pessoas em destaque concentram no painel. A bolinha ao lado do partido usa uma cor aproximada da identidade visual do partido.</p>
 <p><b>Ordem</b>: primeiro quem tem mais menções na imprensa nos últimos 30 dias (Google Notícias no Brasil e Google News em inglês, só notícias que citam a pessoa pelo nome); depois, o maior crescimento do patrimônio.</p>
-<p><b>"Responde a processo?"</b>: o nome da pessoa aparece como réu em processo público de uma lista informada e revisada por leitores antes de entrar no site (tribunal, número e link da consulta). A lista casa pelo nome e pelo estado, então <b>pode ser homônimo: confira o processo</b> antes de qualquer conclusão. Para procurar outros processos pelo nome, use o link "Conferir processos" de cada card. Ser réu não significa condenação.</p>
+${PROC_ON?`<p><b>"Responde a processo?"</b>: o nome da pessoa aparece como réu em processo público de uma lista informada e revisada por leitores antes de entrar no site (tribunal, número e link da consulta). A lista casa pelo nome e pelo estado, então <b>pode ser homônimo: confira o processo</b> antes de qualquer conclusão. Para procurar outros processos pelo nome, use o link "Conferir processos" de cada card. Ser réu não significa condenação.</p>`:""}
 <p><b>Uma pessoa, um card</b>: quem tem mais de um período analisado aparece uma vez só, com o selo "N períodos" e os períodos dentro do card (cargo, anos e números de cada um). Quando a pessoa tem mais de um período, o card soma o crescimento de todos (por exemplo, de 2018 a 2026) e o alerta aponta o período em que ela mais cresceu; "Daria para comprar" usa a soma e as tags juntam todos os períodos. Filtros, gráficos e contagens contam pessoas: uma pessoa entra no filtro se algum período dela atender.</p>
 <p><b>"Tem empresas declaradas"</b>: a pessoa declarou ao TSE participação em empresas (quotas, ações, capital social) no início ou no fim do período. Como o salário não é a única fonte de renda, o destaque desce um grau (de "${NV.forte}" para "${NV.atencao}" e de "${NV.atencao}" para "${NV.informativo}").</p>
 <p><b>"Não informado"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>

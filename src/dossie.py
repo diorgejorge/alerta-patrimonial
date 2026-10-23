@@ -25,6 +25,9 @@ MAX_FALHAS = 5         # falhas seguidas numa fonte: para de buscar nela (provav
 MAX_EMPRESAS = 5       # empresas exibidas por pessoa
 MAX_BUSCA_EMP = 3      # empresas pesquisadas por pessoa
 MAX_PAGINA = 2_000_000  # bytes lidos de cada materia
+# processos (#51): fora do site ate haver base oficial e gratuita de consulta por CPF que rode no Actions;
+# o codigo e config/processos.csv ficam guardados. True volta a ler a lista e a mostrar tag, filtro e links
+PROCESSOS_ATIVO = False
 FALHA = "Fonte não encontrada: as fontes de notícias não responderam nesta execução."
 SEM_TEMPO = "Não informado: busca não realizada nesta execução (limite de tempo)."
 TEMAS = '(patrimônio OR bens OR "declaração de bens" OR empresa OR "Tribunal de Contas" OR TCU)'
@@ -492,6 +495,22 @@ def compra(cresc, bens):
             f'podem mudar. {e(bens.get("aviso") or "")}</small></p>')
 
 
+def secao_processos(ult):
+    """Link de busca de processos pelo nome e, se houver, os processos da lista curada (config/processos.csv)."""
+    busca = "https://www.google.com/search?" + urllib.parse.urlencode(
+        {"q": f'"{str(ult["nome"]).strip()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)'})
+    cab = (f'<p class="ficha"><a href="{e(busca)}" target="_blank" rel="noopener">Conferir processos pelo nome</a> '
+           '<small>(busca em sites de tribunais, no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome)</small></p>')
+    procs = [x for x in (ult.get("processos") or []) if url_ok(x.get("link")) and x["link"].startswith("https://")]
+    if procs:  # lista curada por issue (config/processos.csv): so tribunal, numero e link oficial
+        cab += ('<p class="ficha" title="Informação de lista revisada por leitores; pode ser homônimo, confira o processo">'
+                'Responde a processo? ' + " · ".join(
+            f'<a href="{e(x["link"])}" target="_blank" rel="noopener">{e(x.get("tribunal") or "")} {e(x.get("numero") or "")}</a>'
+            for x in procs) + ' <small>(informação de lista revisada por leitores; pode ser homônimo, confira o processo. '
+                              'Ser réu não significa condenação)</small></p>')
+    return cab
+
+
 def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", bens=None, cota="", receita="",
            projetos=""):
     ult = linhas[-1]  # periodo mais recente
@@ -504,17 +523,8 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
     cab += f'<p class="ficha">{ficha}</p>'
     if tse:
         cab += f'<p class="ficha"><a href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura e bens no TSE</a></p>'
-    busca = "https://www.google.com/search?" + urllib.parse.urlencode(
-        {"q": f'"{str(ult["nome"]).strip()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)'})
-    cab += (f'<p class="ficha"><a href="{e(busca)}" target="_blank" rel="noopener">Conferir processos pelo nome</a> '
-            '<small>(busca em sites de tribunais, no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome)</small></p>')
-    procs = [x for x in (ult.get("processos") or []) if url_ok(x.get("link")) and x["link"].startswith("https://")]
-    if procs:  # lista curada por issue (config/processos.csv): so tribunal, numero e link oficial
-        cab += ('<p class="ficha" title="Informação de lista revisada por leitores; pode ser homônimo, confira o processo">'
-                'Responde a processo? ' + " · ".join(
-            f'<a href="{e(x["link"])}" target="_blank" rel="noopener">{e(x.get("tribunal") or "")} {e(x.get("numero") or "")}</a>'
-            for x in procs) + ' <small>(informação de lista revisada por leitores; pode ser homônimo, confira o processo. '
-                              'Ser réu não significa condenação)</small></p>')
+    if PROCESSOS_ATIVO:
+        cab += secao_processos(ult)
     nome = urna or str(ult["nome"])
     vals = dict(TITULO=e(nome), NOME=e(nome), CABECALHO=cab, PERIODOS="".join(periodo(a) for a in linhas),
                 RECENTES=lista(recentes, "Nenhuma notícia recente que cite a pessoa ou empresa ligada pelo nome."),

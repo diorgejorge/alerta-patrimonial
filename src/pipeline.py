@@ -6,7 +6,7 @@ import argparse, hashlib, io, json, os, re, sys, unicodedata, urllib.request, ur
 import datetime as dt
 from pathlib import Path
 import pandas as pd
-from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
+from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ, PROCESSOS_ATIVO
 import transparencia
 import cota
 import projetos
@@ -600,9 +600,11 @@ def main():
             print(f"[aviso] secao de empresas falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_rec = ""
         secoes_receita.update({i: html_rec for i in q["idx"]})
-    # processos em que a pessoa e re (lista curada por issue): casa pelo nome civil ou de urna + UF
-    processos = carregar_processos()
-    for a in dados["alertas"]:
+    # processos em que a pessoa e re (lista curada por issue): casa pelo nome civil ou de urna + UF;
+    # desligado (#51) ate haver base oficial e gratuita por CPF: nem le a lista nem publica
+    dados["processos_ativo"] = PROCESSOS_ATIVO
+    processos = carregar_processos() if PROCESSOS_ATIVO else {}
+    for a in dados["alertas"] if processos else ():
         uf = str(a.get("uf") or "").upper()
         achou = processos.get((norm(a.get("nome")), uf)) or processos.get((norm(a.get("nome_urna")), uf))
         if achou:
