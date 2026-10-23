@@ -12,6 +12,7 @@ import transparencia
 import cota
 import projetos
 import parlamentares
+import votacoes, presenca
 import empresas
 import estados
 import temas
@@ -608,6 +609,29 @@ def main():
                                                    de=r["de"], ate=r["ate"], link=r["link"])
             if r["selo"]:
                 dados["alertas"][i]["selo"] = True
+    # como votou (#56) e presenca (#58): todos os parlamentares em exercicio (a media da casa usa todos); nos
+    # destaques, quem esta em exercicio e ligado pela chave (CPF ou nome e UF), como em projetos
+    try:
+        pres_ctx = presenca.anotar(parl, CACHE) if parl else {}
+        vot_ctx = votacoes.anotar(parl, cache=CACHE, ativo=pres_ctx.get("ativo")) if parl else {}
+    except Exception as ex:
+        print(f"[aviso] votacoes ou presenca indisponiveis ({ex!r})", file=sys.stderr)
+        pres_ctx, vot_ctx = {}, {}
+    por_chave = {x["_chave"]: x for x in parl if x["_chave"]}
+    secoes_votos = {}
+    for k, q in pessoas.items():
+        x = por_chave.get(q["chave"]) or (votacoes.demo(q["cargo"]) if args.demo else {})
+        try:
+            html_v = (votacoes.secao(x.get("votos"), q["cargo"], vot_ctx),
+                      presenca.secao(x.get("presenca"), q["cargo"], pres_ctx.get("fontes"), x.get("casa")))
+        except Exception as ex:
+            print(f"[aviso] secao de votacoes falhou para {q['nome']} ({ex!r})", file=sys.stderr)
+            html_v = ('<p class="vazio"><b>Não informado</b>.</p>',) * 2
+        secoes_votos.update({i: html_v for i in q["idx"]})
+        for i in q["idx"]:  # card: so o resumo (presenca e quantos temas votou); o detalhe fica no dossie
+            for campo in ("presenca", "votos"):
+                if x.get(campo):
+                    dados["alertas"][i][campo] = x[campo]
     # parlamentares exemplares (estrela): patrimonio compativel, cota abaixo da media e sem sancoes
     # entre todos os parlamentares em exercicio (parlamentares.py), nao so os destaques
     # None: lista de parlamentares indisponivel (secao escondida); []: ninguem cumpre os criterios (mensagem)
@@ -652,7 +676,8 @@ def main():
     noticias = {}  # {indice: noticias com tags} para a aba Noticias (#54); fora do JSON do painel
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
                                 transparencia=secoes, bens=bens, cota=secoes_cota, receita=secoes_receita,
-                                cache=caches.get("noticias"), projetos=secoes_proj, noticias=noticias).items():
+                                cache=caches.get("noticias"), projetos=secoes_proj, noticias=noticias,
+                                votos=secoes_votos).items():
         dados["alertas"][i]["dossie"] = cam
     if args.demo:  # noticias ficticias para ver a aba sem internet
         noticias = {i: temas.demo(i) for i in noticias}
@@ -697,7 +722,7 @@ def main():
         try:
             cartoes, graficos_painel = paginas.gerar(dados["alertas"], pessoas, hist, secoes, docs,
                                                      gerado=dados["gerado_em"], noticias=noticias,
-                                                     cobranca=cobranca)
+                                                     cobranca=cobranca, votos=secoes_votos)
         except Exception as ex:  # nunca derruba o painel
             print(f"[aviso] paginas por pessoa falharam ({ex!r})", file=sys.stderr)
         try:  # Acompanhar (#57): feed RSS por pessoa e geral, com um item quando um dado muda entre execucoes

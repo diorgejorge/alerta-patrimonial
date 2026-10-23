@@ -259,3 +259,25 @@ def test_celular_filtros_recolhidos_e_sem_rolagem_lateral(abrir):
     assert pg.is_visible("#cg") and pg.get_attribute("#filtros-bt", "aria-expanded") == "true"
     pg.select_option("#nv", "atencao")
     assert pg.inner_text("#filtros-bt") == "Filtros (1)"
+
+
+def test_card_mostra_presenca_e_votos_so_nos_detalhes(abrir):
+    # #56, #58: no card so o resumo curto; o detalhe fica no dossie (link #votos)
+    votos = [dict(id="a", tema="A", voto="Sim", data="2025-01-01", link="https://x"),
+             dict(id="b", tema="B", voto="Não votou", data="2025-02-01", link="https://x")]
+    pres = dict(pct=91.5, media_casa=88.0, plenario=[183, 200])
+    c = card(abrir(), [{**UM_PERIODO[0], "presenca": pres, "votos": votos}])
+    det = c.locator(".det")
+    assert "Presença" not in c.locator(".fatos").text_content()
+    assert "Presença 91,5% (média da casa 88%)" in det.locator(".presenca").text_content()
+    assert "Votou em 1 de 2 temas" in det.locator(".votos").text_content()
+    assert det.locator(".votos a").get_attribute("href") == "dossie/p0001.html#votos"
+
+
+def test_dossie_e_pagina_da_pessoa_com_votos_e_presenca(site):
+    # no --demo, deputados federais e senadores recebem votos e presenca ficticios (votacoes.demo)
+    doss = [p.read_text(encoding="utf-8") for p in (site / "dossie").glob("*.html")]
+    com = [h for h in doss if '<ul class="nt votos">' in h]
+    assert com and all('id="presenca"' in h and 'class="barra"' in h for h in com)
+    pes = next((site / "pessoa").glob("*.html")).read_text(encoding="utf-8")
+    assert 'id="aba-votos"' in pes and "<h3>Como votou</h3>" in pes

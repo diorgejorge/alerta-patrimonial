@@ -169,6 +169,13 @@ def _propostas(pid):
     return f'<p class="mut">{len(props)} propostas registradas; {len(vinc)} vínculos aprovados.</p>'
 
 
+def _votos(v):
+    """Aba "Votos e presença" (#56, #58): html ja escapado (votacoes.secao e presenca.secao)."""
+    if not v:
+        return '<p class="vazio"><b>Não informado</b>: votos e presença só existem para deputados federais e senadores.</p>'
+    return f"<h3>Como votou</h3>{v[0]}<h3>Presença</h3>{v[1]}"
+
+
 def _cabecalho(a, nome, img=None, acoes=""):
     urna = (a.get("nome_urna") or "").strip()
     ficha = " · ".join(e(str(x)) for x in (cap(a.get("cargo")), a.get("partido"), a.get("uf")) if x)
@@ -178,7 +185,7 @@ def _cabecalho(a, nome, img=None, acoes=""):
             + (f'<div class="acoes">{acoes}</div>' if acoes else "") + "</header>")
 
 
-def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, cobranca=None):
+def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, cobranca=None, votos=None):
     """`cobranca`: contato do gabinete, cota e projetos da pessoa para a aba "Como cobrar" (#60, cobrar.secao)."""
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
@@ -189,7 +196,7 @@ def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, cobranca=Non
                 RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
-                PROPOSTAS=_propostas(pid), COBRAR=cobrar.secao(linhas, cobranca, site + f"pessoa/{pid}.html"), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
+                PROPOSTAS=_propostas(pid), COBRAR=cobrar.secao(linhas, cobranca, site + f"pessoa/{pid}.html"), VOTOS=_votos(votos), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
                 FEED=acompanhar.link_head(pid, cap((topo.get("nome_urna") or nome).strip())))
     return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
 
@@ -207,10 +214,11 @@ def cartao(pid, linhas, hist):
             f'<span class="mini">{mini}</span></li>')
 
 
-def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=None):
+def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=None, votos=None):
     """Escreve docs/pessoa/<id>.html e devolve (html dos cartoes, {marca: html dos graficos do painel}).
     `noticias`: {indice_da_linha: lista de noticias com tags ou aviso em texto} (dossie.gerar_dossies).
-    `cobranca`: {indice_da_linha: contato, cota e projetos} para a aba "Como cobrar" (#60)."""
+    `cobranca`: {indice_da_linha: contato, cota e projetos} para a aba "Como cobrar" (#60).
+    `votos`: {indice_da_linha: (html de "Como votou", html de "Presença")} (#56, #58)."""
     noticias, cobranca = noticias or {}, cobranca or {}
     pasta = Path(docs) / "pessoa"
     pasta.mkdir(parents=True, exist_ok=True)
@@ -226,7 +234,7 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=
         h = hist.get(q["chave"], [])
         (pasta / f"{pid}.html").write_text(pagina(tpl, pid, linhas, h, secoes.get(q["idx"][0]), gerado,
                                                            noticias.get(q["idx"][0]),
-                                                           cobranca.get(q["idx"][0])), encoding="utf-8")
+                                                           cobranca.get(q["idx"][0]), (votos or {}).get(q["idx"][0])), encoding="utf-8")
         for i in q["idx"]:
             alertas[i]["pagina"] = f"pessoa/{pid}.html"
         itens.append((max(ORDEM.get(a.get("nivel"), 0) for a in linhas), max(a.get("cresc") or 0 for a in linhas),

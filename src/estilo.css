@@ -304,3 +304,16 @@ dialog.compartilhar{max-width:min(560px,calc(100vw - 32px));max-height:calc(100v
 dialog.compartilhar::backdrop{background:rgba(4,10,20,.6)}
 dialog.compartilhar img{display:block;width:100%;height:auto;border-radius:12px}
 @media print{.cab .acoes,.cobrar-acoes{display:none}}
+/* Como votou (#56) e Presença (#58): voto em etiqueta colorida (com texto, não só cor) e barra com a média da casa */
+ul.votos li p{margin:.35em 0}ul.votos summary{cursor:pointer;min-height:44px;display:flex;align-items:center;flex-wrap:wrap;gap:.2em .4em}
+ul.votos summary small{color:var(--mut)}
+.voto{display:inline-block;font-weight:700;padding:.05em .55em;border-radius:999px;border:1px solid var(--line);margin-right:.4em}
+.voto.sim{background:color-mix(in srgb,var(--info) 18%,transparent);border-color:var(--info)}
+.voto.nao{background:color-mix(in srgb,var(--caramelo) 22%,transparent);border-color:var(--caramelo)}
+.voto.ausente{border-style:dashed;color:var(--mut)}.voto{min-width:4.5em;text-align:center}
+.pres .grande{font-size:1.5rem;color:var(--ouro)}
+.pres{margin:.6em 0 1em;max-width:60ch}.pres p{margin:.2em 0}
+.barra{position:relative;height:10px;border-radius:999px;background:color-mix(in srgb,var(--mut) 22%,transparent)}
+.barra>span:first-child{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--ouro)}
+.barra .media{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:var(--fg);border-radius:2px}
+@media print{.barra>span{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
