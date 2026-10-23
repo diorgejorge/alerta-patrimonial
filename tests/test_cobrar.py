@@ -100,7 +100,7 @@ def test_texto_na_voz_do_cidadao_com_link_oficial():
                      projetos=dict(casa="senado", apresentados=10, aprovados=2, de=2023, ate=2026,
                                    link="https://www25.senado.leg.br/p"))
     assert t.startswith("Prezado(a) Maria,") and "da Bahia" in t
-    assert f"Vi no site do TSE ({LINHA['link_tse']}) que seu patrimônio declarado aumentou 2,0 vezes de 2018 a 2022" in t
+    assert f"Vi no site do TSE ({LINHA['link_tse']}) que seu patrimônio declarado aumentou 200% de 2018 a 2022" in t
     assert "salário" not in t  # #62: a conta nao usa o salario
     assert "R$ 1.000.000" not in t and "R$ 200.000" not in t  # #62: patrimonio sem valores em reais
     assert "Vi nos dados abertos da Câmara dos Deputados (https://www.camara.leg.br/cota)" in t
@@ -146,9 +146,9 @@ def test_imagem_numeros_do_card_e_link_do_tse():
     d = cobrar.imagem([LINHA])
     assert d["url"] == LINHA["link_tse"] and "nivel" not in d and "github.io" not in json.dumps(d)
     assert d["fontes"] == "Fonte: declarações de bens entregues ao TSE."
-    assert [n[0] for n in d["numeros"]] == ["2,0×"]
+    assert [n[0] for n in d["numeros"]] == ["+200%"]
     d = cobrar.imagem([dict(LINHA, cresc=-250_000.0, cap=None, link_tse=None)])
-    assert d["numeros"][0][0] == "diminuiu" and d["url"] == cobrar.TSE_DADOS
+    assert d["numeros"][0][0].startswith("−") and d["url"] == cobrar.TSE_DADOS
 
 
 # ---------- integracao: --demo ----------

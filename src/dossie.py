@@ -469,7 +469,7 @@ def periodo(a):
                  + (f'; destaque reduzido de {e(NV.get(a.get("nivel_calculado"), ""))}'
                     if a.get("nivel_calculado") and a.get("nivel_calculado") != a.get("nivel") else "") + "</small>")
     return (f"<tr><td>{a['ano_ini']}–{a['ano_fim']}{novo}<br><small>{e(cap(a.get('cargo')))}</small></td>"
-            f'<td class="n" data-label="Quantas vezes o patrimônio aumentou">{graficos.vezes_aumento(a.get("pat_fim"), a.get("pat_ini"))}</td>'
+            f'<td class="n" data-label="Aumento do patrimônio">{graficos.aumento_percentual(a.get("pat_fim"), a.get("pat_ini"))}</td>'
             f'<td class="n" data-label="Entre colegas do mesmo cargo">{pc}</td>'
             f'<td class="nivel {e(nv)}" data-label="Faixa">{e(NV.get(nv, nv))}</td></tr>')
 

@@ -137,13 +137,13 @@ def test_card_um_periodo_esconde_zeros_e_detalha_sob_demanda(abrir):
     assert c.locator(".nome").text_content() == "Maria da Silva"
     assert c.locator(".resumo").text_content().split() == ["Senador", "·", "PT", "·", "MS"]
     valor = c.locator(".valor").text_content()
-    assert "de 2018 a 2026" in valor and "1,0×" in valor and "valor original" in valor and "R$" not in valor  # #62: X vezes o valor original
+    assert "de 2018 a 2026" in valor and "+100%" in valor and "R$" not in valor  # #62: so o percentual
     assert "R$" not in c.locator(".fatos").text_content()
     assert c.locator(".tags").count() == 0  # nenhuma marcacao: nada de "Nenhuma empresa" na face
     det, ver = c.locator(".det"), c.locator("button.ver")
     assert ver.text_content().startswith("Detalhes") and ver.get_attribute("aria-expanded") == "false"
-    assert "Nenhuma empresa declarada" in det.text_content() and "Quantas vezes o patrimônio aumentou" in det.text_content()
-    assert "R$" not in det.text_content() and "1,0×" in det.text_content() and "salário" not in det.text_content()  # #62: nenhum valor do patrimonio em reais
+    assert "Nenhuma empresa declarada" in det.text_content() and "Aumento do patrimônio" in det.text_content()
+    assert "R$" not in det.text_content() and "+100%" in det.text_content() and "salário" not in det.text_content()  # #62: nenhum valor do patrimonio em reais
     assert not det.is_visible()
     ver.click()
     assert det.is_visible() and ver.get_attribute("aria-expanded") == "true"
@@ -160,7 +160,7 @@ def test_card_dois_periodos(abrir):
     assert c.locator(".tag.selo").count() == 1 and c.locator(".selo-cera").count() == 0  # selo de cera so na aba propria
     face = c.locator(".tags").text_content()
     assert "Mão na massa" in face and "3 empresas" in face
-    assert c.locator(".valor b").text_content() == "3,0×"  # soma dos periodos sobre o patrimonio inicial (#62)
+    assert c.locator(".valor b").text_content() == "+300%"  # soma dos periodos sobre o patrimonio inicial (#62)
     assert "Notícias (3)" in c.locator(".links").text_content()
 
 
@@ -197,11 +197,12 @@ def test_presidente_some_com_filtro_que_nao_o_inclui(abrir):
     assert pg.locator("#cards .presidente").count() == 0
 
 
-def test_vezes_o_valor_original(abrir):
-    """#62: aumento sobre o patrimonio do inicio, sem salario; o presidente fica no topo e o resto por vezes."""
+def test_aumento_percentual(abrir):
+    """#62: aumento sobre o patrimonio do inicio, sem salario; o presidente fica no topo e o resto pelo maior aumento."""
     pg = abrir()
-    assert pg.evaluate("VO({cresc:2e6,pat_ini:1e6})") == "2,0×"
-    assert pg.evaluate("VO({cresc:-1,pat_ini:1e6})") == "diminuiu"
+    assert pg.evaluate("VO({cresc:2e6,pat_ini:1e6})") == "+200%"
+    assert pg.evaluate("VO({cresc:-4e5,pat_ini:1e6})") == "−40%"
+    assert pg.evaluate("VO({cresc:2.3e7,pat_ini:1e6})") == "+2.300%"
     assert pg.evaluate("VO({cresc:5,pat_ini:0})") == "começou do zero"
     assert pg.evaluate("VO({cresc:null,pat_ini:1})") == "Não informado"
     vn = pg.evaluate("PES.filter(p=>!TOPO(p)).map(VN)")
@@ -209,10 +210,10 @@ def test_vezes_o_valor_original(abrir):
 
 
 def test_dados_antigos_nao_quebram_a_tela(abrir):
-    """Tela publicada antes da carga: faixa antiga ("sem_salario") fica sem chip e o card mostra as vezes."""
+    """Tela publicada antes da carga: faixa antiga ("sem_salario") fica sem chip e o card mostra o percentual."""
     c = card(abrir(), [{**UM_PERIODO[0], "nivel": "sem_salario"}])
     assert c.locator(".topo .chip").count() == 0 and "undefined" not in c.inner_text()
-    assert "1,0×" in c.locator(".valor").text_content()
+    assert "+100%" in c.locator(".valor").text_content()
 
 
 def test_faixas_da_conta_antiga_ficam_escondidas(abrir):
@@ -227,7 +228,7 @@ def test_legenda_explica_niveis_em_linguagem_simples(abrir):
     pg = abrir()
     assert pg.is_visible("#legenda")
     niveis = pg.locator("#leg-niveis li")
-    assert niveis.count() == 3 and "vezes" in niveis.first.inner_text()
+    assert niveis.count() == 3 and "300%" in niveis.first.inner_text()
     assert "salário" not in pg.locator("#leg-niveis").inner_text()  # #62: o salario nao entra na cor
     for b in pg.locator("#legenda button[data-f=flag]:visible").all():  # sem ninguem com a marcacao: desativado e explicado
         if b.get_attribute("aria-disabled") == "true":

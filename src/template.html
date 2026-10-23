@@ -175,10 +175,10 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 </head>
 <body><main>
 <header class="marca"><img src="logo.png" alt="" width="84" height="84"><div><h1>Caramelo Vasculha</h1><p class="lema">Farejando gastos públicos.</p>
-<p class="intro">Quantas vezes o patrimônio declarado ao TSE aumentou, comparado com quem tem o mesmo cargo. É um ponto de partida para pesquisar, não uma acusação. <a href="estado/index.html">Veja também os gastos por estado</a>. <small id="meta"></small></p></div><dl class="hero-num" id="hero-num" hidden></dl></header>
+<p class="intro">Quanto o patrimônio declarado ao TSE aumentou, comparado com quem tem o mesmo cargo. É um ponto de partida para pesquisar, não uma acusação. <a href="estado/index.html">Veja também os gastos por estado</a>. <small id="meta"></small></p></div><dl class="hero-num" id="hero-num" hidden></dl></header>
 <details class="sobre"><summary>Como funciona e de onde vêm os dados</summary>
 <p class="agregador"><strong>O Caramelo Vasculha é apenas um agregador</strong>: reúne dados públicos de fontes oficiais, como o TSE, o Portal da Transparência, a Câmara dos Deputados e o Senado Federal, que respondem por eles, além de links para notícias de outros veículos. O site não produz nem altera esses dados; os destaques são só contas simples sobre eles, um ponto de partida para pesquisar. <strong>Para conferir, cada informação mostrada traz o link direto para a fonte.</strong></p>
-<p class="aviso">Os dados mostram quantas vezes o patrimônio declarado aumentou. Há várias explicações possíveis; use como ponto de partida para pesquisar. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
+<p class="aviso">Os dados mostram quanto o patrimônio declarado aumentou. Há várias explicações possíveis; use como ponto de partida para pesquisar. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
 <p class="fonte">Fonte: declarações de bens e candidaturas do <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">Portal de Dados Abertos do TSE</a>. Para conferir a declaração de cada pessoa, consulte o <a href="https://divulgacandcontas.tse.jus.br/" target="_blank" rel="noopener">DivulgaCandContas</a>. <a href="privacidade.html">Privacidade e seus direitos</a>.</p>
 <section class="contrib" id="contrib" hidden><h2>Ajude a ampliar as fontes</h2>
 <p id="fontes-uso"></p>
@@ -219,7 +219,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <div id="vz" class="vazio" hidden>O Caramelo não farejou nenhum destaque com este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
 <details class="dados" id="tabela"><summary>Ver todos em tabela</summary>
-<div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Tags <small>(clique para filtrar)</small></th><th>Período</th><th class="n" title="Quanto o patrimônio aumentou, dividido pelo valor do começo">Quantas vezes<br><small>o patrimônio aumentou</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Entre colegas<br><small>do mesmo cargo</small></th><th>Faixa</th></tr></thead><tbody id="tb"></tbody></table></div></details>
+<div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Tags <small>(clique para filtrar)</small></th><th>Período</th><th class="n" title="(patrimônio do fim − patrimônio do começo) ÷ patrimônio do começo × 100">Aumento<br><small>do patrimônio</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Entre colegas<br><small>do mesmo cargo</small></th><th>Faixa</th></tr></thead><tbody id="tb"></tbody></table></div></details>
 </section>
 <section id="exemplares" class="painel-aba" hidden><h2><span class="estrela"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg></span> Parlamentares exemplares</h2>
 <p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência. Fontes: <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">TSE</a>, <a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener">Câmara dos Deputados</a>, <a href="https://www12.senado.leg.br/dados-abertos" target="_blank" rel="noopener">Senado Federal</a> e <a href="https://portaldatransparencia.gov.br/" target="_blank" rel="noopener">Portal da Transparência</a>.</p>
@@ -340,7 +340,7 @@ function agrupaPessoas(l){
       presidente:per.some(a=>a.presidente_atual),vice:per.some(a=>a.vice_atual),foto:[...per].reverse().map(a=>a.link_foto).find(v=>/^https:\/\//.test(v||"")),
       parlamentar:per.some(a=>a.projetos||/^(DEPUTADO FEDERAL|SENADOR)$/i.test(a.cargo||""))};});
 }
-// ordem dos destaques: presidente e depois vice em exercicio no topo (#63), depois quem mais aumentou o patrimonio (vezes o valor original)
+// ordem dos destaques: presidente e depois vice em exercicio no topo (#63), depois o maior aumento percentual do patrimonio
 const TOPO=p=>p.presidente?2:p.vice?1:0;
 const VN=p=>p.pat_ini>0&&p.cresc!=null?p.cresc/p.pat_ini:-Infinity;
 // #62: faixas calculadas com a conta antiga (antes da carga) ficam escondidas; aparecem sozinhas quando a carga nova chegar
@@ -447,7 +447,7 @@ const TAGS=p=>{const rd=p.per.find(a=>a.nivel_calculado&&a.nivel_calculado!==a.n
   +CPU(p);};
 // cards em lotes de PAG pessoas (pagina leve); a tabela completa so e montada quando aberta
 const PAG=24;let ROWS=[],VIS=0;
-const CR=a=>`<p class="cresc"><small>Quantas vezes o patrimônio aumentou</small><b>${VO(a)}</b></p>`;
+const CR=a=>`<p class="cresc"><small>Aumento do patrimônio</small><b>${VO(a)}</b></p>`;
 const DL=a=>`<dl><div class="col"><dt>Entre colegas do mesmo cargo</dt><dd>${COL(a,1)}</dd></div></dl>`;
 // um periodo dentro do card (so para quem tem mais de um): anos, cargo (e partido, se mudou), numeros e TSE;
 // o chip de nivel so aparece no periodo de maior crescimento (classe maior)
@@ -487,7 +487,9 @@ const MARCAS=p=>{const ne=p.qtd_empresas||0,rd=p.per.find(a=>a.nivel_calculado&&
 // analogia principal: quantas vezes o que daria para guardar com o salario (soma dos periodos; sem salario de referencia, nao aparece)
 // face do card (#62): so o percentual de aumento do patrimonio declarado; os valores em reais ficam em Detalhes
 // a conta das faixas (#62): aumento do patrimonio dividido pelo valor original (o salario nao entra); sem reais na tela
-const VO=p=>p.cresc==null||p.pat_ini==null?"Não informado":p.pat_ini>0?(p.cresc<0?"diminuiu":VZ(p.cresc/p.pat_ini)):p.cresc>0?"começou do zero":"Não informado";
+// aumento percentual sobre o valor original (#62): (fim - comeco) / comeco x 100
+const AUMP=x=>(x<0?"−":"+")+Math.round(Math.abs(x)*100).toLocaleString("pt-BR")+"%";
+const VO=p=>p.cresc==null||p.pat_ini==null?"Não informado":p.pat_ini>0?AUMP(p.cresc/p.pat_ini):p.cresc>0?"começou do zero":"Não informado";
 const AUM=p=>`<b>${VO(p)}</b>`;
 // fatos do card: mesma fonte e um icone por linha; linha sem dado nao aparece
 const FATOS=p=>{const ic=(e,t)=>t?`<li><span class="ic" aria-hidden="true">${e}</span><span>${t}</span></li>`:"";
@@ -507,7 +509,7 @@ const PRES=p=>`<div class="faixa-pres"><span class="avatar g" aria-hidden="true"
 const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
 const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}${p.presidente?" presidente":p.vice?" vice":""}">${TOPO(p)?PRES(p):""}<div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b>${NV[p.nivel]?`<span class="chip nv-${p.nivel}" role="img" aria-label="${NV[p.nivel]}: o patrimônio aumentou ${VO(p.maior)}" title="${NV[p.nivel]}${p.per.length>1?` no período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})`:""}. Veja a fórmula em Como ler os números">${NV[p.nivel]}</span>`:""}</div>
 <p class="resumo">${CPU_RES(p)}</p>
-<p class="valor">${AUM(p)}<span>foi quanto o patrimônio aumentou de ${p.ano_ini} a ${p.ano_fim}, em vezes o valor original</span></p>
+<p class="valor">${AUM(p)}<span>de aumento no patrimônio de ${p.ano_ini} a ${p.ano_fim}</span></p>
 ${FATOS(p)}${MARCAS(p)}${DET(p)}
 <div class="pe"><p class="links">${LK(p)}</p><button type="button" class="ver" aria-expanded="false" data-rot="${ROT_VER}"${p.per.length>1?` title="Números do cálculo e os ${p.per.length} períodos"`:""}>${ROT_VER}<span aria-hidden="true"> ▾</span></button></div></li>`;
 // parlamentares exemplares: um card por pessoa (nome + UF), periodos agrupados
@@ -553,7 +555,7 @@ function tabelaToda(){
   if(!$("tabela").open)return;
   // uma linha por pessoa; com varios periodos, cada celula traz uma linha por periodo, na mesma ordem da coluna Periodo
   const L=(p,f)=>p.per.map(f).join("<br>");
-  document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar">${ICO.estrela}</span> `:""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Quantas vezes o patrimônio aumentou"><span>${p.per.length>1?`<b>${VO(p)}</b><br><small>${L(p,a=>`${a.ano_ini}–${a.ano_fim}: ${VO(a)}`)}</small>`:VO(p)}</span></td><td class="n" data-label="Entre colegas do mesmo cargo"><span>${L(p,a=>COL(a,1))}</span></td><td class="nivel ${p.nivel||""}" data-label="Faixa"><span>${NV[p.nivel]||"Sem faixa"}${p.per.length>1?`<br><small>maior crescimento: ${p.maior.ano_ini}–${p.maior.ano_fim}</small>`:""}</span></td></tr>`).join("");
+  document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar">${ICO.estrela}</span> `:""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Aumento do patrimônio"><span>${p.per.length>1?`<b>${VO(p)}</b><br><small>${L(p,a=>`${a.ano_ini}–${a.ano_fim}: ${VO(a)}`)}</small>`:VO(p)}</span></td><td class="n" data-label="Entre colegas do mesmo cargo"><span>${L(p,a=>COL(a,1))}</span></td><td class="nivel ${p.nivel||""}" data-label="Faixa"><span>${NV[p.nivel]||"Sem faixa"}${p.per.length>1?`<br><small>maior crescimento: ${p.maior.ano_ini}–${p.maior.ano_fim}</small>`:""}</span></td></tr>`).join("");
 }
 // lista completa leve (#43): docs/todos.json so e baixado quando o leitor abre a lista
 // pessoa: [nome publico, nome civil, pagina do dossie, marcas ("e" exemplar, "s" selo), periodos]
@@ -599,7 +601,7 @@ function todosDraw(){
   TV=0;$("todos-lista").replaceChildren();todosMais();
 }
 const TLK=s=>/^https:\/\//.test(TD.link_tse||"")&&/^[A-Z]+\/[A-Z]{2}\/\d+\/\d+\/\d{4}\/\w+$/.test(s||"")?TD.link_tse+s:"";
-// lista completa: so quantas vezes o valor original (#62: sem valores em reais do patrimonio)
+// lista completa: so o aumento percentual (#62: sem valores em reais do patrimonio)
 const VAR=(ini,fim)=>ini==null||fim==null?"Não informado":VO({cresc:fim-ini,pat_ini:ini});
 const LEVE=p=>`<li class="leve"><div class="topo"><span><b>${p.m.includes("e")?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(p.n)}</b>${p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:""}${p.c?`<br><small>${esc(p.c)}</small>`:""}</span><span class="chip${p.nv?` nv-${TNC[p.nv]}`:""}">${TN[p.nv]}</span></div>
 <p class="tags">${p.m.includes("s")?`<span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos">${ICO.pata} Mão na massa</span>`:""}${[...p.cg,...p.pt,...p.uf].map(v=>`<span class="tag">${esc(v)}</span>`).join("")}</p>
@@ -628,7 +630,6 @@ function draw(){
   if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo=F.regiao=F.flag="";$("cg").value="";$("rg").value="";draw();};
   document.getElementById("vz").hidden=rows.length>0;
 }
-const VZ=v=>v==null?"Não informado":v.toLocaleString("pt-BR",{minimumFractionDigits:1,maximumFractionDigits:1})+"×";
 // percentil no grupo de pares: 100 = o maior crescimento do grupo
 const PC=p=>p==null?"Não informado":p>=99.5?"o maior<br><small>do grupo</small>":`acima de ${Math.round(p)}%<br><small>dos colegas</small>`;
 // regua dos colegas (#64): em qual das 5 partes iguais de colegas a pessoa esta, sem valor exato; ponto dourado acima de P_ALTO
@@ -644,13 +645,13 @@ const metodo=()=>Object.assign({taxa:.3,minimo:100000,forte:{razao:3,percentil:9
 function leitura(){
   const m=metodo();
   $("leitura").innerHTML=`
-<p><b>A conta</b>: é só dividir quanto o patrimônio aumentou pelo valor do começo. <code>vezes = (patrimônio do fim − patrimônio do começo) ÷ patrimônio do começo</code>. Exemplo: tinha R$ 1 milhão em 2018 e declarou R$ 3 milhões em 2022. Aumentou R$ 2 milhões, ou seja, <b>2 vezes</b> o que tinha. O salário não entra na conta.</p>
+<p><b>A conta</b>: quanto o patrimônio aumentou, em percentual sobre o valor do começo. <code>aumento = (patrimônio do fim − patrimônio do começo) ÷ patrimônio do começo × 100</code>. Exemplo: tinha R$ 1 milhão em 2018 e declarou R$ 3 milhões em 2022. Aumentou R$ 2 milhões, ou seja, <b>+200%</b>. O salário não entra na conta.</p>
 <p><b>Entre colegas do mesmo cargo</b> (régua dos colegas): põe em fila, do menor ao maior, o crescimento em reais de todos os candidatos ao mesmo cargo na mesma eleição que declararam bens de novo na eleição seguinte, e corta a fila em 5 partes iguais. O ponto ${RG({percentil:60})} mostra em qual parte a pessoa está; fica dourado ${RG({percentil:96})} quando ela cresceu mais que ${P_ALTO} de cada 100 colegas. Nos detalhes aparece o valor: "acima de 97% dos colegas" quer dizer que, de cada 100 colegas, 97 tiveram crescimento menor. Se o cargo tiver menos de ${m.min_pares} pessoas, a comparação é com todos os cargos do período, e a régua avisa. O crescimento é em reais, sem correção pela inflação.</p>
 <p><b>Faixas de cor</b>: a cor é só o resultado da fórmula, não um julgamento. Só valem para quem aumentou pelo menos ${R(m.minimo)}:</p>
-<ul><li><span class="nivel forte">${NV.forte}</span>: aumentou ${m.forte.razao} vezes ou mais <i>e</i> mais que ${m.forte.percentil} de cada 100 colegas.</li>
-<li><span class="nivel atencao">${NV.atencao}</span>: aumentou ${m.atencao.razao} vezes ou mais <i>e</i> mais que ${m.atencao.percentil} de cada 100 colegas, ou mais que 98 de cada 100 colegas.</li>
+<ul><li><span class="nivel forte">${NV.forte}</span>: aumentou ${m.forte.razao*100}% ou mais <i>e</i> mais que ${m.forte.percentil} de cada 100 colegas.</li>
+<li><span class="nivel atencao">${NV.atencao}</span>: aumentou ${m.atencao.razao*100}% ou mais <i>e</i> mais que ${m.atencao.percentil} de cada 100 colegas, ou mais que 98 de cada 100 colegas.</li>
 <li><span class="nivel informativo">${NV.informativo}</span>: aumentou mais que ${m.informativo.percentil} de cada 100 colegas.</li></ul>
-<p><b>Ordem</b>: primeiro quem mais aumentou o patrimônio, em vezes o valor original.</p>
+<p><b>Ordem</b>: primeiro quem teve o maior aumento percentual do patrimônio.</p>
 ${PROC_ON?`<p><b>"Responde a processo?"</b>: o nome da pessoa aparece como réu em processo público de uma lista informada e revisada por leitores antes de entrar no site (tribunal, número e link da consulta). A lista casa pelo nome e pelo estado, então <b>pode ser homônimo: confira o processo</b> antes de qualquer conclusão. Para procurar outros processos pelo nome, use o link "Conferir processos" de cada card. Ser réu não significa condenação.</p>`:""}
 <p><b>Uma pessoa, um card</b>: quem tem mais de um período analisado aparece uma vez só; os períodos (cargo, anos e números de cada um) ficam em "Ver detalhes". Quando a pessoa tem mais de um período, o card soma o crescimento de todos (por exemplo, de 2018 a 2026) e o alerta aponta o período em que ela mais cresceu; "Daria para comprar" usa a soma e as tags juntam todos os períodos. Filtros, gráficos e contagens contam pessoas: uma pessoa entra no filtro se algum período dela atender.</p>
 <p><b>"Tem empresas declaradas"</b>: a pessoa declarou ao TSE participação em empresas (quotas, ações, capital social) no início ou no fim do período. Como há outra fonte de renda declarada, o destaque desce um grau (de "${NV.forte}" para "${NV.atencao}" e de "${NV.atencao}" para "${NV.informativo}").</p>
@@ -674,8 +675,8 @@ function contrib(){
 function legenda(){
   const m=metodo();
   $("leg-niveis").hidden=!FAIXA_NOVA;  // #62: sem faixas da conta nova, a legenda delas some
-  $("leg-niveis").innerHTML=[["forte",`O patrimônio aumentou ${m.forte.razao} vezes ou mais, e mais que ${m.forte.percentil} de cada 100 colegas.`],
-    ["atencao",`O patrimônio aumentou ${m.atencao.razao} vezes ou mais, ou bem mais que os colegas do mesmo cargo.`],
+  $("leg-niveis").innerHTML=[["forte",`O patrimônio aumentou ${m.forte.razao*100}% ou mais, e mais que ${m.forte.percentil} de cada 100 colegas.`],
+    ["atencao",`O patrimônio aumentou ${m.atencao.razao*100}% ou mais, ou bem mais que os colegas do mesmo cargo.`],
     ["informativo",`Cresceu mais que ${m.informativo.percentil} de cada 100 colegas do mesmo cargo.`]]
     .map(([n,t])=>`<li><span class="chip nv-${n}">${NV[n]}</span> <span class="expl">${t}</span></li>`).join("");
   const tt={exemplar:"Clique para ver só os parlamentares exemplares",selo:"Clique para ver só quem tem o selo Mão na massa",renda:"Clique para ver só quem tem empresas declaradas",reu:`${REU_OBS}. Clique para ver só quem está na lista`};

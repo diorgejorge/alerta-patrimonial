@@ -207,15 +207,14 @@ def _escala(m):
     return passo, max(1, math.ceil(m / passo - 1e-9))
 
 
-def vezes_aumento(v, base):
-    """Quantas vezes o patrimonio aumentou: (v - base) / base, ex. '2,0×' (#62: sem reais na tela, sem salario)."""
+def aumento_percentual(v, base):
+    """Quanto o patrimonio aumentou sobre o valor original: (v - base) / base x 100, ex. '+200%' (#62: sem reais)."""
     if _nulo(v) or _nulo(base):
         return "Não informado"
     if base <= 0:
         return "começou do zero" if v > 0 else "Não informado"
-    if v < base:
-        return "diminuiu"
-    return _num((v - base) / base, 1) + "×"
+    pct = (v - base) / base * 100
+    return ("+" if pct >= 0 else "−") + _num(abs(pct)) + "%"
 
 
 def patrimonio(pontos: list[tuple[int, float]], uid: str,
@@ -233,11 +232,11 @@ def patrimonio(pontos: list[tuple[int, float]], uid: str,
     passo, k = _escala(max(v for _, v in pts))
     topo = passo * k
     base = pts[0][1]
-    rotulos = ["início"] + [vezes_aumento(v, base) for _, v in pts[1:]]
+    rotulos = ["início"] + [aumento_percentual(v, base) for _, v in pts[1:]]
     if n == 1:
         desc = f"Só há a declaração da eleição de {pts[0][0]}."
     else:
-        desc = (f"Colunas por eleição, de {pts[0][0]} a {pts[-1][0]}, com quantas vezes o patrimônio aumentou desde {pts[0][0]}. "
+        desc = (f"Colunas por eleição, de {pts[0][0]} a {pts[-1][0]}, com quanto o patrimônio aumentou desde {pts[0][0]}. "
                 + "; ".join(f"{a}: {rot}" for (a, _), rot in zip(pts, rotulos)) + ".")
     partes = [_abre(p, W, H, titulo, desc, "g-patrimonio")]
     for i in range(k + 1):  # grade
@@ -264,9 +263,9 @@ def tabela_patrimonio(pontos: list[tuple[int, float]],
     if not pts:
         return ""
     base = pts[0][1]
-    linhas = [(str(ano), "—" if i == 0 else vezes_aumento(v, pts[i - 1][1]), "início" if i == 0 else vezes_aumento(v, base))
+    linhas = [(str(ano), "—" if i == 0 else aumento_percentual(v, pts[i - 1][1]), "início" if i == 0 else aumento_percentual(v, base))
               for i, (ano, v) in enumerate(pts)]
-    return _tabela(titulo, ("Eleição", "Quantas vezes aumentou sobre a eleição anterior", f"Quantas vezes aumentou desde {pts[0][0]}"), linhas)
+    return _tabela(titulo, ("Eleição", "Aumento sobre a eleição anterior", f"Aumento desde {pts[0][0]}"), linhas)
 
 
 # ---------------------------------------------------------------- 3. mini grafico de patrimonio
@@ -283,7 +282,7 @@ def mini_patrimonio(pontos: list[tuple[int, float]], uid: str) -> str:
         return M + (a - a0) / (a1 - a0) * (W - 2 * M), y
 
     coords = [xy(a, v) for a, v in pts]
-    rot = f"Quantas vezes o patrimônio aumentou de {a0} a {a1}: {vezes_aumento(v1, v0)}"
+    rot = f"Aumento do patrimônio de {a0} a {a1}: {aumento_percentual(v1, v0)}"
     linha = " ".join(f"{_n(x)},{_n(y)}" for x, y in coords)
     x, y = coords[-1]
     return (f'<svg xmlns="http://www.w3.org/2000/svg" class="grafico g-mini" viewBox="0 0 {W} {H}" '

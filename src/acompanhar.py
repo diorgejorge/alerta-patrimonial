@@ -49,11 +49,11 @@ def pct(v):
 
 
 def aumento_patrimonio(base, v):
-    """Mesmo texto do resto do site (#62): 'aumentou 2,0× o valor original', 'diminuiu'; None sem base."""
-    t = graficos.vezes_aumento(v, base)
+    """Mesmo texto do resto do site (#62): 'aumentou 200%', 'diminuiu 40%'; None sem base."""
+    t = graficos.aumento_percentual(v, base)
     if t == "Não informado":
         return None
-    return t if not t.endswith("×") else f"aumentou {t} o valor original"
+    return {"+": f"aumentou {t[1:]}", "−": f"diminuiu {t[1:]}"}.get(t[0], t)
 
 
 def subiu(v):

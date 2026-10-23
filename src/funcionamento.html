@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="O que o site faz, de onde vêm os dados, o que os destaques querem dizer e como pedir correção ou resposta.">
+<meta name="description" content="De onde vêm os dados e como funcionam as contas.">
 <title>Funcionamento do site · Caramelo Vasculha</title>
 <link rel="icon" type="image/png" href="icone.png">
 <link rel="stylesheet" href="estilo.css">
@@ -14,61 +14,35 @@
 <main id="conteudo">
 <header class="topo-site"><a class="marca-link" href="index.html"><img src="logo.png" alt="" width="56" height="56"><span><b>Caramelo Vasculha</b><small>Farejando gastos públicos.</small></span></a><a class="voltar" href="index.html">← Voltar ao painel</a></header>
 <h1>Funcionamento do site</h1>
-<p class="mut">Em poucas palavras: esta é uma ferramenta independente de agregação de dados públicos. Os dados são públicos e vêm de órgãos oficiais, que respondem por eles. Aqui eles só são organizados para ficar fácil de ler. Nenhum número deste site acusa ninguém. Atualizado em __ATUALIZADO__.</p>
-
-<h2>O que este site faz</h2>
-<p>O Caramelo Vasculha é uma <strong>ferramenta independente de agregação de dados públicos</strong>. Não tem vínculo com nenhum órgão de governo, partido político, candidato ou empresa, e não fala em nome deles.</p>
-<p>Junta, num só lugar, dados que a lei já obriga o poder público a divulgar sobre quem disputa ou exerce cargo eletivo, e mostra esses dados com os <strong>mesmos critérios para todas as pessoas</strong>. É como uma lupa sobre documentos que já estão abertos: a lupa não muda o que está escrito.</p>
-<p>O site não cria dados, não recebe denúncias e não investiga ninguém. Cada informação mostra a fonte oficial de onde veio, com link para você conferir lá.</p>
-
-<h2>Quem responde pelos dados</h2>
-<p>Os dados são <strong>externos</strong>: quem os produz, publica e responde pela exatidão deles é o órgão de origem (TSE, Controladoria-Geral da União, Câmara, Senado) ou, no caso das notícias, o veículo que publicou a matéria. O site reproduz o que essas fontes divulgam, como divulgam, e não garante que estejam completas, certas ou atualizadas.</p>
-<p>A parte do site é só a organização: somas, comparações e destaques feitos por fórmula, explicados abaixo e iguais para todas as pessoas. Se a fórmula estiver errada, a correção é nossa; se o dado de origem estiver errado, a correção é do órgão que o publicou.</p>
+<p class="mut">Ferramenta independente de agregação de dados públicos. Atualizado em __ATUALIZADO__.</p>
 
 <h2>De onde vêm os dados</h2>
+<p>Todos os dados vêm de órgãos oficiais, que respondem por eles. Cada número do site tem o link da fonte para conferir.</p>
 <ul>
 <li><a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">Tribunal Superior Eleitoral (TSE)</a>: candidaturas, bens declarados e foto oficial, conferíveis no <a href="https://divulgacandcontas.tse.jus.br/" target="_blank" rel="noopener">DivulgaCandContas</a>.</li>
 <li><a href="https://portaldatransparencia.gov.br/" target="_blank" rel="noopener">Portal da Transparência</a> (Controladoria-Geral da União), pela API oficial: emendas, sanções, recursos federais e benefícios.</li>
 <li><a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener">Câmara dos Deputados</a> e <a href="https://www12.senado.leg.br/dados-abertos" target="_blank" rel="noopener">Senado Federal</a>: cota parlamentar, projetos, votações, presença e contatos de gabinete.</li>
-<li>Notícias: só título, veículo, data e link para a matéria original. O conteúdo é de responsabilidade de cada veículo.</li>
+<li>Notícias: título, veículo, data e link para a matéria original.</li>
 </ul>
-<p>Quando uma fonte fica fora do ar, o site mostra <b>Fonte não encontrada</b>. Quando a fonte não traz o dado, mostra <b>Não informado</b>. O site não inventa dados. A única estimativa é o salário dos cargos sem valor oficial único, usado só no selo Exemplar, que usa o teto da Constituição, como explicado abaixo.</p>
+<p>Quando a fonte está fora do ar, aparece <b>Fonte não encontrada</b>. Quando a fonte não traz o dado, aparece <b>Não informado</b>.</p>
 
-<h2>O que os destaques querem dizer (e o que não querem)</h2>
-<p>Os destaques são <strong>pontos de partida para pesquisa</strong>, calculados por fórmula, iguais para todos. Nenhum deles afirma irregularidade, crime ou má-fé.</p>
+<h2>Como funcionam as contas</h2>
+<p>As contas são as mesmas para todas as pessoas. Os números de cada regra ficam no arquivo público <a href="https://github.com/diorgejorge/alerta-patrimonial/blob/main/config/parametros.json" target="_blank" rel="noopener">config/parametros.json</a>.</p>
 <dl class="legal-rotulos">
-<dt>Faixas de cor do patrimônio (vermelha, laranja e azul)</dt>
-<dd><b>A conta:</b> é só dividir quanto o patrimônio declarado ao TSE aumentou pelo valor que a pessoa tinha no começo. <code>vezes = (patrimônio no fim − patrimônio no começo) ÷ patrimônio no começo</code>. Exemplo: tinha 1 milhão e passou a ter 3 milhões. Aumentou 2 milhões, que é 2 vezes o valor original. O salário não entra na conta.</dd>
-<dd><b>As faixas</b> (só quando o patrimônio aumentou pelo menos R$ 100 mil): <b>vermelha</b> = aumentou 3 vezes ou mais e mais que 95 de cada 100 colegas do mesmo cargo e período; <b>laranja</b> = aumentou 2 vezes ou mais e mais que 90 de cada 100 colegas, ou mais que 98 de cada 100 colegas; <b>azul</b> = mais que 95 de cada 100 colegas. Quem declarou participação em empresas desce uma faixa, porque tem outra fonte de renda. Os números de cada regra ficam no arquivo público <a href="https://github.com/diorgejorge/alerta-patrimonial/blob/main/config/parametros.json" target="_blank" rel="noopener">config/parametros.json</a>.</dd>
-<dd><b>Quer dizer:</b> o patrimônio declarado aumentou muito em relação ao que a pessoa tinha e ao que os colegas declararam. <b>Não quer dizer:</b> enriquecimento ilícito. Herança, atividade própria, renda do cônjuge, venda de bens e a forma de declarar (custo histórico) não entram na conta.</dd>
-<dt>Régua dos colegas (posição entre colegas do mesmo cargo)</dt>
-<dd><b>A conta:</b> põe em fila, do menor ao maior, o crescimento do patrimônio declarado ao TSE (em reais, sem correção pela inflação) de todos os candidatos ao mesmo cargo na mesma eleição que declararam bens de novo na eleição seguinte. A fila é cortada em <b>5 partes iguais</b> e o ponto mostra em qual parte a pessoa está. O ponto fica <b>dourado</b> quando o crescimento foi maior que o de 90 de cada 100 colegas. Se o cargo tiver menos de 20 pessoas, a comparação é com todos os cargos do mesmo período, e a régua avisa. O valor exato fica nos detalhes, para conferir.</dd>
-<dd><b>Quer dizer:</b> o patrimônio da pessoa cresceu, em reais, mais (ou menos) que o dos colegas. <b>Não quer dizer:</b> irregularidade. Quem já tinha patrimônio maior tende a crescer mais em reais, e herança, venda de bens e renda do cônjuge não entram na conta.</dd>
-<dt>Emergência sem reconhecimento oficial</dt>
-<dd><b>Quer dizer:</b> uma emenda de defesa civil foi para um lugar que não teve emergência ou calamidade reconhecida pelo governo federal (S2iD) no ano ou no anterior. <b>Não quer dizer:</b> desvio. Defesa civil também previne desastres.</dd>
+<dt>Aumento do patrimônio</dt>
+<dd><code>aumento = (patrimônio do fim − patrimônio do começo) ÷ patrimônio do começo × 100</code>, com o patrimônio declarado ao TSE em cada eleição. Exemplo: tinha 1 milhão e passou a ter 3 milhões. Aumentou 2 milhões, ou seja, +200%.</dd>
+<dt>Faixas de cor (vermelha, laranja e azul)</dt>
+<dd>Só quando o patrimônio aumentou pelo menos R$ 100 mil. <b>Vermelha</b>: aumentou 300% ou mais e mais que 95 de cada 100 colegas do mesmo cargo e período. <b>Laranja</b>: aumentou 200% ou mais e mais que 90 de cada 100 colegas, ou mais que 98 de cada 100 colegas. <b>Azul</b>: mais que 95 de cada 100 colegas. Quem declarou participação em empresas desce uma faixa, porque tem outra fonte de renda.</dd>
+<dt>Régua dos colegas</dt>
+<dd>Põe em fila, do menor ao maior, o crescimento do patrimônio declarado ao TSE (em reais, sem correção pela inflação) de todos os candidatos ao mesmo cargo na mesma eleição que declararam bens de novo na eleição seguinte. A fila é cortada em <b>5 partes iguais</b> e o ponto mostra em qual parte a pessoa está. O ponto fica <b>dourado</b> quando o crescimento foi maior que o de 90 de cada 100 colegas. Se o cargo tiver menos de 20 pessoas, a comparação é com todos os cargos do mesmo período.</dd>
 <dt>Emenda parada</dt>
-<dd><b>Quer dizer:</b> a emenda foi empenhada (o dinheiro foi reservado) há mais de 2 anos e nada foi pago até agora, segundo o Portal da Transparência. <b>Não quer dizer:</b> culpa de quem fez a emenda. O atraso pode estar em quem recebe ou em quem paga.</dd>
-<dt>Exemplar · Mão na massa</dt>
-<dd><b>Quer dizer:</b> a pessoa cumpre critérios objetivos explicados no painel. <b>Não quer dizer:</b> recomendação de voto.</dd>
-<dd><b>O salário usado no Exemplar</b> (para ver se o patrimônio daria para guardar somente com o salário): o subsídio oficial de deputado federal e senador. Para os outros cargos, onde não há um valor oficial único, o <b>teto da Constituição</b>: deputado estadual e distrital, 75% do deputado federal (art. 27, § 2º); vereador, 75% do deputado estadual (art. 29, VI); presidente, governador, prefeito e vices, o salário de ministro do STF (art. 37, XI). A tabela fica no arquivo público <a href="https://github.com/diorgejorge/alerta-patrimonial/blob/main/config/renda_publica.csv" target="_blank" rel="noopener">config/renda_publica.csv</a>.</dd>
+<dd>Emenda empenhada (dinheiro reservado) há mais de 2 anos sem nenhum pagamento, segundo o Portal da Transparência.</dd>
+<dt>Mão na massa</dt>
+<dd>Está entre os 10% da sua casa (Câmara ou Senado) que mais aprovaram projetos nos últimos 4 anos.</dd>
+<dt>Exemplar</dt>
+<dd>O patrimônio daria para guardar somente com o salário, gasta a cota do gabinete abaixo da média e não tem sanção registrada. Salário: o subsídio oficial de deputado federal e senador; para os outros cargos, o <b>teto da Constituição</b> (deputado estadual e distrital, 75% do deputado federal, art. 27, § 2º; vereador, 75% do deputado estadual, art. 29, VI; presidente, governador, prefeito e vices, o salário de ministro do STF, art. 37, XI). Tabela no arquivo público <a href="https://github.com/diorgejorge/alerta-patrimonial/blob/main/config/renda_publica.csv" target="_blank" rel="noopener">config/renda_publica.csv</a>.</dd>
 </dl>
-<p>Na dúvida, a regra é simples: confira na fonte oficial e pergunte à própria pessoa. É para isso que o site existe.</p>
-
-<h2>Achou um erro? Quer responder?</h2>
-<p>Se você é uma das pessoas citadas, ou se viu um dado errado, desatualizado ou de um homônimo, peça a correção. O pedido é analisado e, se proceder, o dado é corrigido ou retirado, e a resposta de quem foi citado pode ser publicada junto ao dado (direito de resposta, Lei 13.188/2015).</p>
-<p>Como pedir: __CONTATO__. Diga qual página e qual dado, e, se puder, o link da fonte oficial que mostra o valor certo. Não envie documentos pessoais por canais públicos.</p>
-<p>Como os dados vêm das fontes oficiais, um erro na origem também precisa ser corrigido lá (no TSE, no Portal da Transparência ou na casa legislativa). Se o órgão corrigir, o site atualiza sozinho na próxima carga semanal.</p>
-
-<h2>Por que é permitido</h2>
-<ul>
-<li><strong>Constituição Federal</strong>: direito de informar e de ser informado (art. 5º, IV, IX, XIV e XXXIII) e publicidade da administração pública (art. 37).</li>
-<li><strong>Lei de Acesso à Informação</strong> (Lei 12.527/2011): o que é público deve ser divulgado e pode ser reutilizado.</li>
-<li><strong>LGPD</strong> (Lei 13.709/2018): dados tornados públicos pela lei podem ser tratados para finalidade compatível de interesse público (art. 7º, § 3º e § 7º). Detalhes na página de <a href="privacidade.html">Privacidade e seus direitos</a>.</li>
-</ul>
-
-<h2>Uso do conteúdo</h2>
-<p>Você pode copiar e compartilhar os dados, sempre citando a fonte oficial. Quem compartilha responde pelo que escreve junto: o site não endossa conclusões, comentários ou acusações feitas por terceiros a partir destes dados.</p>
-<p>Este site não presta orientação jurídica e não substitui a consulta às fontes oficiais.</p>
+<p class="mut">Viu um dado errado? __CONTATO__.</p>
 </main>
 </body>
 </html>

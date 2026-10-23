@@ -31,7 +31,7 @@ def resumo(linhas):
     total = sum(c for c in cresc if c is not None) if any(c is not None for c in cresc) else None
     ini = _num(per[0].get("pat_ini"))
     return dict(ano_ini=per[0].get("ano_ini"), ano_fim=per[-1].get("ano_fim"), cresc=total,
-                aumento=None if total is None or ini is None else graficos.vezes_aumento(ini + total, ini),  # #62
+                aumento=None if total is None or ini is None else graficos.aumento_percentual(ini + total, ini),  # #62
                 tse=next((a["link_tse"] for a in reversed(per) if str(a.get("link_tse") or "").startswith("https://")),
                          None))
 
@@ -51,9 +51,9 @@ def texto(nome, uf, r, cota=None, projetos=None):
     pontos = []
     cresceu = r.get("cresc") is not None and r["cresc"] > 0
     if cresceu:
-        vz = r.get("aumento") or ""
+        pc = r.get("aumento") or ""
         p = (_vi("no site do TSE", r.get("tse")) + " que seu patrimônio declarado aumentou"
-             + (f" {vz[:-1]} vezes" if vz.endswith("×") else "") + f" de {r['ano_ini']} a {r['ano_fim']}.")
+             + (f" {pc[1:]}" if pc.startswith("+") else "") + f" de {r['ano_ini']} a {r['ano_fim']}.")  # "aumentou 200%"
         pontos.append(p)
     if cota and _num(cota.get("total")):
         pontos.append(_vi(f"nos dados abertos {_da_casa('camara.leg.br' in str(cota.get('link')))}", cota.get("link"))

@@ -183,11 +183,11 @@ def test_tabela_patrimonio():
     linhas = raiz.find("tbody").findall("tr")
     assert [l.find("th").text for l in linhas] == ["2018", "2022"]
     assert [td.text for td in linhas[0].findall("td")] == ["—", "início"]
-    assert [td.text for td in linhas[1].findall("td")] == ["0,5×", "0,5×"]
+    assert [td.text for td in linhas[1].findall("td")] == ["+50%", "+50%"]
     t = g.tabela_patrimonio([(2018, 100_000), (2022, 0)])
-    assert "diminuiu" in t and "R$" not in t
-    assert g.vezes_aumento(5, 0) == "começou do zero" and g.vezes_aumento(None, 1) == "Não informado"
-    assert g.vezes_aumento(300, 100) == "2,0×"  # tinha 100, foi a 300: aumentou 2 vezes o valor original
+    assert "−100%" in t and "R$" not in t
+    assert g.aumento_percentual(5, 0) == "começou do zero" and g.aumento_percentual(None, 1) == "Não informado"
+    assert g.aumento_percentual(300, 100) == "+200%" and g.aumento_percentual(2_500_000, 100_000) == "+2.400%"
 
 
 # ---------------------------------------------------------------- 3. mini
@@ -195,7 +195,7 @@ def test_mini_patrimonio():
     s = g.mini_patrimonio([(2018, 100_000), (2022, 150_000)], "m")
     raiz = svg(s)
     assert raiz.get("viewBox") == "0 0 96 28"
-    assert raiz.get("aria-label") == "Quantas vezes o patrimônio aumentou de 2018 a 2022: 0,5×"
+    assert raiz.get("aria-label") == "Aumento do patrimônio de 2018 a 2022: +50%"
     c = raiz.find(NS + "circle")
     assert c.get("r") == "3"
     assert raiz.find(NS + "polyline").get("stroke-width") == "2"

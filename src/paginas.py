@@ -76,11 +76,11 @@ def ler_vinculos(caminho=ROOT / "config" / "vinculos.csv"):
 
 # ---------------------------------------------------------------- pagina da pessoa
 def _tabela_periodos(linhas):
-    cab = ["Período", "Cargo", "Quantas vezes o patrimônio aumentou", "Entre colegas do mesmo cargo", "Faixa"]  # sem valores em reais do patrimonio (#62): quem quiser confere no TSE
+    cab = ["Período", "Cargo", "Aumento do patrimônio", "Entre colegas do mesmo cargo", "Faixa"]  # sem valores em reais do patrimonio (#62): quem quiser confere no TSE
     corpo = []
     for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0)):
         cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(cap(a.get("cargo"))),
-               graficos.vezes_aumento(a.get("pat_fim"), a.get("pat_ini")),
+               graficos.aumento_percentual(a.get("pat_fim"), a.get("pat_ini")),
                graficos.regua_colegas(a), chip_nivel(a.get("nivel"))]
         corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if i == 2 else ""}>{v}</td>'
                                       for i, (c, v) in enumerate(zip(cab, cel))) + "</tr>")
@@ -92,8 +92,8 @@ def _tabela_periodos(linhas):
 def _resumo(linhas):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("cresc") or 0))
     kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "Não informado"), "Faixa mais alta"),
-            (graficos.vezes_aumento(topo.get("pat_fim"), topo.get("pat_ini")),
-             f"Quantas vezes o patrimônio aumentou de {topo.get('ano_ini')} a {topo.get('ano_fim')}"),
+            (graficos.aumento_percentual(topo.get("pat_fim"), topo.get("pat_ini")),
+             f"Aumento do patrimônio de {topo.get('ano_ini')} a {topo.get('ano_fim')}"),
             (str(len(linhas)), "Períodos em destaque")]
     html_kpis = '<div class="kpis">' + "".join(f'<div class="card kpi"><b>{e(v)}</b><span>{e(r)}</span></div>'
                                                 for v, r in kpis) + "</div>"
