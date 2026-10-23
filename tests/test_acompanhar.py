@@ -48,7 +48,7 @@ def test_sem_mudanca_nao_gera_item():
 
 
 @pytest.mark.parametrize("antes, agora, tipo, trecho", [
-    (dict(), dict(ano_fim=2026, pat_fim=1_500_000), "patrimonio", "Nova declaração de bens em 2026: patrimônio subiu 50%"),
+    (dict(), dict(ano_fim=2026, pat_fim=1_500_000), "patrimonio", "Nova declaração de bens em 2026: patrimônio aumentou 0,5× o valor original"),
     (dict(), dict(nivel="forte"), "nivel", "“Faixa vermelha”"),
     (dict(cota=1000), dict(cota=9000), "cota", "subiu 800%"),
     (dict(), dict(exemplar=True), "exemplar", "Ganhou a estrela"),
@@ -193,8 +193,8 @@ def test_cada_item_cita_a_fonte_oficial_e_aponta_para_ela():
 
 def test_nunca_mostra_valor_em_reais():
     est, _ = acompanhar.atualizar({}, {"p0001": (foto(pat_ini=500_000), PAG, {})}, T1)
-    assert "subiu 100% de 2018 a 2022" in est["p0001"]["itens"][0]["texto"]
+    assert "De 2018 a 2022, o patrimônio declarado aumentou 1,0× o valor original" in est["p0001"]["itens"][0]["texto"]
     itens = acompanhar.mudancas(foto(cota=10_000), foto(ano_fim=2026, pat_fim=900_000, cota=5_000), PAG)
-    assert [i["titulo"] for i in itens] == ["Nova declaração de bens em 2026: patrimônio caiu 10%",
+    assert [i["titulo"] for i in itens] == ["Nova declaração de bens em 2026: patrimônio diminuiu",
                                              "Gasto com a cota parlamentar caiu 50%"]
     assert not any("R$" in i["titulo"] + i["texto"] for i in itens)

@@ -48,6 +48,14 @@ def pct(v):
     return f"{abs(v):,.0f}%".replace(",", ".")
 
 
+def aumento_patrimonio(base, v):
+    """Mesmo texto do resto do site (#62): 'aumentou 2,0× o valor original', 'diminuiu'; None sem base."""
+    t = graficos.vezes_aumento(v, base)
+    if t == "Não informado":
+        return None
+    return t if not t.endswith("×") else f"aumentou {t} o valor original"
+
+
 def subiu(v):
     return f"subiu {pct(v)}" if v >= 0 else f"caiu {pct(v)}"
 
@@ -133,16 +141,16 @@ def mudancas(antes, agora, pagina, detalhes=None):
     Dado que nao veio nesta execucao (None) nunca vira aviso. `detalhes`: {link: noticia} para o texto."""
     nome = agora["nome"]
     if not antes:
-        v = variacao(agora.get("pat_ini"), agora["pat"])
+        v = aumento_patrimonio(agora.get("pat_ini"), agora["pat"])
         return [_item("inicio", f"Começamos a acompanhar {nome}",
                       "A partir de hoje você fica sabendo quando algo mudar."
-                      + (f" Patrimônio declarado {subiu(v)} de {agora['ano_ini']} a {agora['ano']}." if v is not None
+                      + (f" De {agora['ano_ini']} a {agora['ano']}, o patrimônio declarado {v}." if v is not None
                          else "") + " Fonte: TSE.", agora.get("tse") or pagina)]
     itens = []
     if agora["ano"] != antes.get("ano") or agora["pat"] != antes.get("pat"):
-        v = variacao(antes.get("pat"), agora["pat"])
+        v = aumento_patrimonio(antes.get("pat"), agora["pat"])
         itens.append(_item("patrimonio", f"Nova declaração de bens em {agora['ano']}"
-                                         + (f": patrimônio {subiu(v)}" if v is not None else ""),
+                                         + (f": patrimônio {v}" if v is not None else ""),
                            f"Comparado com a declaração de {antes.get('ano') or 'antes'}. Fonte: TSE.",
                            agora.get("tse") or pagina))
     if agora["nivel"] != antes.get("nivel"):
