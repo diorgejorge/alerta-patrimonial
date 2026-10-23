@@ -6,21 +6,13 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import exemplares  # noqa: E402
 
-CPF_OK, CPF_SANCAO, CPF_GASTAO = "11111111111", "22222222222", "33333333333"
+CPF_OK, CPF_SANCAO = "11111111111", "22222222222"
 
 
 def par(chave, cargo, cresc, cap, ano_fim=2026):
-    return dict(chave=chave, nome="PESSOA " + chave[-2:], nome_urna=None, cargo=cargo, cargo_ini=cargo, uf="MG", partido="PX",
-                ano_ini=ano_fim - 4, ano_fim=ano_fim, cresc=cresc, cap=cap,
+    return dict(chave=chave, nome="PESSOA " + chave[-2:], nome_urna=None, cargo=cargo, cargo_ini=cargo, uf="MG",
+                partido="PX", ano_ini=ano_fim - 4, ano_fim=ano_fim, cresc=cresc, cap=cap,
                 razao=(cresc / cap) if cap else None)
-
-
-DF = pd.DataFrame([par(f"cpf:{CPF_OK}", "DEPUTADO FEDERAL", 100_000, 500_000),
-                   par(f"cpf:{CPF_SANCAO}", "DEPUTADO FEDERAL", 100_000, 500_000),
-                   par(f"cpf:{CPF_GASTAO}", "DEPUTADO FEDERAL", -50_000, 500_000),
-                   par("cpf:44444444444", "DEPUTADO FEDERAL", 2_000_000, 500_000),   # 4x o possivel
-                   par("cpf:55555555555", "GOVERNADOR", 10_000, 500_000),             # cargo sem cota
-                   par("cpf:66666666666", "DEPUTADO FEDERAL", 10_000, None)])          # sem salario de referencia
 
 
 class ApiFalsa:
@@ -33,24 +25,45 @@ class ApiFalsa:
         return True
 
     def get(self, caminho, cpf):
+        ApiFalsa.req += 1
         return [{"sancionadoCEIS": cpf == CPF_SANCAO}]
 
 
-def test_candidatos():
-    assert set(exemplares.candidatos(DF)["chave"]) == {f"cpf:{CPF_OK}", f"cpf:{CPF_SANCAO}", f"cpf:{CPF_GASTAO}"}
+def test_ultimos_so_parlamentares_e_periodo_mais_recente():
+    df = pd.DataFrame([par("cpf:1", "DEPUTADO FEDERAL", 1, 10, ano_fim=2022),
+                       par("cpf:1", "DEPUTADO FEDERAL", 2, 10, ano_fim=2026),
+                       par("cpf:2", "GOVERNADOR", 1, 10)])
+    u = exemplares.ultimos(df)
+    assert list(u["chave"]) == ["cpf:1"] and int(u["ano_fim"].iloc[0]) == 2026
+
+
+def test_compativel():
+    assert exemplares.compativel(100_000, 500_000, 0.2) is True
+    assert exemplares.compativel(-50_000, 500_000, -0.1) is True
+    assert exemplares.compativel(2_000_000, 500_000, 4.0) is False
+    assert exemplares.compativel(10_000, None, None) is None  # sem salario de referencia: sem estrela
 
 
 def test_tres_criterios(monkeypatch):
-    monkeypatch.setattr(exemplares.cota, "medias", lambda anos, cache: {"camara": 1_000_000.0, "senado": None})
-    gastos = {f"cpf:{CPF_OK}": 400_000.0, f"cpf:{CPF_SANCAO}": 300_000.0, f"cpf:{CPF_GASTAO}": 1_500_000.0}
-    monkeypatch.setattr(exemplares.cota, "coletar", lambda pessoas, anos, cache: {
-        k: dict(total=v, link="https://www.camara.leg.br/deputados/1") for k, v in gastos.items() if k in pessoas})
     monkeypatch.setattr(exemplares.transparencia, "Api", ApiFalsa)
-    lista, chaves = exemplares.calcular(DF, [2025, 2026], "x", "chave-teste")
-    assert chaves == {f"cpf:{CPF_OK}"}  # sancao e cota acima da media ficam de fora
-    assert lista[0]["cota"] == 400_000.0 and lista[0]["cota_media"] == 1_000_000.0
-    assert not any(CPF_OK in str(v) for v in lista[0].values())  # CPF nunca sai do modulo
+    base = dict(casa="camara", patrimonio_ok=True)
+    lista = [dict(base, nome="OK", cota=400_000.0, _cpf=CPF_OK),
+             dict(base, nome="SANCAO", cota=300_000.0, _cpf=CPF_SANCAO),
+             dict(base, nome="GASTAO", cota=1_500_000.0, _cpf="33333333333"),
+             dict(base, nome="CRESCEU", cota=100_000.0, _cpf="44444444444", patrimonio_ok=False),
+             dict(base, nome="SEM COTA", cota=None, _cpf="55555555555")]
+    ApiFalsa.req = 0
+    assert exemplares.avaliar(lista, {"camara": 1_000_000.0, "senado": None}, "chave-teste") == 1
+    r = {p["nome"]: p for p in lista}
+    assert r["OK"]["exemplar"] and r["OK"]["criterios"] == dict(patrimonio=True, cota=True, sancoes=True)
+    assert not r["SANCAO"]["exemplar"] and r["SANCAO"]["criterios"]["sancoes"] is False
+    assert not r["GASTAO"]["exemplar"] and r["GASTAO"]["criterios"]["cota"] is False
+    assert r["SEM COTA"]["criterios"]["cota"] is None and not r["SEM COTA"]["exemplar"]
+    assert ApiFalsa.req == 2  # sancoes so para quem passou nos dois primeiros criterios
+    assert r["OK"]["cota_media"] == 1_000_000.0
 
 
 def test_sem_chave_da_api():
-    assert exemplares.calcular(DF, [2026], "x", None) == ([], set())
+    lista = [dict(casa="camara", patrimonio_ok=True, cota=1.0, _cpf=CPF_OK)]
+    assert exemplares.avaliar(lista, {"camara": 10.0}, None) == 0
+    assert lista[0]["criterios"]["sancoes"] is None and not lista[0]["exemplar"]

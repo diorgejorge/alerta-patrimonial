@@ -52,3 +52,33 @@ def test_coleta_e_secao(tmp_path, monkeypatch):
     assert "Não informado" in cota.secao(None, " GOVERNADOR", r["_fontes"])
     assert "Não informado" in cota.secao(None, " SENADOR", r["_fontes"])
     assert "Fonte não encontrada" in cota.secao(None, " SENADOR", {"camara": True, "senado": False})
+
+
+def test_ano_fechado_nao_baixa_de_novo(tmp_path, monkeypatch):
+    """#48: o ano fechado vira resumo guardado (cifrado) e nao e baixado de novo; o ano atual e sempre relido."""
+    import datetime as dt
+    import cache
+    monkeypatch.setenv("ID_SEGREDO", "segredo-de-teste")
+    monkeypatch.setattr(cache, "_POR_NOME", {})
+    atual = dt.date.today().year
+    pedidos = []
+
+    def baixar(url, dest):
+        ano = int(url.split("-")[-1][:4]) if "camara" in url else int(url.rsplit("_", 1)[-1][:4])
+        pedidos.append(ano)
+        return camara(tmp_path, ano) if "camara" in url else senado(tmp_path, ano)
+    monkeypatch.setattr(cota, "baixar", baixar)
+    pessoas = {"dep": dict(nome="Fulano de Tal", nome_urna="Fulano", cargo=" DEPUTADO FEDERAL", cpf=CPF)}
+    anos = [atual - 3, atual]
+    monkeypatch.setattr(cota, "_BASES", {})
+    r1 = cota.coletar(pessoas, anos, tmp_path)
+    assert sorted(pedidos) == sorted(anos * 2)  # primeira vez: os dois anos, Camara e Senado
+    assert not (tmp_path / f"ceap_camara_{atual - 3}.zip").exists()  # bruto do ano fechado apagado
+    cache.salvar_resultados()
+    assert (tmp_path / "cota_anos.cache").read_bytes()[:4] == b"APC1"  # resumo guardado cifrado
+    monkeypatch.setattr(cache, "_POR_NOME", {})  # proxima execucao: le o resumo do disco
+    monkeypatch.setattr(cota, "_BASES", {})
+    pedidos.clear()
+    r2 = cota.coletar(pessoas, anos, tmp_path)
+    assert pedidos == [atual, atual]  # so o ano atual (Camara e Senado)
+    assert r2["dep"]["total"] == r1["dep"]["total"] and r2["dep"]["anos"] == r1["dep"]["anos"]

@@ -44,3 +44,31 @@ class Cache:
             self.mudou = False
         except Exception as ex:
             print(f"[aviso] cache {self.arq.name} nao gravado ({ex!r})", file=sys.stderr)
+
+
+def ano_fechado(ano, hoje=None, carencia_mes=4):
+    """Ano que nao muda mais na fonte: anterior ao atual. O ano anterior so fecha em `carencia_mes` (abril), porque
+    lancamentos de dezembro (cota parlamentar) chegam ate marco (#48)."""
+    import datetime as dt
+    hoje = hoje or dt.date.today()
+    return int(ano) < hoje.year - 1 or (int(ano) == hoje.year - 1 and hoje.month >= carencia_mes)
+
+
+_POR_NOME = {}
+
+
+def resultados(pasta, nome, validade_s):
+    """Cache cifrado de resultados ja processados (ex.: resumo por ano fechado) em <pasta>/<nome>.cache, um por
+    execucao; None sem ID_SEGREDO (nada e gravado). Gravado no fim por salvar_resultados()."""
+    seg = cifra.segredo()
+    if not seg:
+        return None
+    k = (str(Path(pasta).resolve()), nome)
+    if k not in _POR_NOME:
+        _POR_NOME[k] = Cache(Path(pasta) / f"{nome}.cache", validade_s, seg)
+    return _POR_NOME[k]
+
+
+def salvar_resultados():
+    for c in _POR_NOME.values():
+        c.salvar()

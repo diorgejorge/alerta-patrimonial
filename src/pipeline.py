@@ -10,10 +10,10 @@ from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
 import transparencia
 import cota
 import projetos
-import exemplares
+import parlamentares
 import empresas
 from ids import Ids, varrer
-from cache import Cache
+from cache import Cache, salvar_resultados
 import cifra
 import paginas
 
@@ -128,12 +128,13 @@ VERSAO_LEITURA_TSE = 1  # mude ao alterar a leitura abaixo: invalida o cache dos
 def serie_tse(anos, cache=None):
     """Uma linha por pessoa e eleicao: patrimonio total declarado.
     `cache` (cache.Cache cifrado): o ano ja lido so e lido de novo se o zip do TSE mudar (tamanho/data)."""
-    partes = []
+    partes, assinaturas = [], {}
     for ano in anos:
         zb, zc = baixar("bem_candidato", ano), baixar("consulta_cand", ano)
         if not zb or not zc:
             continue
         assinatura = (VERSAO_LEITURA_TSE, int(ano), *(hashlib.sha256(z).hexdigest()[:16] for z in (zb, zc)))
+        assinaturas[int(ano)] = "-".join(map(str, assinatura))  # pares() reaproveita os periodos dos anos sem mudanca
         lido = cache.get(assinatura) if cache else None
         if lido is not None:
             print(f"TSE {ano}: declaracoes ja lidas (cache, arquivo do TSE sem mudanca).")
@@ -147,7 +148,9 @@ def serie_tse(anos, cache=None):
         cache.salvar()
     if not partes:
         sys.exit("Nenhum dado do TSE disponivel. Verifique a conexao e os anos em config/parametros.json.")
-    return pd.concat(partes, ignore_index=True)
+    serie = pd.concat(partes, ignore_index=True)
+    serie.attrs["assinaturas"] = assinaturas
+    return serie
 
 
 def _ler_ano_tse(ano, zb, zc):
@@ -215,12 +218,44 @@ def renda_publica(cargo, ano_a, ano_b, regras):
     return total
 
 
-def pares(serie, regras, extras, p):
+VERSAO_PARES = 1  # mude ao alterar a montagem dos pares: invalida os periodos guardados
+
+
+def _assinatura(df):
+    """Assinatura curta do conteudo de uma tabela (para a chave do cache)."""
+    h = pd.util.hash_pandas_object(df.astype(str), index=False).values.tobytes() if len(df) else b""
+    return hashlib.sha256(h).hexdigest()[:16]
+
+
+def pares(serie, regras, extras, p, cache=None, ano_atual=None):
+    """Periodos (declaracao anterior -> seguinte) de cada pessoa, com crescimento, capacidade, percentil e nivel.
+    Com `cache` (#48): os periodos que terminam antes do ano atual ficam guardados (cifrados) e so os que chegam ao ano
+    atual sao montados de novo; percentil e nivel sao refeitos sobre todos (grupos por ano_ini, ano_fim e cargo)."""
+    if cache is None:
+        return _classifica(pd.DataFrame(_lista_pares(serie, regras, extras, p)), p)
+    ano_atual = int(ano_atual or dt.date.today().year)
+    passado = serie[serie["ano"] < ano_atual]
+    tse = serie.attrs.get("assinaturas") or {}
+    k = (VERSAO_PARES, ano_atual, tuple(sorted((a, s) for a, s in tse.items() if a < ano_atual)) or _assinatura(passado),
+         _assinatura(regras), json.dumps(p, sort_keys=True, default=str),
+         hashlib.sha256(json.dumps(sorted(extras.items()), default=str).encode()).hexdigest()[:16])
+    antigos = cache.get(k)
+    if antigos is None:
+        antigos = _lista_pares(passado, regras, extras, p)
+        cache.set(k, antigos)
+        cache.salvar()
+    else:
+        print(f"Pares: {len(antigos)} periodos anteriores a {ano_atual} vindos do cache.")
+    atuais = serie[serie["chave"].isin(set(serie.loc[serie["ano"] == ano_atual, "chave"]))]
+    return _classifica(pd.DataFrame(antigos + _lista_pares(atuais, regras, extras, p, so_fim=ano_atual)), p)
+
+
+def _lista_pares(serie, regras, extras, p, so_fim=None):
     out = []
     for chave, g in serie.sort_values("ano").groupby("chave"):
         g = g.to_dict("records")
         for a, b in zip(g, g[1:]):
-            if b["ano"] - a["ano"] < 2 or a["patrimonio"] <= 0:
+            if b["ano"] - a["ano"] < 2 or a["patrimonio"] <= 0 or (so_fim is not None and b["ano"] != so_fim):
                 continue
             anos = b["ano"] - a["ano"]
             renda = renda_publica(a["cargo"], a["ano"], b["ano"], regras) if a["eleito"] else None
@@ -240,7 +275,11 @@ def pares(serie, regras, extras, p):
                             # participacao em empresas no inicio ou no fim do periodo: ha outra fonte de renda
                             outras_rendas=any(isinstance(x.get("empresas"), (list, tuple)) and len(x["empresas"]) > 0
                                               for x in (a, b))))
-    df = pd.DataFrame(out)
+    return out
+
+
+def _classifica(df, p):
+    """Razao, percentil no grupo de pares e nivel de destaque (sobre todos os periodos juntos)."""
     if df.empty:
         return df
     df["razao"] = df.apply(lambda r: r.cresc / r.cap if r.cap and r.cap > 0 else None, axis=1)
@@ -370,11 +409,12 @@ def main():
         cifra.limpar_puros(CACHE)
     caches = dict(tse=Cache(CACHE / "tse_lido.cache", 400 * 86400, seg_cache, cifrar=True),
                   portal=Cache(CACHE / "portal.cache", 7 * 86400, seg_cache, cifrar=True),
-                  noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache)) if seg_cache else {}
+                  noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache),
+                  pares=Cache(CACHE / "pares.cache", 400 * 86400, seg_cache)) if seg_cache else {}
     serie = serie_demo() if args.demo else serie_tse(p["anos"], caches.get("tse"))
     extras = {r.chave: extras_cfg.get(r.chave, extras_cfg.get("nome:" + norm(r.nome), 0.0))
               for r in serie.drop_duplicates("chave").itertuples()}
-    df = pares(serie, regras, extras, p)
+    df = pares(serie, regras, extras, p, cache=caches.get("pares"))
     if df.empty:
         sys.exit("Nenhuma pessoa com duas declaracoes consecutivas.")
     df["monitorado"] = df.apply(lambda r: r.chave in cpfs or norm(r.nome) in nomes, axis=1)
@@ -445,9 +485,19 @@ def main():
             print(f"[aviso] secao da cota falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_cota = '<p class="vazio"><b>Não informado</b>.</p>'
         secoes_cota.update({i: html_cota for i in q["idx"]})
-    # projetos apresentados e aprovados (Camara: arquivos abertos; Senado: API) e o selo "Mao na massa"
+    # todos os deputados federais e senadores em exercicio: cota, projetos, selo e estrela de exemplar (#44, #45)
     try:
-        proj = {} if args.demo else projetos.coletar(pessoas, range(hoje - 3, hoje + 1), CACHE)
+        parl, parl_ctx = ([], {}) if args.demo else parlamentares.montar(
+            df, range(hoje - 3, hoje + 1), CACHE, os.getenv("TRANSPARENCIA_TOKEN"))
+    except Exception as ex:
+        print(f"[aviso] lista de parlamentares indisponivel ({ex!r})", file=sys.stderr)
+        parl, parl_ctx = [], {}
+    # projetos apresentados e aprovados (Camara: arquivos abertos; Senado: API) e o selo "Mao na massa";
+    # as contagens e o corte do selo sao os mesmos da lista de parlamentares
+    try:
+        proj = {} if args.demo else projetos.coletar(pessoas, range(hoje - 3, hoje + 1), CACHE,
+                                                     camara=parl_ctx.get("camara"), senado=parl_ctx.get("senado"),
+                                                     membros=parl_ctx.get("membros"))
     except Exception as ex:
         print(f"[aviso] projetos de lei indisponiveis ({ex!r})", file=sys.stderr)
         proj = {}
@@ -466,16 +516,15 @@ def main():
             if r["selo"]:
                 dados["alertas"][i]["selo"] = True
     # parlamentares exemplares (estrela): patrimonio compativel, cota abaixo da media e sem sancoes
-    try:
-        exemplares_, estrelas = ([], set()) if args.demo else exemplares.calcular(
-            df, range(hoje - 3, hoje + 1), CACHE, os.getenv("TRANSPARENCIA_TOKEN"))
-    except Exception as ex:
-        print(f"[aviso] parlamentares exemplares indisponiveis ({ex!r})", file=sys.stderr)
-        exemplares_, estrelas = [], set()
-    dados["exemplares"] = exemplares_
+    # entre todos os parlamentares em exercicio (parlamentares.py), nao so os destaques
+    dados["exemplares"] = parlamentares.lista_exemplares(parl)
+    estrelas = {p["_chave"] for p in parl if p.get("exemplar") and p["_chave"]}
+    selos = {p["_chave"] for p in parl if p.get("selo") and p["_chave"]}
     for i, ch in enumerate(vis["chave"]):
         if ch in estrelas:
             dados["alertas"][i]["exemplar"] = True
+        if ch in selos:
+            dados["alertas"][i]["selo"] = True
     # empresas declaradas: atividade, fundacao, capital e situacao nos dados abertos do CNPJ (Receita);
     # o CNPJ so cruza as bases aqui dentro e nunca vai para o site
     cnpjs = {c for q in pessoas.values() for _, c in q["empresas"]}
@@ -529,6 +578,12 @@ def main():
                                 uf=k[1], apresentados=r["apresentados"], aprovados=r["aprovados"], selo=r["selo"],
                                 de=r["de"], ate=r["ate"], link=r["link"], dossie=a.get("dossie")))
     dados["projetos"] = sorted(ranking, key=lambda x: (-x["aprovados"], -x["apresentados"]))[:10]
+    if parl:  # com a lista de todos os parlamentares em exercicio, os rankings comparam a casa inteira
+        dossies = {ch: dados["alertas"][i].get("dossie") for i, ch in enumerate(vis["chave"])}
+        for p in parl:
+            p["dossie"] = dossies.get(p["_chave"])
+        dados["cota"] = parlamentares.ranking_cota(parl) or dados["cota"]
+        dados["projetos"] = parlamentares.ranking_projetos(parl) or dados["projetos"]
 
     cartoes, graficos_painel = "", {}
     if pid:  # uma pagina por pessoa (docs/pessoa/<id>.html), so com o id interno
@@ -555,6 +610,7 @@ def main():
         dados_dir.mkdir(parents=True, exist_ok=True)
         cifra.gravar(estado_arq, json.dumps({r.id: r.nivel for r in alertas.itertuples()}, ensure_ascii=False).encode(), segredo)
         pid.salvar()
+    salvar_resultados()  # resumos dos anos fechados (cota, projetos; #48), cifrados em data/cache
 
     novos = vis[vis.novo]
     resumo = f"Caramelo Vasculha {dados['gerado_em']}: {len(vis)} destaques, {len(novos)} novos."
@@ -562,7 +618,7 @@ def main():
         resumo += f"\n- [{r.nivel}] {r.nome} ({r.cargo}/{r.uf}) {r.ano_ini}->{r.ano_fim}: +R$ {r.cresc:,.0f}"
     (docs / "digest.txt").write_text(resumo, encoding="utf-8")
     # ultima barreira: nenhum CPF/CNPJ sai no site, mesmo que venha dentro de um texto de fonte externa
-    n = varrer(docs, cpfs=[q["cpf"] for q in pessoas.values() if q.get("cpf")])
+    n = varrer(docs, cpfs=[q["cpf"] for q in pessoas.values() if q.get("cpf")] + [p["_cpf"] for p in parl if p["_cpf"]])
     if n:
         print(f"[aviso] CPF/CNPJ removido de {n} arquivo(s) antes de publicar", file=sys.stderr)
     print(resumo)

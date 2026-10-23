@@ -5,9 +5,11 @@ da atividade parlamentar, por ano e por tipo de despesa. Fontes oficiais, arquiv
 O CPF so serve para ligar as bases aqui dentro; nunca vai para o site. Fornecedores tambem nao sao exibidos."""
 import html, io, re, sys, unicodedata, urllib.error, urllib.request, zipfile
 import cifra
+from cache import ano_fechado, resultados
 from pathlib import Path
 import pandas as pd
 
+VERSAO_COTA = 1  # mude ao alterar a leitura: invalida os resumos guardados dos anos fechados
 CAMARA = "https://www.camara.leg.br/cotas/Ano-{ano}.csv.zip"
 SENADO = "https://www.senado.leg.br/transparencia/LAI/verba/despesa_ceaps_{ano}.csv"
 LINK_CAMARA = "https://www.camara.leg.br/deputados/{id}"
@@ -104,21 +106,37 @@ def bases(anos, cache):
         return _BASES[chave]
     cache = Path(cache)
     ok, dep, sen = {"camara": False, "senado": False}, [], []
+    # ano fechado (#48): o resumo por pessoa, ano e tipo fica guardado (cifrado) e o arquivo nao e baixado de novo
+    guardados = resultados(cache, "cota_anos", 400 * 86400)
+    fontes = (("camara", dep, CAMARA, "ceap_camara_{ano}.zip", ler_camara, ["cpf", "id", "ano", "tipo"]),
+              ("senado", sen, SENADO, "ceaps_senado_{ano}.csv", ler_senado, ["nome", "ano", "tipo"]))
+    lidos = 0
     for ano in anos:
-        z = baixar(CAMARA.format(ano=ano), cache / f"ceap_camara_{ano}.zip")
-        if z:
+        fechado = guardados is not None and ano_fechado(ano)
+        for casa, partes, url, arq, ler, por in fontes:
+            k = (VERSAO_COTA, casa, int(ano))
+            g = guardados.get(k) if fechado else None
+            if g is not None:
+                partes.append(pd.DataFrame(g))
+                ok[casa] = True
+                lidos += 1
+                continue
+            b = baixar(url.format(ano=ano), cache / arq.format(ano=ano))
+            if not b:
+                continue
             try:
-                dep.append(ler_camara(z))
-                ok["camara"] = True
+                df = ler(b).dropna(subset=["ano", "valor"]).groupby(por, as_index=False)["valor"].sum()
             except Exception as ex:
-                print(f"[aviso] cota parlamentar: Camara {ano} ilegivel ({ex!r})", file=sys.stderr)
-        f = baixar(SENADO.format(ano=ano), cache / f"ceaps_senado_{ano}.csv")
-        if f:
-            try:
-                sen.append(ler_senado(f))
-                ok["senado"] = True
-            except Exception as ex:
-                print(f"[aviso] cota parlamentar: Senado {ano} ilegivel ({ex!r})", file=sys.stderr)
+                print(f"[aviso] cota parlamentar: {casa} {ano} ilegivel ({ex!r})", file=sys.stderr)
+                continue
+            partes.append(df)
+            ok[casa] = True
+            if fechado:  # guarda o resumo e apaga o arquivo bruto (menos espaco no actions/cache)
+                guardados.set(k, df.to_dict("list"))
+                for p in (cache / arq.format(ano=ano), Path(str(cache / arq.format(ano=ano)) + ".modificado")):
+                    p.unlink(missing_ok=True)
+    if lidos:
+        print(f"Cota parlamentar: {lidos} arquivo(s) de anos fechados vindos do cache (sem baixar de novo).")
     vazio = pd.DataFrame(columns=["cpf", "id", "nome", "ano", "tipo", "valor"])
     _BASES[chave] = (pd.concat(dep, ignore_index=True) if dep else vazio,
                      pd.concat(sen, ignore_index=True) if sen else vazio, ok)
