@@ -66,3 +66,38 @@ def test_processos_desligados_nada_publicado(tmp_path, monkeypatch):
     assert dossies and not any("processo" in p.read_text(encoding="utf-8").lower() for p in dossies)
     painel = (docs / "index.html").read_text(encoding="utf-8")
     assert '"processos_ativo": false' in painel and '"processos":' not in painel
+
+
+def test_secao_processos_sem_lista_so_busca():
+    import dossie
+    html = dossie.secao_processos({"nome": "Fulano de Tal"})
+    assert "Conferir processos pelo nome" in html and "Responde a processo?" not in html
+    assert "%22Fulano+de+Tal%22+processo" in html
+
+
+def test_secao_processos_lista_so_https_e_escapada():
+    import dossie
+    procs = [dict(tribunal="STF", numero="AP <1044>", link=STF),
+             dict(tribunal="X", numero="1", link="javascript:alert(1)"),
+             dict(tribunal="Y", numero="2", link="http://portal.stf.jus.br/x")]
+    html = dossie.secao_processos({"nome": "Fulano", "processos": procs})
+    assert "Responde a processo?" in html and "STF AP &lt;1044&gt;" in html
+    assert "javascript:" not in html and "http://portal" not in html
+
+
+def test_processos_ligados_aparecem(tmp_path, monkeypatch):
+    """Integracao: com a chave ligada, o pipeline casa a lista e o dossie e o painel mostram os processos (para religar depois)."""
+    import dossie
+    from test_fase0 import rodar
+
+    class CasaTodos(dict):  # casa qualquer (nome, UF) dos dados sinteticos
+        def get(self, k, d=None):
+            return [dict(tribunal="STF", numero="AP 1044", link=STF)]
+
+    monkeypatch.setattr(dossie, "PROCESSOS_ATIVO", True)
+    monkeypatch.setattr(pipeline, "carregar_processos", lambda: CasaTodos({("X", "MG"): []}))
+    rodar(tmp_path, monkeypatch)
+    docs = tmp_path / "docs"
+    assert any("Responde a processo?" in p.read_text(encoding="utf-8") for p in (docs / "dossie").glob("*.html"))
+    painel = (docs / "index.html").read_text(encoding="utf-8")
+    assert '"processos_ativo": true' in painel and '"processos":' in painel

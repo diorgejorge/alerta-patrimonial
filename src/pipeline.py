@@ -6,7 +6,8 @@ import argparse, hashlib, io, json, os, re, sys, unicodedata, urllib.request, ur
 import datetime as dt
 from pathlib import Path
 import pandas as pd
-from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ, PROCESSOS_ATIVO
+from dossie import gerar_dossies, empresas_do_bem, MAX_EMPRESAS, RE_CNPJ
+import dossie
 import transparencia
 import cota
 import projetos
@@ -602,8 +603,8 @@ def main():
         secoes_receita.update({i: html_rec for i in q["idx"]})
     # processos em que a pessoa e re (lista curada por issue): casa pelo nome civil ou de urna + UF;
     # desligado (#51) ate haver base oficial e gratuita por CPF: nem le a lista nem publica
-    dados["processos_ativo"] = PROCESSOS_ATIVO
-    processos = carregar_processos() if PROCESSOS_ATIVO else {}
+    dados["processos_ativo"] = dossie.PROCESSOS_ATIVO
+    processos = carregar_processos() if dossie.PROCESSOS_ATIVO else {}
     for a in dados["alertas"] if processos else ():
         uf = str(a.get("uf") or "").upper()
         achou = processos.get((norm(a.get("nome")), uf)) or processos.get((norm(a.get("nome_urna")), uf))
