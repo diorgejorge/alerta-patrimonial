@@ -79,7 +79,8 @@ def botao(pid, uf=""):
     """Botao discreto "Acompanhar" da pagina da pessoa: um toque no app de RSS e pronto, sem copiar endereco."""
     apps = links_app(url_feed(pid))
     extra = (f' · <a href="{e(site())}feed/uf-{uf}.xml">Todos de {uf}</a>' if RE_UF.fullmatch(uf) else "")
-    return (f'<details class="acompanhar"><summary class="botao secundario">{ICONE}Acompanhar</summary>'
+    return (f'<details class="acompanhar"><summary class="rss" aria-label="Acompanhar por RSS" '
+            f'title="Acompanhar por RSS">{ICONE}</summary>'
             '<div class="card"><p><b>Não perca nada.</b> Seja avisado quando o patrimônio crescer, a cota subir, '
             "sair um voto ou uma notícia nova. Toque no seu app:</p><p class=\"apps\">"
             + "".join(f'<a class="botao{"" if i == 0 else " secundario"}" href="{e(h)}" target="_blank" rel="noopener">'

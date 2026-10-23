@@ -202,13 +202,13 @@ def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, cobranca=Non
     `equipe`: (contagem do gabinete ou None se a fonte falhou,) para parlamentar em exercicio; None fora disso (#66)."""
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
-    compartilhar = cobrar.botao(cobrar.imagem(linhas))
+    acoes = cobrar.botao(cobrar.imagem(linhas)) + acompanhar.botao(pid, str(topo.get("uf") or "").upper())
     vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())),
-                CABECALHO=_cabecalho(topo, nome, foto(linhas), compartilhar),
+                CABECALHO=_cabecalho(topo, nome, foto(linhas), acoes),
                 RESUMO=_resumo(linhas) + _equipe(equipe), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
-                PROPOSTAS=_propostas(pid), COBRAR=cobrar.secao(linhas, cobranca), VOTOS=_votos(votos), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
+                PROPOSTAS=_propostas(pid), COBRAR=cobrar.secao(linhas, cobranca), VOTOS=_votos(votos), GERADO=e(gerado),
                 FEED=acompanhar.link_head(pid, cap((topo.get("nome_urna") or nome).strip())))
     return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
 
