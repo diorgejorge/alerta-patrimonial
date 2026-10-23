@@ -276,17 +276,10 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
   html .tag.reu{background:none;color:#000;border-color:#000}html .alerta.exemplar{border-color:#000;box-shadow:none}html .estrela{color:#000}
 }
 
-/* patrimonio x economia (#55): barras horizontais com zero comum; rotulo e valor em texto, cor so reforca */
-.eco-frase{max-width:75ch;font-size:1.05rem;line-height:1.5}
-.eco-barras{list-style:none;padding:0;margin:12px 0;display:grid;gap:10px;max-width:640px}
-.eco-barras li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;align-items:center}
-.eco-rot{grid-column:1/-1;font-size:.875rem;color:var(--mut)}
-.eco-trilho{position:relative;height:14px;border-radius:999px;background:var(--realce)}
-.eco-zero{position:absolute;top:-3px;bottom:-3px;width:2px;margin-left:-1px;background:var(--mut)}
-.eco-barra{position:absolute;top:0;bottom:0;border-radius:999px;background:var(--ouro)}
-.eco-uf{background:var(--caramelo)}.eco-br{background:var(--info)}.eco-neg{background:var(--forte)}
-.eco-val{font-variant-numeric:tabular-nums;min-width:5ch;text-align:right}
-@media print{.eco-barra{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+/* economia no periodo (#55): selos com seta (forma) e cor; o texto diz tudo sem a cor */
+.eco-linha{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:.6em 0}
+.chip.eco-sobe{border-color:var(--novo);color:var(--novo)}.chip.eco-cai{border-color:var(--forte);color:var(--forte)}
+.chip.eco-igual{color:var(--mut)}
 
 /* Acompanhar (#57): botao discreto no cabecalho da pessoa; abre a explicacao do feed RSS */
 details.acompanhar{margin:.4em 0 1em}

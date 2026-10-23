@@ -1,11 +1,11 @@
-"""Patrimonio x economia (#55): o patrimonio declarado cresceu mais ou menos que a economia do estado e do Brasil?
-Fonte oficial e gratuita: IBGE/SIDRA (apisidra.ibge.gov.br, sem chave), 3 consultas por execucao:
+"""Economia no periodo (#55): o estado e o Brasil estavam em crescimento, declinio ou recessao entre as declaracoes
+de bens da pessoa? So sinaliza o contexto: nao compara com o patrimonio (pedido do usuario em 23/10/2026).
+Fonte oficial e gratuita: IBGE/SIDRA (apisidra.ibge.gov.br, sem chave), 2 consultas por execucao:
   6784 (Brasil): v9810 variacao real do PIB (%), v9811 deflator do PIB (%)
   5938 (UF):     v37 PIB a precos correntes (mil reais); o IBGE publica com ~2 anos de atraso
-  1737 (Brasil): v2266 IPCA numero-indice, julho de cada ano (a declaracao ao TSE e entregue em agosto)
-Tudo e comparado descontada a inflacao. O PIB real por UF nao esta no SIDRA: e estimado pelo PIB nominal da UF
-descontado o deflator do PIB nacional (o texto da pagina avisa). Dado publico agregado, sem dado pessoal: fica em
-data/economia.json e vale como reserva quando o IBGE esta fora do ar."""
+O PIB real por UF nao esta no SIDRA: e estimado pelo PIB nominal da UF descontado o deflator do PIB nacional (o texto
+da pagina avisa). Dado publico agregado, sem dado pessoal: fica em data/economia.json e vale como reserva quando o
+IBGE esta fora do ar."""
 import datetime as dt, html, json, math, sys
 from pathlib import Path
 import estados
@@ -14,22 +14,15 @@ SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
 ARQUIVO = ROOT / "data" / "economia.json"
 SIDRA = "https://apisidra.ibge.gov.br/values"
-ANO_INICIAL = 2002  # inicio da serie do PIB por UF (referencia 2010)
-MES_IPCA = "07"
-LINK = dict(brasil="https://sidra.ibge.gov.br/tabela/6784", uf="https://sidra.ibge.gov.br/tabela/5938",
-            ipca="https://sidra.ibge.gov.br/tabela/1737")
+LINK = dict(brasil="https://sidra.ibge.gov.br/tabela/6784", uf="https://sidra.ibge.gov.br/tabela/5938")
+ESTAVEL = 0.005  # variacao real abaixo de 0,5% (para mais ou para menos): "Estável"
 NAO_ACHOU, NAO_INFORMADO = "Fonte não encontrada", "Não informado"
-NUM = ' class="n"'  # colunas numericas (alinhadas a direita)
 e = html.escape
 
 
 # ---------------------------------------------------------------- coleta
-def urls(hoje=None):
-    hoje = hoje or dt.date.today()
-    meses = ",".join(f"{a}{MES_IPCA}" for a in range(ANO_INICIAL, hoje.year + 1))
-    return dict(brasil=f"{SIDRA}/t/6784/n1/all/v/9810,9811/p/all",
-                uf=f"{SIDRA}/t/5938/n3/all/v/37/p/all",
-                ipca=f"{SIDRA}/t/1737/n1/all/v/2266/p/{meses}")
+def urls():
+    return dict(brasil=f"{SIDRA}/t/6784/n1/all/v/9810,9811/p/all", uf=f"{SIDRA}/t/5938/n3/all/v/37/p/all")
 
 
 def _numero(v):
@@ -47,8 +40,7 @@ def ler_sidra(resposta):
         return []
     cab = resposta[0]
     achar = lambda *rots: next((k for k, v in cab.items() if k.endswith("C") and str(v).startswith(rots)), None)
-    k_var, k_per = achar("Variável"), achar("Ano", "Mês")
-    k_ter = achar("Brasil", "Unidade da Federação")
+    k_var, k_per, k_ter = achar("Variável"), achar("Ano"), achar("Brasil", "Unidade da Federação")
     if not (k_var and k_per and k_ter):
         return []
     out = []
@@ -60,9 +52,8 @@ def ler_sidra(resposta):
     return out
 
 
-def montar(brasil, uf, ipca, siglas):
-    """{brasil: {volume, deflator}, uf: {sigla: {ano: pib}}, ipca: {ano: indice de julho}} com anos em texto.
-    `siglas`: {codigo IBGE da UF: sigla}."""
+def montar(brasil, uf, siglas):
+    """{brasil: {volume, deflator}, uf: {sigla: {ano: pib}}} com anos em texto. `siglas`: {codigo IBGE: sigla}."""
     vol, defl = {}, {}
     for r in ler_sidra(brasil):
         {"9810": vol, "9811": defl}.get(r["variavel"], {})[r["periodo"]] = r["valor"]
@@ -70,29 +61,27 @@ def montar(brasil, uf, ipca, siglas):
     for r in ler_sidra(uf):
         if r["variavel"] == "37" and r["territorio"] in siglas:
             por_uf.setdefault(siglas[r["territorio"]], {})[r["periodo"]] = r["valor"]
-    ind = {r["periodo"][:4]: r["valor"] for r in ler_sidra(ipca)
-           if r["variavel"] == "2266" and r["periodo"].endswith(MES_IPCA)}
-    return dict(brasil=dict(volume=vol, deflator=defl), uf=por_uf, ipca=ind)
+    return dict(brasil=dict(volume=vol, deflator=defl), uf=por_uf)
 
 
 def completo(econ):
-    return bool(econ and econ.get("brasil", {}).get("volume") and econ.get("uf") and econ.get("ipca"))
+    return bool(econ and econ.get("brasil", {}).get("volume") and econ.get("uf"))
 
 
 def coletar(buscar, siglas, arquivo=ARQUIVO, hoje=None):
-    """Baixa as 3 tabelas e grava `arquivo`. Falhou alguma: devolve o ultimo salvo (ou {} sem nada salvo).
+    """Baixa as 2 tabelas e grava `arquivo`. Falhou alguma: devolve o ultimo salvo (ou {} sem nada salvo).
     `buscar(url)` devolve o JSON ou None (estados.Buscador: espaca as consultas e espera no 429)."""
-    u = urls(hoje)
-    econ = montar(buscar(u["brasil"]), buscar(u["uf"]), buscar(u["ipca"]), siglas)
+    u = urls()
+    econ = montar(buscar(u["brasil"]), buscar(u["uf"]), siglas)
     arquivo = Path(arquivo)
     if completo(econ):
         econ["atualizado"] = (hoje or dt.date.today()).isoformat()
         arquivo.parent.mkdir(parents=True, exist_ok=True)
         arquivo.write_text(json.dumps(econ, ensure_ascii=False, sort_keys=True), encoding="utf-8")
         print(f"IBGE: PIB do Brasil até {ultimo(econ['brasil']['volume'])}, dos estados até "
-              f"{max(ultimo(v) or 0 for v in econ['uf'].values())}, IPCA até {ultimo(econ['ipca'])}.")
+              f"{max(ultimo(v) or 0 for v in econ['uf'].values())}.")
         return econ
-    print("[aviso] IBGE/SIDRA indisponível: comparação com a economia usa o último dado salvo", file=sys.stderr)
+    print("[aviso] IBGE/SIDRA indisponível: economia no período usa o último dado salvo", file=sys.stderr)
     try:
         return json.loads(arquivo.read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -111,8 +100,7 @@ def demo():
         for ano, c in cresc.items():
             v *= 1 + c + (0.04 if sigla == "PA" else 0)
             uf[sigla][ano] = round(v)
-    ipca = {"2018": 4952.4, "2019": 5114.7, "2020": 5248.0, "2021": 5729.5, "2022": 6297.8, "2023": 6551.3}
-    return dict(brasil=dict(volume=vol, deflator=defl), uf=uf, ipca=ipca, atualizado="demo")
+    return dict(brasil=dict(volume=vol, deflator=defl), uf=uf, atualizado="demo")
 
 
 # ---------------------------------------------------------------- contas
@@ -131,66 +119,74 @@ def _acumulado(pcts, anos):
     return f
 
 
-def real_patrimonio(econ, ini, fim, pat_ini, pat_fim):
-    """Crescimento do patrimonio descontado o IPCA (fracao: 0.5 = +50%); None sem dado."""
-    ipca = (econ or {}).get("ipca") or {}
-    i0, i1 = ipca.get(str(ini)), ipca.get(str(fim))
-    if not (i0 and i1 and pat_ini and pat_fim is not None and pat_ini > 0):
-        return None
-    return (pat_fim / pat_ini) / (i1 / i0) - 1
-
-
 def real_brasil(econ, ini, fim):
+    """Crescimento real do PIB do Brasil de `ini` a `fim` (fracao: 0.05 = +5%); None sem dado."""
     f = _acumulado(econ["brasil"]["volume"], range(ini + 1, fim + 1))
     return None if f is None else f - 1
 
 
 def real_uf(econ, sigla, ini, fim):
+    """Crescimento real estimado do PIB da UF: nominal descontado o deflator do PIB nacional."""
     pib = econ["uf"].get(sigla) or {}
     p0, p1 = pib.get(str(ini)), pib.get(str(fim))
     d = _acumulado(econ["brasil"]["deflator"], range(ini + 1, fim + 1))
     return (p1 / p0) / d - 1 if p0 and p1 and d else None
 
 
-def quedas_brasil(econ, ini, fim):
+def _anos_brasil(econ, ini, fim):
     vol = econ["brasil"]["volume"]
-    return [(a, vol[str(a)]) for a in range(ini + 1, fim + 1) if (vol.get(str(a)) or 0) < 0]
+    return [(a, vol[str(a)] / 100) for a in range(ini + 1, fim + 1) if str(a) in vol]
 
 
-def quedas_uf(econ, sigla, ini, fim):
-    return [(a, r * 100) for a in range(ini + 1, fim + 1)
-            if (r := real_uf(econ, sigla, a - 1, a)) is not None and r < 0]
+def _anos_uf(econ, sigla, ini, fim):
+    return [(a, r) for a in range(ini + 1, fim + 1) if (r := real_uf(econ, sigla, a - 1, a)) is not None]
 
 
-def comparar(econ, linha):
-    """Comparacao de um periodo de declaracoes (linha do alerta). Cada economia vai ate o ultimo ano que o IBGE ja
-    publicou; sem nenhum ano depois do inicio, fica None."""
+def _economia(real, anos, fim):
+    return dict(fim=fim, real=real, quedas=[a for a, v in anos if v < 0])
+
+
+def periodo(econ, linha):
+    """Economia do estado e do Brasil entre as declaracoes de um periodo (linha do alerta). Cada uma vai ate o ultimo
+    ano que o IBGE ja publicou; sem nenhum ano depois do inicio, fica None."""
     ini, fim = int(linha.get("ano_ini") or 0), int(linha.get("ano_fim") or 0)
     sigla = str(linha.get("uf") or "").upper()
-    out = dict(ini=ini, fim=fim, uf=sigla if sigla in econ.get("uf", {}) else None,
-               patrimonio=real_patrimonio(econ, ini, fim, linha.get("pat_ini"), linha.get("pat_fim")))
+    out = dict(ini=ini, fim=fim, uf=sigla if sigla in econ.get("uf", {}) else None, estado=None, brasil=None)
     fim_br = min(fim, ultimo(econ["brasil"]["volume"]) or 0)
-    out["brasil"] = dict(fim=fim_br, real=real_brasil(econ, ini, fim_br), quedas=quedas_brasil(econ, ini, fim_br)) \
-        if fim_br > ini else None
+    if fim_br > ini:
+        out["brasil"] = _economia(real_brasil(econ, ini, fim_br), _anos_brasil(econ, ini, fim_br), fim_br)
     fim_uf = min(fim, ultimo(econ["uf"].get(out["uf"])) or 0) if out["uf"] else 0
-    out["estado"] = dict(fim=fim_uf, real=real_uf(econ, out["uf"], ini, fim_uf),
-                         quedas=quedas_uf(econ, out["uf"], ini, fim_uf)) if fim_uf > ini else None
+    if fim_uf > ini:
+        out["estado"] = _economia(real_uf(econ, out["uf"], ini, fim_uf), _anos_uf(econ, out["uf"], ini, fim_uf), fim_uf)
     return out
 
 
+def sinal(v):
+    """('sobe'|'cai'|'igual', rotulo) para a variacao real."""
+    if v is None:
+        return "igual", NAO_INFORMADO
+    if v >= ESTAVEL:
+        return "sobe", "Em crescimento"
+    return ("cai", "Em declínio") if v <= -ESTAVEL else ("igual", "Estável")
+
+
 # ---------------------------------------------------------------- html
-def pct(v, sinal=True):
+SETA = dict(sobe="▲", cai="▼", igual="●")  # forma alem da cor
+
+
+def pct(v, sinal_=True):
     """0.056 -> '+5,6%'; 1.85 -> '+185%'; -0.033 -> '−3,3%'."""
     if v is None:
         return NAO_INFORMADO
     p = v * 100
     txt = f"{abs(p):.0f}" if abs(p) >= 100 else f"{abs(p):.1f}".replace(".", ",")
     txt = txt[:-2] if txt.endswith(",0") else txt
-    return (("+" if p > 0 else "−" if p < 0 else "") if sinal else "") + txt + "%"
+    return (("+" if p > 0 else "−" if p < 0 else "") if sinal_ else "") + txt + "%"
 
 
 def _verbo(v):
-    return "ficou estável" if abs(v) < 0.0005 else ("cresceu " if v > 0 else "encolheu ") + pct(abs(v), sinal=False)
+    tipo = sinal(v)[0]
+    return "ficou estável" if tipo == "igual" else ("cresceu " if tipo == "sobe" else "encolheu ") + pct(abs(v), False)
 
 
 ARTIGO = dict(AC="o", AP="o", AM="o", BA="a", CE="o", DF="o", ES="o", MA="o", PA="o", PB="a", PR="o", PI="o", RJ="o",
@@ -209,112 +205,70 @@ def _ate(eco, fim):
     return f" (dados até {eco['fim']})" if eco["fim"] < fim else ""
 
 
-def frase(c):
-    """Frase em linguagem simples para um periodo."""
-    if c["patrimonio"] is None:
-        partes = [f"De {c['ini']} a {c['fim']}, não dá para descontar a inflação do patrimônio declarado."]
-    else:
-        partes = [f"De {c['ini']} a {c['fim']}, descontada a inflação, o patrimônio declarado {_verbo(c['patrimonio'])}."]
+def frase(p):
+    """Frase em linguagem simples para um periodo (tambem serve ao texto de cobranca)."""
     eco = []
-    if c["estado"] and c["estado"]["real"] is not None:
-        eco.append(f"a economia {_nome_uf(c['uf'], 'de')} {_verbo(c['estado']['real'])}{_ate(c['estado'], c['fim'])}")
-    if c["brasil"] and c["brasil"]["real"] is not None:
-        eco.append(f"a do Brasil {_verbo(c['brasil']['real'])}{_ate(c['brasil'], c['fim'])}")
-    if eco:
-        partes.append("No mesmo período, " + " e ".join(eco) + ".")
-    partes.append(texto_recessao(c))
-    return " ".join(p for p in partes if p)
-
-
-def _anos(quedas):
-    return ", ".join(f"{a} ({pct(v / 100)})" for a, v in quedas)
-
-
-def texto_recessao(c):
-    qb = c["brasil"]["quedas"] if c["brasil"] else []
-    qu = c["estado"]["quedas"] if c["estado"] else []
-    if not (c["brasil"] or c["estado"]):
+    if p["estado"] and p["estado"]["real"] is not None:
+        eco.append(f"a economia {_nome_uf(p['uf'], 'de')} {_verbo(p['estado']['real'])}{_ate(p['estado'], p['fim'])}")
+    if p["brasil"] and p["brasil"]["real"] is not None:
+        eco.append(f"{'a do' if eco else 'a economia do'} Brasil {_verbo(p['brasil']['real'])}"
+                   f"{_ate(p['brasil'], p['fim'])}")
+    if not eco:
         return ""
+    return (f"Entre as declarações de {p['ini']} e {p['fim']}, descontada a inflação, " + " e ".join(eco) + ". "
+            + texto_recessao(p))
+
+
+def texto_recessao(p):
+    qb = p["brasil"]["quedas"] if p["brasil"] else []
+    qu = p["estado"]["quedas"] if p["estado"] else []
     if not (qb or qu):
-        return "Não houve ano de recessão no período publicado pelo IBGE."
-    lados = ([f"o Brasil em {_anos(qb)}"] if qb else []) + ([f"{_nome_uf(c['uf'])} em {_anos(qu)}"] if qu else [])
+        return "Não houve ano de recessão no período."
+    lados = ([f"o Brasil em {_lista(qb)}"] if qb else []) + ([f"{_nome_uf(p['uf'])} em {_lista(qu)}"] if qu else [])
     return "Houve recessão (queda real do PIB): " + "; ".join(lados) + "."
 
 
-def _barras(c):
-    itens = [("Patrimônio declarado", c["patrimonio"], "eco-pat")]
-    if c["estado"]:
-        itens.append((f"PIB {_nome_uf(c['uf'], 'de')}{_ate(c['estado'], c['fim'])}", c["estado"]["real"], "eco-uf"))
-    if c["brasil"]:
-        itens.append((f"PIB do Brasil{_ate(c['brasil'], c['fim'])}", c["brasil"]["real"], "eco-br"))
-    vals = [v for _, v, _ in itens if v is not None]
-    if len(vals) < 2:
-        return ""
-    neg, pos = max(0.0, -min(vals)), max(0.0, max(vals))
-    escala = (neg + pos) or 1.0
-    zero = neg / escala * 100
-    linhas = []
-    for rot, v, cls in itens:
-        if v is None:
-            barra = ""
-        else:
-            larg = abs(v) / escala * 100
-            esq = zero if v >= 0 else zero - larg
-            barra = (f'<span class="eco-barra {cls}{" eco-neg" if v < 0 else ""}" '
-                     f'style="left:{esq:.1f}%;width:{max(larg, 0.6):.1f}%"></span>')
-        linhas.append(f'<li><span class="eco-rot">{e(rot)}</span><span class="eco-trilho">'
-                      f'<span class="eco-zero" style="left:{zero:.1f}%"></span>{barra}</span>'
-                      f'<b class="eco-val">{e(pct(v))}</b></li>')
-    return (f'<ul class="eco-barras" aria-label="Crescimento de {c["ini"]} a {c["fim"]}, descontada a inflação">'
-            + "".join(linhas) + "</ul>")
+def _lista(anos):
+    return ", ".join(map(str, anos[:-1])) + (" e " if len(anos) > 1 else "") + str(anos[-1])
 
 
-def _celula(eco, fim, chave="real"):
-    if not eco:
-        return NAO_INFORMADO
-    return e(pct(eco[chave])) + (f" <small>(até {eco['fim']})</small>" if eco["fim"] < fim else "")
+def _chip(tipo, texto):
+    return f'<span class="chip eco-{tipo}">{SETA[tipo]} {e(texto)}</span>'
 
 
-def _tabela(comps):
-    cab = ["Período", "Patrimônio", "PIB do estado", "PIB do Brasil", "Anos de recessão"]
-    corpo = []
-    for c in comps:
-        rec = sorted({a for a, _ in (c["brasil"] or {}).get("quedas", [])}
-                     | {a for a, _ in (c["estado"] or {}).get("quedas", [])})
-        cel = [f"{c['ini']}–{c['fim']}", e(pct(c["patrimonio"])), _celula(c["estado"], c["fim"]),
-               _celula(c["brasil"], c["fim"]),
-               ", ".join(map(str, rec)) or ("Nenhum" if c["brasil"] or c["estado"] else NAO_INFORMADO)]
-        corpo.append("<tr>" + "".join(f'<td data-label="{e(h)}"{NUM if 1 <= i <= 3 else ""}>{v}</td>'
-                                      for i, (h, v) in enumerate(zip(cab, cel))) + "</tr>")
-    return ('<div class="tab"><table class="resp"><caption class="sr">Patrimônio e economia por período, descontada '
-            "a inflação</caption><thead><tr>" + "".join(
-                f'<th scope="col"{NUM if 1 <= i <= 3 else ""}>{e(h)}</th>' for i, h in enumerate(cab))
-            + "</tr></thead><tbody>" + "".join(corpo) + "</tbody></table></div>")
+def _chip_eco(lugar, eco, fim):
+    tipo, rot = sinal(eco["real"])
+    return _chip(tipo, f"{lugar} {rot.lower()} ({pct(eco['real'])}{', dados até ' + str(eco['fim']) if eco['fim'] < fim else ''})")
 
 
-NOTA = ('<p class="mut"><small>Tudo descontada a inflação pelo IPCA de julho a julho (a declaração ao TSE é entregue '
-        'em agosto). PIB do Brasil: crescimento real calculado pelo IBGE. PIB do estado: estimativa, com o PIB do estado '
-        'descontado o deflator do PIB do Brasil; o IBGE publica o PIB dos estados com cerca de 2 anos de atraso. '
-        "Patrimônio é de uma pessoa e o PIB é da economia inteira: a comparação é só uma referência para fazer "
-        "perguntas, não prova de nada. Fontes: IBGE, "
-        f'<a href="{LINK["brasil"]}" target="_blank" rel="noopener">PIB do Brasil</a>, '
-        f'<a href="{LINK["uf"]}" target="_blank" rel="noopener">PIB dos estados</a> e '
-        f'<a href="{LINK["ipca"]}" target="_blank" rel="noopener">IPCA</a>.</small></p>')
+def _chips(p):
+    chips = ([_chip_eco(estados.UFS[p["uf"]][1], p["estado"], p["fim"])] if p["estado"] else []) \
+        + ([_chip_eco("Brasil", p["brasil"], p["fim"])] if p["brasil"] else [])
+    quedas = sorted(set((p["estado"] or {}).get("quedas", [])) | set((p["brasil"] or {}).get("quedas", [])))
+    if quedas:
+        chips.append(_chip("cai", f"Recessão em {_lista(quedas)}"))
+    return "".join(chips)
+
+
+NOTA = ('<p class="mut"><small>O PIB mede a riqueza produzida, já sem a inflação, e não depende de um político: '
+        "serve para lembrar como estava a vida de todo mundo enquanto o patrimônio mudava. Recessão é um ano em que a "
+        "economia encolheu. No estado o número é estimado e o IBGE publica com cerca de 2 anos de atraso. Fonte: IBGE ("
+        f'<a href="{LINK["brasil"]}" target="_blank" rel="noopener">Brasil</a>, '
+        f'<a href="{LINK["uf"]}" target="_blank" rel="noopener">estados</a>).</small></p>')
 
 
 def secao(econ, linhas):
-    """Bloco "Patrimônio × economia" da aba Patrimônio. `econ` None: secao omitida; {}: fonte fora do ar."""
+    """Linha "Economia no período" da aba Patrimônio: selos de crescimento, declinio e recessao do estado e do Brasil
+    entre as duas ultimas declaracoes com PIB publicado. `econ` None: omitida; {}: fonte fora do ar."""
     if econ is None:
         return ""
-    titulo = "<h3>Patrimônio × economia</h3>"
+    titulo = "<h3>Economia no período</h3>"
     if not completo(econ):
         return titulo + f'<p class="vazio">{NAO_ACHOU}: IBGE fora do ar nesta execução.</p>'
-    comps = [comparar(econ, a) for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0))]
-    comps = [c for c in comps if c["fim"] > c["ini"]]
-    com_eco = [c for c in comps if c["brasil"] or c["estado"]]
+    pers = [periodo(econ, a) for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0))]
+    com_eco = [p for p in pers if p["brasil"] or p["estado"]]
     if not com_eco:
-        return titulo + (f'<p class="vazio">{NAO_INFORMADO}: o IBGE ainda não publicou o PIB desse período.</p>'
-                         + NOTA)
-    principal = com_eco[-1]
-    return (titulo + f'<p class="eco-frase">{e(frase(principal))}</p>' + _barras(principal)
-            + (_tabela(comps) if len(comps) > 1 else "") + NOTA)
+        return titulo + f'<p class="vazio">{NAO_INFORMADO}: o IBGE ainda não publicou o PIB desse período.</p>'
+    p = com_eco[-1]
+    return (titulo + f'<p class="eco-linha"><span>Como ia a economia entre as declarações de {p["ini"]} e {p["fim"]}:</span> '
+            f"{_chips(p)}</p>" + NOTA)
