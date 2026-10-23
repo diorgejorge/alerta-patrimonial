@@ -15,7 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/python
-      - uses: actions/cache@v4  # zips do TSE entre execucoes: 2018-2024 nao mudam; 2026 so rebaixa se mudou
+      # data/cache: arquivos e resultados ja processados (TSE, cota, projetos, presenca, votacoes, Portal, contatos,
+      # gabinete, noticias), todos cifrados; cada fonte so le de novo o que mudou
+      - uses: actions/cache/restore@v4
         with:
           path: data/cache
           key: tse-${{ github.run_id }}
@@ -27,6 +29,12 @@ jobs:
           TRANSPARENCIA_TOKEN: ${{ secrets.TRANSPARENCIA_TOKEN }}  # chave da API do Portal da Transparencia
           ID_SEGREDO: ${{ secrets.ID_SEGREDO }}  # gera o id interno das pessoas (sem CPF)
           MONITORADOS_CSV: ${{ secrets.MONITORADOS_CSV }}  # lista de monitorados; vazio = modo atual (200 maiores)
+      # salva mesmo se a execucao falhar, estourar o tempo ou for cancelada: o que ja foi processado nao se perde
+      - uses: actions/cache/save@v4
+        if: always() && hashFiles('data/cache/**') != ''
+        with:
+          path: data/cache
+          key: tse-${{ github.run_id }}
       - name: Salvar resultados
         run: |
           git config user.name "alerta-bot"; git config user.email "bot@users.noreply.github.com"
