@@ -3,6 +3,7 @@ So usa o id interno (p0001...): CPF, chave e CNPJ nunca entram no HTML."""
 import csv, html, json, re, shutil
 from pathlib import Path
 import graficos, temas
+from texto import cap
 
 SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
@@ -75,7 +76,7 @@ def _tabela_periodos(linhas):
            "Daria para guardar com o salário", "Cresceu quantas vezes isso", "Entre colegas do mesmo cargo", "Nível"]
     corpo = []
     for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0)):
-        cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(a.get("cargo") or ""), brl(a.get("pat_ini")),
+        cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(cap(a.get("cargo"))), brl(a.get("pat_ini")),
                brl(a.get("pat_fim")), brl(a.get("cresc")), brl(a.get("cap")), vezes(a.get("razao")),
                colegas(a.get("percentil")), chip_nivel(a.get("nivel"))]
         corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if 2 <= i <= 6 else ""}>{v}</td>'
@@ -154,16 +155,16 @@ def _propostas(pid):
 
 def _cabecalho(a, nome):
     urna = (a.get("nome_urna") or "").strip()
-    ficha = " · ".join(e(str(x)) for x in (a.get("cargo"), a.get("partido"), a.get("uf")) if x)
-    return (f'<header class="cab">{avatar(urna or nome, grande=True)}<div><h1>{e(nome)}</h1>'
-            + (f'<p class="ficha">Nome de urna: <strong>{e(urna)}</strong></p>' if urna and urna.upper() != nome.upper() else "")
+    ficha = " · ".join(e(str(x)) for x in (cap(a.get("cargo")), a.get("partido"), a.get("uf")) if x)
+    return (f'<header class="cab">{avatar(urna or nome, grande=True)}<div><h1>{e(cap(nome))}</h1>'
+            + (f'<p class="ficha">Nome de urna: <strong>{e(cap(urna))}</strong></p>' if urna and urna.upper() != nome.upper() else "")
             + f'<p class="ficha">{ficha}</p>{chip_nivel(a.get("nivel"))}</div></header>')
 
 
 def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
-    vals = dict(TITULO=e((topo.get("nome_urna") or nome).strip()), CABECALHO=_cabecalho(topo, nome),
+    vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())), CABECALHO=_cabecalho(topo, nome),
                 RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',

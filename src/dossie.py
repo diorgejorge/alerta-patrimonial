@@ -10,6 +10,7 @@ from concurrent.futures import ThreadPoolExecutor
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 import temas
+from texto import cap
 
 TPL = Path(__file__).resolve().parent / "dossie.html"
 RSS = "https://news.google.com/rss/search?"
@@ -470,7 +471,7 @@ def periodo(a):
         novo += ('<br><small><b>Tem empresas declaradas</b>: o salário não é a única fonte de renda'
                  + (f'; destaque reduzido de {e(NV.get(a.get("nivel_calculado"), ""))}'
                     if a.get("nivel_calculado") and a.get("nivel_calculado") != a.get("nivel") else "") + "</small>")
-    return (f"<tr><td>{a['ano_ini']}–{a['ano_fim']}{novo}<br><small>{e(a.get('cargo') or '')}</small></td>"
+    return (f"<tr><td>{a['ano_ini']}–{a['ano_fim']}{novo}<br><small>{e(cap(a.get('cargo')))}</small></td>"
             f'<td class="n" data-label="Patrimônio no início">{brl(a.get("pat_ini"))}</td>'
             f'<td class="n" data-label="Patrimônio no fim">{brl(a.get("pat_fim"))}</td>'
             f'<td class="n" data-label="Crescimento">{brl(a.get("cresc"))}</td>'
@@ -519,16 +520,16 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
     ult = linhas[-1]  # periodo mais recente
     urna = (ult.get("nome_urna") or "").strip()
     tse = next((a["link_tse"] for a in reversed(linhas) if url_ok(a.get("link_tse"))), None)
-    ficha = " · ".join(e(str(x)) for x in (ult.get("cargo"), ult.get("partido"), ult.get("uf")) if x)
-    cab = f"<h1>{e(ult['nome'])}</h1>"
+    ficha = " · ".join(e(str(x)) for x in (cap(ult.get("cargo")), ult.get("partido"), ult.get("uf")) if x)
+    cab = f"<h1>{e(cap(ult['nome']))}</h1>"
     if urna and urna.upper() != str(ult["nome"]).upper():
-        cab += f'<p class="ficha">Nome de urna: <strong>{e(urna)}</strong></p>'
+        cab += f'<p class="ficha">Nome de urna: <strong>{e(cap(urna))}</strong></p>'
     cab += f'<p class="ficha">{ficha}</p>'
     if tse:
         cab += f'<p class="ficha"><a href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura e bens no TSE</a></p>'
     if PROCESSOS_ATIVO:
         cab += secao_processos(ult)
-    nome = urna or str(ult["nome"])
+    nome = cap(urna or str(ult["nome"]))
     vals = dict(TITULO=e(nome), NOME=e(nome), CABECALHO=cab, PERIODOS="".join(periodo(a) for a in linhas),
                 RECENTES=lista(recentes, "Nenhuma notícia recente que cite a pessoa ou empresa ligada pelo nome."),
                 PATRIMONIO=lista(patrimonio, "Nenhuma notícia sobre patrimônio que cite a pessoa "
