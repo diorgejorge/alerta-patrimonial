@@ -68,6 +68,11 @@ table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-sp
 button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 .alerta .compra{margin:0;font-size:.875rem;padding:.4em .6em;border-radius:10px;background:var(--realce)}
 .alerta .links{margin:auto 0 0;font-size:.9rem}.alerta .links .lk{min-height:44px}.mais{text-align:center}
+.leves{list-style:none;padding:0;margin:.6em 0;display:grid;gap:8px}
+.leve{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.6em .9em;content-visibility:auto;contain-intrinsic-size:auto 120px}
+.leve .topo{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;align-items:baseline}
+.leve ul{list-style:none;padding:0;margin:.3em 0 0;font-size:.875rem;font-variant-numeric:tabular-nums}.leve ul li{padding:.15em 0;border-top:1px solid var(--line)}
+.leve .tags{margin:.3em 0}.leve .links{margin:.2em 0 0;font-size:.9rem}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
 </style>
 </head>
@@ -127,6 +132,22 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
 <details class="dados" id="tabela"><summary>Ver todos em tabela</summary>
 <div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Tags <small>(clique para filtrar)</small></th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table></div></details>
+<section id="todos" hidden><h2>Todas as pessoas analisadas</h2>
+<p class="fonte">Todas as pessoas com duas declarações de bens ao TSE que dá para comparar, com ou sem destaque. Cada pessoa aparece uma vez, com os períodos dentro. O dossiê completo existe só para quem está entre os destaques. Os números são o que foi declarado ao TSE; confira cada período no link da fonte.</p>
+<p><button type="button" class="botao" id="todos-abrir" aria-controls="todos-box" aria-expanded="false"></button></p>
+<div id="todos-box" hidden>
+<div class="barra">
+<input id="tq" type="search" placeholder="Buscar por nome" aria-label="Buscar na lista completa por nome">
+<select id="tcg" aria-label="Cargo na lista completa"><option value="">Todos os cargos</option></select>
+<select id="tpt" aria-label="Partido na lista completa"><option value="">Todos os partidos</option></select>
+<select id="tuf" aria-label="Estado na lista completa"><option value="">Todos os estados</option></select>
+<select id="tnv" aria-label="Nível na lista completa"><option value="">Todos os níveis</option><option value="3">Muito acima do esperado</option><option value="2">Acima do esperado</option><option value="1">Para conhecer</option><option value="0">Sem destaque</option></select>
+<select id="tmc" aria-label="Marcação na lista completa"><option value="">Todas as marcações</option><option value="e">★ Parlamentar exemplar</option><option value="s">🐾 Mão na massa</option></select>
+</div>
+<p class="contagem" id="todos-qtd" aria-live="polite"></p>
+<ul class="leves" id="todos-lista" aria-label="Lista completa de pessoas"></ul>
+<p class="mais"><button type="button" class="botao" id="todos-mais" hidden></button></p>
+</div></section>
 <p class="rodape"><span aria-hidden="true">🐾</span> O Caramelo fareja os dados públicos; quem confere e tira as conclusões é você.</p>
 </main>
 <script>
@@ -355,6 +376,69 @@ function tabelaToda(){
   const L=(p,f)=>p.per.map(f).join("<br>");
   document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?'<span class="estrela" title="Parlamentar exemplar">★</span> ':""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Patrimônio no início"><span>${L(p,a=>R(a.pat_ini))}</span></td><td class="n" data-label="Patrimônio no fim"><span>${L(p,a=>R(a.pat_fim))}</span></td><td class="n" data-label="Crescimento"><span>${p.per.length>1?`<b>${R(p.cresc)}</b><br><small>${L(p,a=>`${a.ano_ini}–${a.ano_fim}: ${R(a.cresc)}`)}</small>`:R(p.cresc)}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${L(p,a=>R(a.cap))}</span></td><td class="n" data-label="Quantas vezes o possível"><span>${L(p,a=>VZ(a.razao))}</span></td><td class="n" data-label="Comparado aos colegas"><span>${p.per.length>1?L(p,a=>PC(a.percentil).replace(/<br>/," ")):PC(p.per[0].percentil)}</span></td><td class="nivel ${p.nivel}" data-label="Nível"><span>${NV[p.nivel]}${p.per.length>1?`<br><small>maior crescimento: ${p.maior.ano_ini}–${p.maior.ano_fim}</small>`:""}</span></td></tr>`).join("");
 }
+// lista completa leve (#43): docs/todos.json so e baixado quando o leitor abre a lista
+// pessoa: [nome publico, nome civil, pagina do dossie, marcas ("e" exemplar, "s" selo), periodos]
+// periodo: [ano_ini, ano_fim, cargo, partido, uf, patrimonio no inicio, no fim, nivel (0 a 3), link do TSE sem o prefixo]
+const TN=["Sem destaque",NV.informativo,NV.atencao,NV.forte],TNC=["","informativo","atencao","forte"],TPAG=40,TSEL=["tcg","tpt","tuf","tnv","tmc"];
+let TD=null,TL=[],TV=0,TPEND="",TCARR=false;
+const SA=s=>String(s||"").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+function todosAbrir(abrir){
+  const box=$("todos-box"),ab=abrir??box.hidden;
+  box.hidden=!ab;$("todos-abrir").setAttribute("aria-expanded",ab);$("todos-abrir").textContent=ab?"Fechar a lista completa":"Abrir a lista completa";
+  if(ab&&!TD&&!TCARR)todosCarregar();
+}
+async function todosCarregar(){
+  TCARR=true;$("todos-qtd").textContent="Carregando a lista...";
+  try{const r=await fetch("todos.json",{cache:"no-cache"});if(!r.ok)throw new Error(r.status);TD=await r.json();if(!Array.isArray(TD.lista))throw new Error("formato");}
+  catch(e){TD=null;TCARR=false;$("todos-qtd").innerHTML="<b>Fonte não encontrada</b>: não deu para carregar a lista agora. Feche e abra a lista de novo para tentar outra vez.";return;}
+  TD.P=TD.lista.map(([n,c,pg,m,per])=>({n,c,pg,m:m||"",per,nv:Math.max(0,...per.map(x=>x[7]||0)),
+    cg:new Set(per.map(x=>TD.cargos[x[2]])),pt:new Set(per.map(x=>TD.partidos[x[3]])),uf:new Set(per.map(x=>x[4]||"Não informado")),q:SA(`${n} ${c}`)}));
+  const opc=(id,k)=>$(id).append(...[...new Set(TD.P.flatMap(p=>[...p[k]]))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(v=>{const o=el("option",null,v);o.value=v;return o;}));
+  opc("tcg","cg");opc("tpt","pt");opc("tuf","uf");
+  if(TPEND){$("tmc").value=TPEND;TPEND="";}
+  let t;$("tq").oninput=()=>{clearTimeout(t);t=setTimeout(todosDraw,180);};
+  for(const id of TSEL)$(id).onchange=todosDraw;$("todos-mais").onclick=todosMais;
+  todosDraw();
+}
+const TK={tcg:"cg",tpt:"pt",tuf:"uf"};
+// a pessoa entra se algum periodo tiver o cargo, partido ou estado; o nivel e o maior dos periodos (ign: ignora um filtro)
+function tPassa(p,ign,q){
+  for(const id of TSEL){if(id===ign)continue;const v=$(id).value;if(!v)continue;
+    if(TK[id]?!p[TK[id]].has(v):id==="tnv"?p.nv!==+v:!p.m.includes(v))return false;}
+  return!q||p.q.includes(q);
+}
+function todosDraw(){
+  const q=SA($("tq").value.trim());TL=TD.P.filter(p=>tPassa(p,null,q));
+  // opcoes sem ninguem (com os outros filtros) ficam desativadas; sem nenhuma opcao, o filtro todo fica desativado
+  for(const id of TSEL){const s=$(id),tem=new Set();
+    for(const p of TD.P)if(tPassa(p,id,q)){if(TK[id])for(const v of p[TK[id]])tem.add(v);else if(id==="tnv")tem.add(String(p.nv));else for(const c of p.m)tem.add(c);}
+    for(const o of s.options)if(o.value)o.disabled=!tem.has(o.value)&&o.value!==s.value;
+    s.disabled=!s.value&&![...s.options].some(o=>o.value&&!o.disabled);}
+  const n=TL.length,tot=TD.P.length;
+  $("todos-qtd").innerHTML=`Mostrando <b>${n.toLocaleString("pt-BR")}</b> de ${tot.toLocaleString("pt-BR")} ${tot===1?"pessoa":"pessoas"}`+(n?"":". Ninguém com este filtro.");
+  TV=0;$("todos-lista").replaceChildren();todosMais();
+}
+const TLK=s=>/^https:\/\//.test(TD.link_tse||"")&&/^[A-Z]+\/[A-Z]{2}\/\d+\/\d+\/\d{4}\/\w+$/.test(s||"")?TD.link_tse+s:"";
+const VAR=v=>(v>0?"+":"")+R(v);
+const LEVE=p=>`<li class="leve"><div class="topo"><span><b>${p.m.includes("e")?'<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> ':""}${esc(p.n)}</b>${p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:""}${p.c?`<br><small>${esc(p.c)}</small>`:""}</span><span class="chip${p.nv?` nv-${TNC[p.nv]}`:""}">${TN[p.nv]}</span></div>
+<p class="tags">${p.m.includes("s")?'<span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos"><span aria-hidden="true">🐾</span> Mão na massa</span>':""}${[...p.cg,...p.pt,...p.uf].map(v=>`<span class="tag">${esc(v)}</span>`).join("")}</p>
+<ul>${p.per.map(x=>{const l=TLK(x[8]);return`<li>${x[0]}–${x[1]}${p.per.length>1?` · ${esc(TD.cargos[x[2]])}`:""}: patrimônio ${R(x[5])} → ${R(x[6])}, variação ${VAR(x[6]-x[5])}${l?` · <a href="${esc(l)}" target="_blank" rel="noopener" title="Declaração no DivulgaCandContas (TSE), ${x[0]}–${x[1]}">TSE</a>`:" · TSE: Não informado"}</li>`;}).join("")}</ul>
+${REL(p.pg)?`<p class="links"><a class="lk" href="${esc(p.pg)}">Dossiê</a></p>`:""}</li>`;
+function todosMais(){
+  const ate=Math.min(TL.length,TV+TPAG);$("todos-lista").insertAdjacentHTML("beforeend",TL.slice(TV,ate).map(LEVE).join(""));TV=ate;
+  const r=TL.length-TV;$("todos-mais").hidden=r<=0;$("todos-mais").textContent=`Mostrar mais ${Math.min(r,TPAG)} (faltam ${r.toLocaleString("pt-BR")})`;
+}
+// abre a lista completa ja filtrada por uma marcacao (legenda, quando ninguem entre os destaques a tem)
+function todosCom(m){
+  if(TD){$("tmc").value=m;todosDraw();}else TPEND=m;
+  todosAbrir(true);$("todos").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function todos(){
+  const t=D.todos;if(!t||!t.pessoas)return;
+  $("todos-abrir").textContent="Abrir a lista completa";$("todos-abrir").onclick=()=>todosAbrir();
+  $("todos").querySelector(".fonte").append(` São ${t.pessoas.toLocaleString("pt-BR")} pessoas (${t.comparacoes.toLocaleString("pt-BR")} comparações); a lista é baixada só quando aberta (cerca de ${t.kb>=1024?`${(Math.round(t.kb/102.4)/10).toLocaleString("pt-BR")} MB`:`${Math.max(1,t.kb).toLocaleString("pt-BR")} KB`} sem compressão).`);
+  $("todos").hidden=false;
+}
 function draw(){
   const rows=filtra();painel(rows);
   $("cg").value=F.cargo;$("rg").value=F.regiao;for(const b of $("legenda").querySelectorAll("button"))b.setAttribute("aria-pressed",F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
@@ -404,16 +488,18 @@ function contrib(){
 function legenda(){
   const tt={exemplar:"Clique para ver só os parlamentares exemplares",selo:"Clique para ver só quem tem o selo Mão na massa",renda:"Clique para ver só quem tem empresas declaradas",reu:`${REU_OBS}. Clique para ver só quem está na lista`};
   for(const b of $("legenda").querySelectorAll('button[data-f="flag"]')){const f=FLAG[b.dataset.v];if(!f)continue;
-    const n=PES.filter(f[1]).length;
-    if(n)b.removeAttribute("aria-disabled");else b.setAttribute("aria-disabled","true");b.title=n?tt[b.dataset.v]:f[2];
-    const td=b.closest("tr")?.querySelector("td");if(!n&&td)td.append(" ",el("small",null,"(ninguém nesta atualização)"));}
+    const n=PES.filter(f[1]).length,nt=(D.todos||{})[b.dataset.v]||0;  // nt: na lista completa (exemplar e selo)
+    if(n||nt)b.removeAttribute("aria-disabled");else b.setAttribute("aria-disabled","true");
+    if(!n&&nt)b.dataset.todos="1";else delete b.dataset.todos;
+    b.title=n?tt[b.dataset.v]:nt?`${f[2]}. Clique para ver na lista completa`:f[2];
+    const td=b.closest("tr")?.querySelector("td");if(!n&&td)td.append(" ",el("small",null,nt?"(nenhum entre os destaques; veja na lista completa)":"(ninguém nesta atualização)"));}
 }
 // blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
 for(const s of document.querySelectorAll("section.grade.duas"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
-if(D){contrib();leitura();legenda();exemplares();projetos();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
-$("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
+$("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;if(b.dataset.todos){todosCom(b.dataset.v==="exemplar"?"e":"s");return;}F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 // tags clicaveis (cards e tabela): cargo, partido e UF filtram pela dimensao; marcacoes filtram pela legenda

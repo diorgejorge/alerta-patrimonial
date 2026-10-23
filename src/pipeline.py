@@ -387,6 +387,47 @@ def carregar_bens():
         return None
 
 
+NIVEL_COD = {"forte": 3, "atencao": 2, "informativo": 1}  # lista completa: 0 = sem destaque
+REL_OK = lambda u: isinstance(u, str) and bool(u) and not re.match(r"\s*[a-z][a-z0-9+.-]*:", u, re.I)
+
+
+def lista_completa(df, paginas_pessoa, gerado, marcas=None):
+    """Todas as pessoas com duas declaracoes comparaveis (#43), no formato leve de docs/todos.json: uma linha por
+    pessoa com os periodos dentro (#47) e so campos minimos. A chave (CPF) so agrupa aqui dentro e nao sai.
+    pessoa = [nome publico, nome civil (vazio se igual), pagina do dossie (destaques) ou "", marcas, [periodos]]
+    marcas = "e" parlamentar exemplar, "s" selo Mao na massa (parlamentares.py), "" nenhuma
+    periodo = [ano_ini, ano_fim, cargo, partido, uf, patrimonio no inicio, no fim, nivel, link do TSE sem o prefixo]"""
+    cargos, partidos = {}, {}
+    cod = lambda d, v: d.setdefault(txt(v) or "Não informado", len(d))
+    pre = DIVULGA + "/"
+    out = []
+    for chave, g in df.sort_values(["ano_ini", "ano_fim"]).groupby("chave", sort=False):
+        per = [[int(r.ano_ini), int(r.ano_fim), cod(cargos, r.cargo), cod(partidos, r.partido), txt(r.uf).upper(),
+                round(float(r.pat_ini)), round(float(r.pat_fim)), NIVEL_COD.get(r.nivel, 0),
+                r.link_tse[len(pre):] if isinstance(r.link_tse, str) and r.link_tse.startswith(pre) else ""]
+               for r in g.itertuples()]
+        ult = g.iloc[-1]
+        nome = txt(ult.get("nome"))
+        urna = txt(ult.get("nome_urna")) or nome
+        out.append([urna, "" if norm(nome) == norm(urna) else nome, paginas_pessoa.get(chave) or "",
+                    (marcas or {}).get(chave, ""), per])
+    out.sort(key=lambda p: norm(p[0]))
+    return dict(gerado_em=gerado, pessoas=len(out), comparacoes=int(len(df)), link_tse=pre,
+                cargos=list(cargos), partidos=list(partidos), lista=out)
+
+
+def gravar_todos(docs, df, paginas_pessoa, gerado, marcas=None):
+    """docs/todos.json (lista completa leve, baixada so quando o leitor abre a lista); devolve o resumo do painel."""
+    t = lista_completa(df, paginas_pessoa, gerado, marcas)
+    b = json.dumps(t, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    (docs / "todos.json").write_bytes(b)
+    kb = round(len(b) / 1024)
+    print(f"Lista completa: {t['comparacoes']} comparacoes de {t['pessoas']} pessoas "
+          f"({t['comparacoes'] - t['pessoas']} repeticoes de periodo); docs/todos.json com {kb} KB.")
+    conta = lambda m: sum(m in p[3] for p in t["lista"])
+    return dict(pessoas=t["pessoas"], comparacoes=t["comparacoes"], kb=kb, exemplar=conta("e"), selo=conta("s"))
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true", help="dados sinteticos para testar sem internet")
@@ -431,7 +472,8 @@ def main():
                      if pid else None)
     alertas["novo"] = alertas.apply(lambda r: ORDEM[r.nivel] > ORDEM.get(estado.get(r.id, ""), 0), axis=1)
 
-    if p["publicar_somente_monitorados"] and (cpfs or nomes):
+    so_lista = bool(p["publicar_somente_monitorados"] and (cpfs or nomes))  # trava: so quem esta na lista
+    if so_lista:
         vis = alertas[alertas.monitorado]
     else:
         vis = alertas.assign(o=alertas.nivel.map(ORDEM)).sort_values(["o", "percentil"], ascending=False) \
@@ -594,6 +636,18 @@ def main():
                                                      gerado=dados["gerado_em"])
         except Exception as ex:  # nunca derruba o painel
             print(f"[aviso] paginas por pessoa falharam ({ex!r})", file=sys.stderr)
+    # lista completa leve (#43): todas as pessoas com duas declaracoes, em arquivo separado (docs/todos.json)
+    pag = {}
+    for i, ch in enumerate(vis["chave"]):
+        a = dados["alertas"][i]
+        v = a.get("pagina") if REL_OK(a.get("pagina")) else a.get("dossie") if REL_OK(a.get("dossie")) else None
+        if v:
+            pag.setdefault(ch, v)
+    try:
+        marcas = {p["_chave"]: ("e" if p.get("exemplar") else "") + ("s" if p.get("selo") else "") for p in parl if p["_chave"]}
+        dados["todos"] = gravar_todos(docs, df[df.monitorado] if so_lista else df, pag, dados["gerado_em"], {k: v for k, v in marcas.items() if v})
+    except Exception as ex:  # nunca derruba o painel: sem o arquivo, a secao da lista fica escondida
+        print(f"[aviso] lista completa falhou ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)
     # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
     dados["alertas"].sort(key=lambda a: (-(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
