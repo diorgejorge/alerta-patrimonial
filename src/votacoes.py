@@ -185,8 +185,22 @@ def anotar(parl, itens=None, cache=None, buscar=None, camara=None, senado=None, 
     return dict(placar={k: placar(vs) for k, (vs, _) in info.items()}, fontes=fontes)
 
 
-def secao(votos, cargo, ctx, itens=None):
-    """HTML de 'Como votou' (dossie e pagina da pessoa). votos: p["votos"] (ou None); ctx: retorno de anotar()."""
+def texto_cobranca(nome, x):
+    """Texto pronto para cobrar sobre um voto, na voz do cidadao e com o link da fonte oficial (nunca o nosso site)."""
+    casa = "da Câmara dos Deputados" if "camara.leg.br" in x["link"] else "do Senado Federal"
+    data = dt.date.fromisoformat(x["data"]).strftime("%d/%m/%Y")
+    if x["voto"] == NAO_VOTOU:
+        fato, pedido = f'que você não votou em "{x["tema"]}", em {data}.', "Pode explicar, de forma pública, o motivo?"
+    else:
+        fato = f'que você votou "{x["voto"]}" em "{x["tema"]}", em {data}.'
+        pedido = "Pode explicar, de forma pública, por que votou assim?"
+    return (f"Prezado(a) {nome or 'parlamentar'},\n\nSou eleitor(a) e acompanho os dados oficiais do seu mandato.\n\n"
+            f"- Vi no site {casa} ({x['link']}) {fato}\n\n{pedido}\n\nAguardo sua resposta. Obrigado(a)!\n[seu nome]")
+
+
+def secao(votos, cargo, ctx, itens=None, nome=""):
+    """HTML de 'Como votou' (dossie e pagina da pessoa). votos: p["votos"] (ou None); ctx: retorno de anotar();
+    nome: como chamar a pessoa no texto de cobranca de cada voto (botao "Cobrar sobre este voto", compartilhar.js)."""
     itens = carregar() if itens is None else itens
     c = _norm(cargo)
     if votos is None:
@@ -212,11 +226,13 @@ def secao(votos, cargo, ctx, itens=None):
             f'<li><details><summary><span class="voto {cls}">{e(x["voto"])}</span> <b>{e(x["tema"])}</b> '
             f'<small>{data}</small></summary><p>{e(v.get("explicacao", ""))} <small>{e(v.get("sim", ""))}</small></p>'
             f'<p>{motivo.removeprefix("<br>")}{f"<small>Placar na casa: {e(pl)}.</small> " if pl else ""}'
-            f'<a href="{e(x["link"])}" target="_blank" rel="noopener">Ver na fonte oficial</a></p></details></li>')
+            f'<a href="{e(x["link"])}" target="_blank" rel="noopener">Ver na fonte oficial</a></p>'
+            f'<p class="voto-acoes"><button type="button" class="botao" data-cobrar-voto="{e(texto_cobranca(nome, x))}">'
+            'Cobrar sobre este voto</button><span class="voto-aviso" role="status"></span></p></details></li>')
     votou = sum(x["voto"] != NAO_VOTOU for x in votos)
     return (f'<p>Votou em <b>{votou}</b> de <b>{len(votos)}</b> {"tema" if len(votos) == 1 else "temas"} que mexem '
             'com a vida de todo mundo. Abra um tema para ver o que estava em jogo. '
-            '<b>Concorda com esses votos?</b> Cobre.</p>'
+            '<b>Concorda com esses votos?</b> Cobre: cada tema tem um texto pronto.</p>'
             '<ul class="nt votos">' + "".join(linhas) + "</ul>")
 
 
