@@ -33,6 +33,19 @@ def test_corte():
     assert projetos.corte([]) == float("inf")
 
 
+def test_corte_desempate():
+    # (aprovados, apresentados): empate em 1 aprovado nao da o selo a todos, vale quem apresentou mais (#44)
+    v = [(1, 50), (1, 10), (1, 5)] + [(0, 3)] * 7
+    c = projetos.corte(v)
+    assert c == (1, 50) and projetos.tem_selo(1, 50, c) and not projetos.tem_selo(1, 10, c)
+    assert projetos.corte([(0, 9)] * 3) == (1, 0) and not projetos.tem_selo(0, 9, (1, 0))
+    assert not projetos.tem_selo(5, 5, float("inf"))
+    assert projetos.cortes({"1": (50, 1), "2": (10, 1), "3": (5, 1)}, None)["camara"] == (1, 50)
+    # deputado em exercicio cujo periodo no TSE e de prefeito: a contagem da casa aparece no dossie
+    r = dict(casa="camara", apresentados=3, aprovados=1, selo=False, link="https://x", de=2023, ate=2026)
+    assert "<b>3</b>" in projetos.secao(r, " PREFEITO", {})
+
+
 def test_coleta_e_secao(tmp_path, monkeypatch):
     dep = pd.DataFrame(dict(cpf=[CPF, CPF], id=["", "204554"], nome="", ano=2025, tipo="X", valor=1.0))
     monkeypatch.setattr(cota, "bases", lambda anos, cache: (dep, pd.DataFrame(), {}))

@@ -107,7 +107,7 @@ def montar(df, anos, cache, chave_api, deps=None, sens=None, camara=None, senado
         if cont is not None:
             v = cont.get(p["_id"], (0, 0)) if p["casa"] == "camara" else cont.get(p["_id"])
         p["apresentados"], p["aprovados"] = (v[0], v[1]) if v else (None, None)
-        p["selo"] = bool(v and v[1] >= cs[p["casa"]])
+        p["selo"] = bool(v) and projetos.tem_selo(v[1], v[0], cs[p["casa"]])
         if v:
             p["proj_link"] = (projetos.link_camara(p["_id"], ini, fim) if p["casa"] == "camara"
                               else projetos.LINK_SENADO.format(cod=p["_id"]))

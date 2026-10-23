@@ -103,7 +103,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <p id="exemplares-qtd"></p>
 <ul class="alertas" id="exemplares-lista" aria-label="Parlamentares exemplares"></ul></section>
 <section id="projetos" hidden><h2><span aria-hidden="true">🐾</span> Quem mais propôs e aprovou projetos</h2>
-<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: projetos de lei, de lei complementar e propostas de emenda à Constituição (PL, PLP e PEC) apresentados nos últimos quatro anos como autor ou coautor, e quantos viraram norma jurídica. O selo <b>Mão na massa</b> vai para quem está entre os 10% da sua casa com mais projetos aprovados. Quantidade não mede a qualidade das propostas. Fontes: dados abertos da Câmara dos Deputados e do Senado Federal.</p>
+<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: projetos de lei, de lei complementar e propostas de emenda à Constituição (PL, PLP e PEC) apresentados nos últimos quatro anos como autor ou coautor, e quantos viraram norma jurídica. O selo <b>Mão na massa</b> vai para quem está entre os 10% da sua casa com mais projetos aprovados (no empate, conta quem apresentou mais); a conta inclui todos os parlamentares em exercício. Quantidade não mede a qualidade das propostas. Fontes: dados abertos da Câmara dos Deputados e do Senado Federal.</p>
 <ol class="alertas" id="projetos-lista"></ol></section>
 <section id="cota" hidden><h2>Quem mais gastou da cota parlamentar</h2>
 <p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: total gasto da cota para o exercício da atividade parlamentar (CEAP) nos últimos quatro anos e os maiores tipos de despesa. Usar a cota faz parte do mandato; os dados ajudam a conhecer como ela é usada.</p>
@@ -204,7 +204,8 @@ function agrupaPessoas(l){
       // contadores do card: empresas (qtd_empresas do pipeline; sem o campo, nomes distintos), projetos do periodo mais recente
       qtd_empresas:qe.length?Math.max(...qe):new Set(per.flatMap(a=>a.empresas||[])).size,sem_qtd:!qe.length,
       projetos:per.map(a=>a.projetos).filter(Boolean).sort((x,y)=>(y.ate||0)-(x.ate||0))[0]||null,
-      parlamentar:per.some(a=>/^(DEPUTADO FEDERAL|SENADOR)$/i.test(a.cargo||""))};});
+      // parlamentar: cargo do TSE ou contagem de projetos da casa em que esta em exercicio (o cargo do TSE pode ser outro)
+      parlamentar:per.some(a=>a.projetos||/^(DEPUTADO FEDERAL|SENADOR)$/i.test(a.cargo||""))};});
 }
 const PES=D?agrupaPessoas(D.alertas||[]):[];
 // periodos da pessoa que atendem aos filtros de busca, nivel e dimensao (ign: o grafico ignora o proprio filtro)
@@ -336,7 +337,9 @@ ${p.per.length>1?`<p class="cresc"><small>Crescimento de <span class="total-peri
 // parlamentares exemplares: um card por pessoa (nome + UF), periodos agrupados
 function exemplares(){
   const m=new Map();for(const x of D.exemplares||[]){const k=`${x.nome}|${x.uf}`;if(!m.has(k))m.set(k,[]);m.get(k).push(x);}
-  const l=[...m.values()];if(!l.length)return;
+  if(!Array.isArray(D.exemplares))return;  // sem a lista de parlamentares nesta execucao: secao escondida
+  const l=[...m.values()];
+  if(!l.length){$("exemplares-qtd").textContent="Nenhum parlamentar em exercício cumpre os três critérios nesta atualização.";$("exemplares").hidden=false;return;}
   const RS=R;
   const u=(g,c)=>[...new Set(g.map(x=>x[c]).filter(Boolean))];
   $("exemplares-qtd").textContent=l.length===1?"1 parlamentar cumpre os três critérios nesta atualização.":`${l.length.toLocaleString("pt-BR")} parlamentares cumprem os três critérios nesta atualização.`;

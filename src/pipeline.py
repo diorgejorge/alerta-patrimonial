@@ -543,6 +543,18 @@ def main():
     except Exception as ex:
         print(f"[aviso] projetos de lei indisponiveis ({ex!r})", file=sys.stderr)
         proj = {}
+    # quem esta em exercicio (parlamentares.py, ligado pelo CPF ou por nome e UF) usa as contagens da sua casa, mesmo
+    # que o cargo do periodo no TSE seja outro (deputado candidato a senador ou a prefeito): selo e projetos juntos
+    parl_chave = {x["_chave"]: x for x in parl if x["_chave"] and x.get("apresentados") is not None}
+    for k, q in pessoas.items():
+        x = parl_chave.get(q["chave"])
+        if x:
+            proj[k] = dict(casa=x["casa"], apresentados=x["apresentados"], aprovados=x["aprovados"], selo=x["selo"],
+                           link=x.get("proj_link"), de=x["proj_de"], ate=x["proj_ate"])
+    n_proj = [v for k, v in proj.items() if k != "_fontes"]
+    print(f"Projetos de lei nos destaques: {len(n_proj)} pessoas com contagem "
+          f"({sum(q['chave'] in parl_chave for q in pessoas.values())} pela lista de parlamentares em exercicio), "
+          f"{sum(bool(v['selo']) for v in n_proj)} com o selo {projetos.SELO}.")
     secoes_proj = {}
     for k, q in pessoas.items():
         try:
@@ -559,9 +571,10 @@ def main():
                 dados["alertas"][i]["selo"] = True
     # parlamentares exemplares (estrela): patrimonio compativel, cota abaixo da media e sem sancoes
     # entre todos os parlamentares em exercicio (parlamentares.py), nao so os destaques
-    dados["exemplares"] = parlamentares.lista_exemplares(parl)
+    # None: lista de parlamentares indisponivel (secao escondida); []: ninguem cumpre os criterios (mensagem)
+    dados["exemplares"] = parlamentares.lista_exemplares(parl) if parl else None
     estrelas = {p["_chave"] for p in parl if p.get("exemplar") and p["_chave"]}
-    selos = {p["_chave"] for p in parl if p.get("selo") and p["_chave"]}
+    selos = {ch for ch, x in parl_chave.items() if x.get("selo")}  # selo so com os projetos no card
     for i, ch in enumerate(vis["chave"]):
         if ch in estrelas:
             dados["alertas"][i]["exemplar"] = True

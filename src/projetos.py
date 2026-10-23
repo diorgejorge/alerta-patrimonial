@@ -21,7 +21,7 @@ SENADO_PROC = "https://legis.senado.leg.br/dadosabertos/processo?codigoParlament
 LINK_CAMARA = "https://www.camara.leg.br/busca-portal?"
 LINK_SENADO = "https://www25.senado.leg.br/web/atividade/materias/-/materia/autor/{cod}/p/1"
 TIPOS = {"PL", "PLP", "PEC"}
-FATIA = 0.10  # selo: os 10% de cada casa com mais projetos aprovados
+FATIA = 0.10  # selo: os 10% de cada casa com mais projetos aprovados (desempate: mais apresentados)
 SELO = "Mão na massa"
 UA = "alerta-patrimonial/1.0"
 e = html.escape
@@ -182,12 +182,24 @@ def contar_senado(ini, pausa=0.3, cache=None):
     return out or None
 
 
-def corte(aprovados):
-    """Menor numero de aprovados que entra nos 10% de cima da casa (empates entram); nunca menos de 1."""
-    v = sorted(aprovados, reverse=True)
+def corte(valores):
+    """Menor valor que entra nos 10% de cima da casa (empates entram); sem nenhum aprovado ninguem entra.
+    Valor = aprovados ou (aprovados, apresentados): com a tupla, o empate nos aprovados e desfeito por quem apresentou
+    mais (sem isso, um corte em 1 aprovado dava o selo a ~26% da Camara, pelas PECs com muitos coautores)."""
+    v = sorted(valores, reverse=True)
     if not v:
         return math.inf
-    return max(v[max(math.ceil(len(v) * FATIA), 1) - 1], 1)
+    c = v[max(math.ceil(len(v) * FATIA), 1) - 1]
+    if isinstance(c, tuple):
+        return c if c[0] >= 1 else (1, 0)
+    return max(c, 1)
+
+
+def tem_selo(aprovados, apresentados, c):
+    """True se (aprovados, apresentados) alcanca o corte da casa (corte)."""
+    if c == math.inf or not aprovados:
+        return False
+    return (aprovados, apresentados or 0) >= c if isinstance(c, tuple) else aprovados >= c
 
 
 def link_camara(dep, ini, fim):
@@ -199,13 +211,13 @@ def link_camara(dep, ini, fim):
 def cortes(camara, senado, membros=None):
     """Corte do selo em cada casa. Com `membros` ({"camara": ids, "senado": codigos} de quem esta em exercicio), so
     eles entram na conta dos 10%; quem esta em exercicio sem projeto conta como zero."""
-    def aprov(cont, casa, i):
+    def aprov(cont, casa):  # (aprovados, apresentados) de cada um
         if not cont:
             return []
         if membros and membros.get(casa):
-            return [cont.get(m, (0, 0))[i] for m in membros[casa]]
-        return [v[i] for v in cont.values()]
-    return dict(camara=corte(aprov(camara, "camara", 1)), senado=corte(aprov(senado, "senado", 1)))
+            return [(cont.get(m, (0, 0))[1], cont.get(m, (0, 0))[0]) for m in membros[casa]]
+        return [(v[1], v[0]) for v in cont.values()]
+    return dict(camara=corte(aprov(camara, "camara")), senado=corte(aprov(senado, "senado")))
 
 
 def coletar(pessoas, anos, cache, camara=None, senado=None, membros=None):
@@ -229,7 +241,7 @@ def coletar(pessoas, anos, cache, camara=None, senado=None, membros=None):
             ids = [i for i in dep_cota["id"][dep_cota["cpf"] == p["cpf"]] if i]
             if ids:
                 ap, ok = camara.get(ids[-1], (0, 0))
-                out[k] = dict(casa="camara", apresentados=ap, aprovados=ok, selo=ok >= c,
+                out[k] = dict(casa="camara", apresentados=ap, aprovados=ok, selo=tem_selo(ok, ap, c),
                               link=link_camara(ids[-1], ini, fim), de=anos[0], ate=anos[-1])
     if alvo_sen and senado:
         c = cs["senado"]
@@ -238,7 +250,7 @@ def coletar(pessoas, anos, cache, camara=None, senado=None, membros=None):
             cod = next((cd for cd, v in senado.items() if v[2] & nomes), None)
             if cod:
                 ap, ok, _ = senado[cod]
-                out[k] = dict(casa="senado", apresentados=ap, aprovados=ok, selo=ok >= c,
+                out[k] = dict(casa="senado", apresentados=ap, aprovados=ok, selo=tem_selo(ok, ap, c),
                               link=LINK_SENADO.format(cod=cod), de=anos[0], ate=anos[-1])
     out["_fontes"] = dict(camara=bool(camara), senado=bool(senado))
     n = len(out) - 1
@@ -249,8 +261,8 @@ def coletar(pessoas, anos, cache, camara=None, senado=None, membros=None):
 
 def secao(r, cargo, fontes):
     """HTML da secao 'Projetos de lei' do dossie."""
-    c = cota.norm(cargo)
-    casa = "camara" if "DEPUTADO FEDERAL" in c else "senado" if "SENADOR" in c else None
+    c = cota.norm(cargo)  # com dado, vale a casa onde a pessoa esta em exercicio (o cargo do TSE pode ser outro)
+    casa = r["casa"] if r else "camara" if "DEPUTADO FEDERAL" in c else "senado" if "SENADOR" in c else None
     if casa is None:
         return ('<p class="vazio"><b>Não informado</b>: a contagem de projetos é feita só para deputados federais e '
                 'senadores.</p>')
@@ -258,7 +270,7 @@ def secao(r, cargo, fontes):
         if not (fontes or {}).get(casa):
             onde = "da Câmara" if casa == "camara" else "do Senado"
             return f'<p class="vazio"><b>Fonte não encontrada</b>: os dados abertos {onde} não responderam nesta execução.</p>'
-        return '<p class="vazio"><b>Não informado</b>: parlamentar não encontrado nos dados abertos da casa.</p>'
+        return '<p class="vazio"><b>Não informado</b>: a pessoa não está entre os parlamentares em exercício ou não foi encontrada nos dados abertos da casa.</p>'
     nome_casa = "Câmara dos Deputados" if r["casa"] == "camara" else "Senado Federal"
     selo = (f'<p><span class="tag selo">🐾 {SELO}</span> entre os 10% da casa com mais projetos aprovados.</p>'
             if r["selo"] else "")
