@@ -7,7 +7,7 @@ com gasto no estado. Fontes oficiais e gratuitas:
 O unico elo oficial entre parlamentar e gasto e a autoria da emenda: o texto diz "autor da emenda", nunca "envolvido".
 Pagina leve por UF (docs/estado/UF.html); municipios e deputados estaduais vao em docs/estado/UF.json, baixado so
 quando o leitor abre a secao. Sem CPF/CNPJ em nenhum arquivo."""
-import csv, datetime as dt, html, json, re, sys, time, unicodedata, urllib.parse, urllib.request
+import csv, datetime as dt, html, json, re, sys, time, unicodedata, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 import transparencia
 
@@ -19,6 +19,7 @@ LINK_EMENDAS = "https://portaldatransparencia.gov.br/emendas"
 ANOS_EMENDAS = 4
 TEMPO_EMENDAS, TEMPO_MUNICIPIOS = 50 * 60, 40 * 60  # o Action roda 1x por semana: pode demorar
 TOP_FUNCOES, TOP_RECEITAS, TOP_AUTORES, TOP_AUTORES_MUN, TOP_CARIMBOS = 5, 6, 10, 3, 5
+MAX_FALHAS_SEGUIDAS = 10  # SICONFI fora do ar ou bloqueando: para de consultar municipios nesta execucao
 NAO_ACHOU = "Fonte não encontrada"
 e = html.escape
 
@@ -76,6 +77,39 @@ def mandato_estadual(anos, hoje=None):
 
 
 # ---------------------------------------------------------------- SICONFI
+class Buscador:
+    """GET de JSON com ritmo controlado. O SICONFI responde 429 (Too Many Requests) se receber consultas seguidas:
+    espera `intervalo` entre consultas e, no 429, o Retry-After ou um recuo crescente (10s, 30s, 60s)."""
+    RECUOS = (10, 30, 60)
+
+    def __init__(self, intervalo=1.0, timeout=60, abrir=urllib.request.urlopen, dormir=time.sleep):
+        self.intervalo, self.timeout, self.abrir, self.dormir = intervalo, timeout, abrir, dormir
+        self.ultimo, self.req, self.falhas = 0.0, 0, 0
+
+    def __call__(self, url):
+        for recuo in self.RECUOS + (None,):
+            espera = self.intervalo - (time.monotonic() - self.ultimo)
+            if espera > 0:
+                self.dormir(espera)
+            self.ultimo = time.monotonic()
+            self.req += 1
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": transparencia.UA, "Accept": "application/json"})
+                with self.abrir(req, timeout=self.timeout) as r:
+                    return json.loads(r.read().decode("utf-8"))
+            except urllib.error.HTTPError as ex:
+                if ex.code != 429 and ex.code < 500 or recuo is None:
+                    break
+                pedido = str((ex.headers or {}).get("Retry-After") or "")
+                self.dormir(int(pedido) if pedido.isdigit() else recuo)
+            except Exception:
+                if recuo is None:
+                    break
+                self.dormir(recuo)
+        self.falhas += 1
+        return None
+
+
 def siconfi(buscar, recurso, **params):
     """Itens de um recurso do SICONFI, juntando as paginas (offset); None se a fonte falhar."""
     itens, offset = [], 0
@@ -136,46 +170,61 @@ def receitas_uniao(itens):
     return sorted(((r, v, tipo_receita(r)) for r, v in linhas), key=lambda x: -x[1])
 
 
-def dca(buscar, id_ente, anexo, ano, cache=None):
-    """Itens de um anexo do DCA; tenta o ano anterior se o ano ainda nao foi entregue. (ano, itens) ou (None, None)."""
+VERSAO_DCA = 1  # mude ao mudar despesa_por_funcao/receitas_uniao: invalida os resumos guardados
+
+
+def dca(buscar, id_ente, anexo, ano, ler, cache=None):
+    """Resumo `ler(itens)` de um anexo do DCA; tenta o ano anterior se o ano ainda nao foi entregue.
+    Guarda so o resumo (poucas linhas), inclusive o vazio, para a execucao seguinte continuar de onde esta parou.
+    (ano, resumo) ou (None, None) se a fonte falhar."""
     for a in (ano, ano - 1):
-        chave = ("dca", str(id_ente), anexo, a)
-        itens = cache.get(chave) if cache else None
-        if itens is None:
+        chave = ("dca", VERSAO_DCA, str(id_ente), anexo, a)
+        resumo = cache.get(chave) if cache else None
+        if resumo is None:
             itens = siconfi(buscar, "dca", an_exercicio=a, no_anexo=anexo, id_ente=id_ente)
             if itens is None:
                 return None, None
-            if itens and cache:
-                cache.set(chave, itens)
-        if itens:
-            return a, itens
+            resumo = ler(itens)
+            if cache:
+                cache.set(chave, resumo)
+        if resumo:
+            return a, resumo
     return None, []
 
 
 def financas(buscar, id_ente, ano, cache=None):
     """Gasto por funcao e verbas da Uniao de um ente. Falha da fonte = "falha"; ano sem entrega = dados vazios."""
-    a_desp, desp = dca(buscar, id_ente, "DCA-Anexo I-E", ano, cache)
-    a_rec, rec = dca(buscar, id_ente, "DCA-Anexo I-C", ano, cache)
-    return dict(ano_despesa=a_desp, despesa="falha" if desp is None else despesa_por_funcao(desp),
-                ano_receita=a_rec, receita="falha" if rec is None else receitas_uniao(rec))
+    a_desp, desp = dca(buscar, id_ente, "DCA-Anexo I-E", ano, despesa_por_funcao, cache)
+    a_rec, rec = dca(buscar, id_ente, "DCA-Anexo I-C", ano, receitas_uniao, cache)
+    return dict(ano_despesa=a_desp, despesa="falha" if desp is None else desp,
+                ano_receita=a_rec, receita="falha" if rec is None else rec)
 
 
 def municipios(buscar, entes, ano, cache=None, tempo_max=TEMPO_MUNICIPIOS):
-    """{cod_ibge: dict(total, tipos)} das verbas da Uniao a cada municipio (DCA I-C). Com prazo: quem fica de fora
-    sai sem valor ("Não informado") e entra nas semanas seguintes pelo cache."""
-    fim, out = time.monotonic() + tempo_max, {}
+    """{cod_ibge: dict(total, tipos)} das verbas da Uniao a cada municipio (DCA I-C), em partes: cada municipio lido
+    fica no cache, e a execucao seguinte so consulta quem falta. Com prazo e parada apos falhas seguidas: quem fica
+    de fora sai sem valor ("Não informado") nesta semana."""
+    fim, out, seguidas, consultados = time.monotonic() + tempo_max, {}, 0, 0
     for n, ent in enumerate(entes, 1):
         cod = str(ent["cod"])
-        if time.monotonic() >= fim:
-            print(f"[aviso] SICONFI municipios: prazo esgotado em {n - 1}/{len(entes)}", file=sys.stderr)
+        if time.monotonic() >= fim or seguidas >= MAX_FALHAS_SEGUIDAS:
+            motivo = "prazo esgotado" if seguidas < MAX_FALHAS_SEGUIDAS else f"{seguidas} falhas seguidas"
+            print(f"[aviso] SICONFI municipios: {motivo} em {n - 1}/{len(entes)}; o resto entra pelo cache nas "
+                  f"proximas execucoes", file=sys.stderr)
             break
-        _, itens = dca(buscar, cod, "DCA-Anexo I-C", ano, cache)
-        if itens:
-            rec = receitas_uniao(itens)
+        antes = getattr(buscar, "req", 0)
+        _, rec = dca(buscar, cod, "DCA-Anexo I-C", ano, receitas_uniao, cache)
+        if getattr(buscar, "req", 0) > antes:
+            consultados += 1
+            if cache and consultados % 200 == 0:  # se o job cair, o que ja foi lido nao se perde
+                cache.salvar()
+        seguidas = seguidas + 1 if rec is None else 0
+        if rec:
             tipos = {}
             for _, v, t in rec:
                 tipos[t] = tipos.get(t, 0.0) + v
             out[cod] = dict(total=round(sum(tipos.values()), 2), tipos={k: round(v, 2) for k, v in tipos.items()})
+    print(f"SICONFI municipios: {len(out)}/{len(entes)} com verbas da Uniao, {consultados} consultados nesta execucao.")
     return out
 
 
@@ -498,6 +547,8 @@ def coletar(buscar, api, parl, serie=None, paginas=None, link=None, cache=None, 
     entes = entes_municipais(buscar) or []
     mun = municipios(buscar, entes, ano, cache) if entes else {}
     estaduais, ano_est = deputados_estaduais(serie, paginas, link, hoje)
+    if hasattr(buscar, "req"):
+        print(f"SICONFI: {buscar.req} consultas, {buscar.falhas} sem resposta.")
     rec = reconhecimentos(buscar, baixar_)
     cars = noticias_apoio(carimbos(lista, rec, entes), buscar_txt)
     if cache:

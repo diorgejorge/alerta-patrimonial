@@ -131,11 +131,12 @@ def test_siconfi_junta_paginas_e_falha_vira_none():
 def test_dca_tenta_o_ano_anterior_e_usa_cache():
     b = BuscarFalso({("dca", "35", "2024", "DCA-Anexo I-E"): DESPESA})
     cache = CacheMem()
-    assert estados.dca(b, "35", "DCA-Anexo I-E", 2025, cache) == (2024, DESPESA)
+    ler = estados.despesa_por_funcao
+    assert estados.dca(b, "35", "DCA-Anexo I-E", 2025, ler, cache) == (2024, [("Saúde", 900.0), ("Educação", 500.0)])
     n = len(b.urls)
-    assert estados.dca(b, "35", "DCA-Anexo I-E", 2025, cache) == (2024, DESPESA)
-    assert len(b.urls) == n + 1  # 2025 vazio continua sendo perguntado; 2024 veio do cache
-    assert estados.dca(BuscarFalso({}, falha=[("dca", "35", "2025", "DCA-Anexo I-E")]), "35", "DCA-Anexo I-E", 2025) \
+    assert estados.dca(b, "35", "DCA-Anexo I-E", 2025, ler, cache)[0] == 2024
+    assert len(b.urls) == n  # 2025 vazio e 2024 vieram do cache: a proxima execucao continua de onde parou
+    assert estados.dca(BuscarFalso({}, falha=[("dca", "35", "2025", "DCA-Anexo I-E")]), "35", "DCA-Anexo I-E", 2025, ler) \
         == (None, None)
 
 
@@ -143,6 +144,64 @@ def test_financas_marca_falha_por_secao():
     b = BuscarFalso({("dca", "35", "2025", "DCA-Anexo I-C"): RECEITA}, falha=[("dca", "35", "2025", "DCA-Anexo I-E")])
     f = estados.financas(b, "35", 2025)
     assert f["despesa"] == "falha" and f["ano_receita"] == 2025 and len(f["receita"]) == 3
+
+
+class Resposta:
+    def __init__(self, corpo):
+        self.corpo = corpo
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self):
+        return self.corpo
+
+
+def erro_http(codigo, retry=None):
+    import urllib.error
+    return urllib.error.HTTPError("u", codigo, "x", {"Retry-After": retry} if retry else {}, None)
+
+
+def buscador(*respostas):
+    fila, esperas = list(respostas), []
+
+    def abrir(req, timeout):
+        r = fila.pop(0)
+        if isinstance(r, Exception):
+            raise r
+        return Resposta(r)
+    return estados.Buscador(intervalo=0, abrir=abrir, dormir=esperas.append), esperas, fila
+
+
+def test_buscador_espera_no_429_e_tenta_de_novo():
+    b, esperas, _ = buscador(erro_http(429, "7"), erro_http(429), b'{"items": [1]}')
+    assert b("https://x") == {"items": [1]} and esperas == [7, 30] and b.falhas == 0
+
+
+def test_buscador_desiste_no_404_e_depois_de_tres_recuos():
+    b, esperas, fila = buscador(erro_http(404), b"{}")
+    assert b("https://x") is None and esperas == [] and len(fila) == 1  # 404 nao adianta repetir
+    b, esperas, _ = buscador(*[erro_http(503)] * 4)
+    assert b("https://x") is None and esperas == [10, 30, 60] and b.falhas == 1
+
+
+def test_municipios_para_depois_de_falhas_seguidas():
+    entes = [dict(cod=str(i), nome=f"C{i}", uf="SP") for i in range(30)]
+    pedidos = []
+    assert estados.municipios(lambda url: pedidos.append(url), entes, 2025) == {}
+    assert len(pedidos) == estados.MAX_FALHAS_SEGUIDAS
+
+
+def test_municipios_continua_de_onde_parou():
+    entes = [dict(cod=c, nome=c, uf="SP") for c in ("1", "2", "3")]
+    b = BuscarFalso({("dca", c, "2025", "DCA-Anexo I-C"): RECEITA for c in ("1", "2", "3")})
+    cache = CacheMem()
+    cache.set(("dca", estados.VERSAO_DCA, "1", "DCA-Anexo I-C", 2025), estados.receitas_uniao(RECEITA))  # lido antes
+    assert set(estados.municipios(b, entes, 2025, cache)) == {"1", "2", "3"}
+    assert {dict(urllib.parse.parse_qsl(urllib.parse.urlparse(u).query))["id_ente"] for u in b.urls} == {"2", "3"}
 
 
 def test_municipios_respeita_o_prazo():
