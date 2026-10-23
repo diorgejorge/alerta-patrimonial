@@ -2,7 +2,7 @@ name: Testes e acessibilidade
 on:
   push:
     branches: [main]
-    paths: ["src/**", "tests/**", "config/**", ".github/workflows/testes.yml", ".github/lighthouserc.json"]
+    paths: ["src/**", "tests/**", "config/**", ".github/workflows/testes.yml", ".github/actions/**", "requirements.txt", ".github/lighthouserc.json"]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -13,9 +13,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with: { python-version: "3.12", cache: pip }
-      - run: pip install -r requirements.txt pytest
+      - uses: ./.github/actions/python
+        with: { extras: pytest }
       - run: python -m pytest -q tests  # dados sinteticos, rede bloqueada
   interface:
     # #52: funcoes do card (unitario) e navegacao do painel (integracao) no Chromium
@@ -23,9 +22,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with: { python-version: "3.12", cache: pip }
-      - run: pip install -r requirements.txt pytest playwright
+      - uses: ./.github/actions/python
+        with: { extras: pytest playwright }
       # usa o Chrome que ja vem no runner (economiza o download do Chromium e das libs); sem ele, instala
       - run: |
           if [ -x /usr/bin/google-chrome ]; then echo "CHROMIUM=/usr/bin/google-chrome" >> "$GITHUB_ENV"
@@ -37,9 +35,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with: { python-version: "3.12", cache: pip }
-      - run: pip install -r requirements.txt
+      - uses: ./.github/actions/python
       - run: python src/pipeline.py --demo --saida _demo
         env: { ID_SEGREDO: lighthouse }
       - uses: treosh/lighthouse-ci-action@v12

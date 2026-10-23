@@ -19,9 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with: { ref: main }
-      - uses: actions/setup-python@v6
-        with: { python-version: "3.12", cache: pip }
-      - run: pip install -r requirements.txt
+      - uses: ./.github/actions/python
       - uses: actions/cache/restore@v4  # data/cache/estados.cache: municipios e anos de emendas ja lidos (cifrado)
         with:
           path: data/cache/estados.cache
