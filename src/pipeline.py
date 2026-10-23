@@ -19,6 +19,7 @@ import temas
 from ids import Ids, varrer
 from cache import Cache, salvar_resultados
 import cifra
+import contatos
 import paginas
 import representantes, shutil
 import acompanhar
@@ -446,6 +447,26 @@ def gravar_todos(docs, df, paginas_pessoa, gerado, marcas=None):
     return dict(pessoas=t["pessoas"], comparacoes=t["comparacoes"], kb=kb, exemplar=conta("e"), selo=conta("s"))
 
 
+def montar_cobranca(pessoas, parl, ceap, proj, cache=None, demo=False):
+    """{indice da primeira linha: contexto da aba "Como cobrar"} (#60). "contato" so existe para parlamentar federal
+    em exercicio (None = fonte fora do ar); os demais cargos recebem o site da Assembleia (estadual) ou o aviso."""
+    em_exercicio = {x["_chave"] for x in parl if x["_chave"]}
+    chaves = {q["chave"] for q in pessoas.values()} & em_exercicio
+    contato = contatos.coletar(parl, chaves, cache) if chaves else {}
+    alas = contatos.assembleias()
+    out = {}
+    for k, q in pessoas.items():
+        r = ceap.get(k)
+        ctx = dict(assembleia=alas.get(k[1]), projetos=proj.get(k),
+                   cota=dict(total=r["total"], de=r["anos"][0][0], ate=r["anos"][-1][0], link=r["link"]) if r else None)
+        if q["chave"] in em_exercicio:
+            ctx["contato"] = contato.get(q["chave"])
+        elif demo and "DEPUTADO FEDERAL" in q["cargo"]:
+            ctx["contato"] = contatos.DEMO
+        out[q["idx"][0]] = ctx
+    return out
+
+
 def carregar_economia(demo, dados_dir):
     """PIB e IPCA do IBGE para comparar com o patrimonio (#55); nunca derruba as paginas ({} = fonte fora do ar)."""
     if demo:
@@ -481,7 +502,8 @@ def main():
     caches = dict(tse=Cache(CACHE / "tse_lido.cache", 400 * 86400, seg_cache, cifrar=True),
                   portal=Cache(CACHE / "portal.cache", 7 * 86400, seg_cache, cifrar=True),
                   noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache),
-                  pares=Cache(CACHE / "pares.cache", 400 * 86400, seg_cache)) if seg_cache else {}
+                  pares=Cache(CACHE / "pares.cache", 400 * 86400, seg_cache),
+                  contatos=Cache(CACHE / "contatos.cache", contatos.VALIDADE_S, seg_cache)) if seg_cache else {}
     serie = serie_demo() if args.demo else serie_tse(p["anos"], caches.get("tse"))
     extras = {r.chave: extras_cfg.get(r.chave, extras_cfg.get("nome:" + norm(r.nome), 0.0))
               for r in serie.drop_duplicates("chave").itertuples()}
@@ -675,6 +697,12 @@ def main():
         dados["cota"] = parlamentares.ranking_cota(parl) or dados["cota"]
         dados["projetos"] = parlamentares.ranking_projetos(parl) or dados["projetos"]
 
+    # como cobrar (#60): contato oficial do gabinete (so de quem tem pagina), cota e projetos de cada pessoa
+    cobranca = {}
+    try:
+        cobranca = montar_cobranca(pessoas, parl, ceap, proj, caches.get("contatos"), args.demo)
+    except Exception as ex:  # sem contatos a aba sai com "Fonte nao encontrada"; nunca derruba o painel
+        print(f"[aviso] contatos de gabinete indisponiveis ({ex!r})", file=sys.stderr)
     cartoes, graficos_painel = "", {}
     if pid:  # uma pagina por pessoa (docs/pessoa/<id>.html), so com o id interno
         hist = {c: sorted((int(a), float(v)) for a, v in zip(g.ano, g.patrimonio))
@@ -682,7 +710,7 @@ def main():
         try:
             cartoes, graficos_painel = paginas.gerar(dados["alertas"], pessoas, hist, secoes, docs,
                                                      gerado=dados["gerado_em"], noticias=noticias,
-                                                     econ=carregar_economia(args.demo, dados_dir))
+                                                     econ=carregar_economia(args.demo, dados_dir), cobranca=cobranca)
         except Exception as ex:  # nunca derruba o painel
             print(f"[aviso] paginas por pessoa falharam ({ex!r})", file=sys.stderr)
         try:  # Acompanhar (#57): feed RSS por pessoa e geral, com um item quando um dado muda entre execucoes

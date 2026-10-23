@@ -2,7 +2,7 @@
 So usa o id interno (p0001...): CPF, chave e CNPJ nunca entram no HTML."""
 import csv, html, json, re, shutil
 from pathlib import Path
-import acompanhar, economia, graficos, temas
+import acompanhar, cobrar, economia, graficos, temas
 from texto import cap
 
 SRC = Path(__file__).resolve().parent
@@ -169,22 +169,27 @@ def _propostas(pid):
     return f'<p class="mut">{len(props)} propostas registradas; {len(vinc)} vínculos aprovados.</p>'
 
 
-def _cabecalho(a, nome, img=None):
+def _cabecalho(a, nome, img=None, acoes=""):
     urna = (a.get("nome_urna") or "").strip()
     ficha = " · ".join(e(str(x)) for x in (cap(a.get("cargo")), a.get("partido"), a.get("uf")) if x)
     return (f'<header class="cab">{avatar(urna or nome, grande=True, foto=img)}<div><h1>{e(cap(nome))}</h1>'
             + (f'<p class="ficha">Nome de urna: <strong>{e(cap(urna))}</strong></p>' if urna and urna.upper() != nome.upper() else "")
-            + f'<p class="ficha">{ficha}</p>{chip_nivel(a.get("nivel"))}</div></header>')
+            + f'<p class="ficha">{ficha}</p>{chip_nivel(a.get("nivel"))}</div>'
+            + (f'<div class="acoes">{acoes}</div>' if acoes else "") + "</header>")
 
 
-def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, econ=None):
+def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None, econ=None, cobranca=None):
+    """`cobranca`: contato do gabinete, cota e projetos da pessoa para a aba "Como cobrar" (#60, cobrar.secao)."""
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
-    vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())), CABECALHO=_cabecalho(topo, nome, foto(linhas)),
+    site = cobrar.site()
+    compartilhar = cobrar.botao(cobrar.imagem(linhas, f"pessoa/{pid}.html", site))
+    vals = dict(TITULO=e(cap((topo.get("nome_urna") or nome).strip())),
+                CABECALHO=_cabecalho(topo, nome, foto(linhas), compartilhar),
                 RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}", econ),
                 NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
-                PROPOSTAS=_propostas(pid), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
+                PROPOSTAS=_propostas(pid), COBRAR=cobrar.secao(linhas, cobranca, site + f"pessoa/{pid}.html"), GERADO=e(gerado), ACOMPANHAR=acompanhar.botao(pid, str(topo.get("uf") or "").upper()),
                 FEED=acompanhar.link_head(pid, cap((topo.get("nome_urna") or nome).strip())))
     return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
 
@@ -202,11 +207,12 @@ def cartao(pid, linhas, hist):
             f'<span class="mini">{mini}</span></li>')
 
 
-def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, econ=None):
+def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, econ=None, cobranca=None):
     """Escreve docs/pessoa/<id>.html e devolve (html dos cartoes, {marca: html dos graficos do painel}).
     `noticias`: {indice_da_linha: lista de noticias com tags ou aviso em texto} (dossie.gerar_dossies).
-    `econ`: PIB e IPCA do IBGE (economia.coletar) para o bloco "Patrimônio × economia" (#55)."""
-    noticias = noticias or {}
+    `econ`: PIB e IPCA do IBGE (economia.coletar) para o bloco "Patrimônio × economia" (#55).
+    `cobranca`: {indice_da_linha: contato, cota e projetos} para a aba "Como cobrar" (#60)."""
+    noticias, cobranca = noticias or {}, cobranca or {}
     pasta = Path(docs) / "pessoa"
     pasta.mkdir(parents=True, exist_ok=True)
     for f in pasta.glob("*.html"):
@@ -220,7 +226,8 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, econ=None
             continue
         h = hist.get(q["chave"], [])
         (pasta / f"{pid}.html").write_text(pagina(tpl, pid, linhas, h, secoes.get(q["idx"][0]), gerado,
-                                                           noticias.get(q["idx"][0]), econ), encoding="utf-8")
+                                                           noticias.get(q["idx"][0]), econ,
+                                                           cobranca.get(q["idx"][0])), encoding="utf-8")
         for i in q["idx"]:
             alertas[i]["pagina"] = f"pessoa/{pid}.html"
         itens.append((max(ORDEM.get(a.get("nivel"), 0) for a in linhas), max(a.get("cresc") or 0 for a in linhas),
@@ -237,7 +244,7 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, econ=None
 
 def copiar_estilo(docs):
     """estilo.css, selo.js, logo e a pagina de privacidade (LGPD arts. 9, 18 e 41), com os dados de config/privacidade.json."""
-    for f in ("estilo.css", "selo.js"):  # estilo comum e a animacao do selo de cera
+    for f in ("estilo.css", "selo.js", "compartilhar.js"):  # estilo comum, selo de cera e compartilhar/cobrar (#60, #61)
         shutil.copyfile(SRC / f, Path(docs) / f)
     for img in ("logo.png", "icone.png"):  # marca do Caramelo Vasculha
         shutil.copyfile(SRC / img, Path(docs) / img)

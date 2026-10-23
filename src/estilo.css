@@ -292,3 +292,20 @@ details.acompanhar .card{margin-top:8px;max-width:60ch}
 .acompanhar .apps{display:flex;flex-wrap:wrap;gap:8px}
 .acompanhar .apps .botao.secundario{border:1px solid currentColor}
 @media print{details.acompanhar{display:none}}
+
+/* como cobrar (#60) e compartilhar (#61): botoes so aparecem quando o compartilhar.js confirma que o navegador consegue */
+html:not(.pode-compartilhar) [data-compartilhar],html:not(.pode-copiar) [data-copiar-texto]{display:none}
+.cab .acoes{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.cobrar-contatos{list-style:none;margin:0 0 .4em;padding:0;display:grid;gap:8px;max-width:75ch}
+.cobrar-contatos li{display:grid;grid-template-columns:9.5em minmax(0,1fr);gap:4px 12px;padding:.6em .9em;border:1px solid var(--line);border-radius:12px;background:var(--card);overflow-wrap:anywhere}
+.cobrar-contatos li>span{color:var(--mut);font-size:.875rem}
+@media (max-width:599.98px){.cobrar-contatos li{grid-template-columns:1fr}}
+.cobrar-texto{display:block;width:100%;max-width:75ch;min-height:18em;padding:.8em 1em;font:inherit;font-size:.95rem;line-height:1.5;color:var(--fg);background:var(--card);border:1px solid var(--line);border-radius:14px;resize:vertical}
+.cobrar-texto:focus{border-color:var(--caramelo)}
+.cobrar-acoes,.compartilhar-acoes{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:.8em 0}
+.cobrar-aviso{color:var(--mut);font-size:.875rem}
+:is(.cobrar-acoes,.compartilhar-acoes) .botao.secundario{border:2px solid currentColor}
+dialog.compartilhar{max-width:min(560px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;padding:16px;border:1px solid var(--line);border-radius:var(--raio);background:#1b2f4e;color:#fff;box-shadow:var(--elev-alto)}
+dialog.compartilhar::backdrop{background:rgba(4,10,20,.6)}
+dialog.compartilhar img{display:block;width:100%;height:auto;border-radius:12px}
+@media print{.cab .acoes,.cobrar-acoes{display:none}}

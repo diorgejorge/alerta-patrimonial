@@ -11,11 +11,12 @@
 <link rel="stylesheet" href="estilo.css">
 <script src="selo.js" defer></script>
 <script src="representantes.js" defer></script>
+<script src="compartilhar.js" defer></script>
 <style>
 main{max-width:1100px;margin:0 auto}
 .barra{display:flex;gap:10px;flex-wrap:wrap;margin:1em 0}input,select{font:inherit;padding:.45em 1em;border:1px solid var(--line);border-radius:999px;box-shadow:var(--elev);background:var(--card);color:var(--fg)}input:focus,select:focus{border-color:var(--caramelo)}
 input,select{min-height:44px}input{flex:1 1 200px;min-width:0}
-.lk{display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
+.lk{display:inline-flex;align-items:center;min-height:44px;padding:0 4px}button.lk{font:inherit;color:var(--info);background:none;border:0;cursor:pointer}
 .nivel{font-weight:600}.forte{color:var(--forte)}.atencao{color:var(--atencao)}.informativo{color:var(--info)}.novo{color:var(--novo);font-weight:600}
 small{color:var(--mut)}.vazio{padding:2em;color:var(--mut)}
 a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
@@ -257,8 +258,15 @@ const TSE=a=>/^https:\/\//.test(a.link_tse||"")?`<a class="lk" href="${esc(a.lin
 const PROC_ON=D?.processos_ativo===true;
 if(PROC_ON)for(const e of document.querySelectorAll("[data-processos]"))e.hidden=false;
 // links da pessoa: TSE (so com um periodo; com varios, cada periodo traz o seu), dossie, noticias e busca de processos
-const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}"${p.mencoes?` title="${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias"`:""}>Notícias${p.mencoes?` (${p.mencoes})`:""}</a>`:"",
+const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}#cobrar" title="Contatos oficiais do gabinete e um texto pronto para pedir explicações">Como cobrar</a>`:"",SHARE(p),REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}"${p.mencoes?` title="${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias"`:""}>Notícias${p.mencoes?` (${p.mencoes})`:""}</a>`:"",
   PROC_ON&&`<a class="lk" href="${esc(PROC(p))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`].filter(Boolean).join(" · ");
+// compartilhar (#61): o compartilhar.js desenha o card numa imagem com estes dados (mesmos numeros da face do card)
+const SHARE=p=>{if(!REL(p.pagina))return"";const cap=p.per.reduce((s,a)=>a.cap>0&&s!=null?s+a.cap:null,0);
+  const n=p.cresc==null?[]:[[(p.cresc>0?"+":"")+R(p.cresc),`a mais no patrimônio de ${p.ano_ini} a ${p.ano_fim}`]];
+  if(cap){n.push([R(cap),"daria para guardar só com o salário"]);if(p.cresc>0)n.push([VZ(p.cresc/cap),"o que daria para guardar com o salário"]);}
+  const d={nome:CAP(p.nome_urna||p.nome),ficha:[p.cargos.length?CAP(p.cargos[p.cargos.length-1]):"",p.partidos[p.partidos.length-1],p.ufs[p.ufs.length-1]].filter(Boolean).join(" · "),
+    nivel:p.nivel,nivel_rotulo:NV[p.nivel]||"",numeros:n,url:new URL(p.pagina,location.href).href,fontes:"Fontes oficiais: TSE, Portal da Transparência, Câmara e Senado"};
+  return`<button type="button" class="lk" data-compartilhar="${esc(JSON.stringify(d))}" title="Gera uma imagem deste card para mandar no WhatsApp e nas redes">Compartilhar</button>`;};
 // busca para o proprio leitor conferir processos pelo nome (o robo nao consulta esses sites)
 const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);
 const NIVEIS=["forte","atencao","informativo"];

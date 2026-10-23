@@ -28,7 +28,7 @@ jobs:
       - run: |
           if [ -x /usr/bin/google-chrome ]; then echo "CHROMIUM=/usr/bin/google-chrome" >> "$GITHUB_ENV"
           else python -m playwright install --with-deps chromium; fi
-      - run: python -m pytest -q tests/test_painel.py
+      - run: python -m pytest -q tests/test_painel.py tests/test_cobrar.py
   lighthouse:
     # metas: acessibilidade >= 90 (bloqueia) e desempenho >= 90 (aviso: varia com a maquina do Actions), no celular
     runs-on: ubuntu-latest
