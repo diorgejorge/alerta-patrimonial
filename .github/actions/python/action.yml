@@ -2,7 +2,7 @@ name: Python pronto
 description: Python 3.12 com as dependências num ambiente guardado em cache; só instala quando requirements.txt ou os extras mudam.
 inputs:
   extras:
-    description: Pacotes além do requirements.txt (ex.: "pytest playwright")
+    description: "Pacotes além do requirements.txt, ex.: pytest playwright"
     default: ""
 runs:
   using: composite
