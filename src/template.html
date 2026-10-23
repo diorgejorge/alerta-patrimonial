@@ -340,13 +340,15 @@ function agrupaPessoas(l){
       presidente:per.some(a=>a.presidente_atual),vice:per.some(a=>a.vice_atual),foto:[...per].reverse().map(a=>a.link_foto).find(v=>/^https:\/\//.test(v||"")),
       parlamentar:per.some(a=>a.projetos||/^(DEPUTADO FEDERAL|SENADOR)$/i.test(a.cargo||""))};});
 }
-// ordem dos destaques: presidente e depois vice em exercicio no topo (#63), depois o maior aumento percentual do patrimonio
+// ordem dos destaques: presidente e depois vice em exercicio no topo (#63), depois quem esta mais a frente na regua dos colegas
 const TOPO=p=>p.presidente?2:p.vice?1:0;
 const VN=p=>p.pat_ini>0&&p.cresc!=null?p.cresc/p.pat_ini:-Infinity;
+// posicao entre colegas do mesmo cargo (regua): o maior percentil entre os periodos da pessoa
+const PCL=p=>Math.max(-1,...p.per.map(a=>a.percentil??-1));
 // #62: faixas calculadas com a conta antiga (antes da carga) ficam escondidas; aparecem sozinhas quando a carga nova chegar
 const FAIXA_NOVA=!!D&&(D.metodo||{}).formula==="vezes";
 if(D)for(const a of D.alertas||[])if(!FAIXA_NOVA||!NIVEIS.includes(a.nivel))a.nivel=a.nivel_calculado=null;
-const PES=D?agrupaPessoas(D.alertas||[]).sort((x,y)=>TOPO(y)-TOPO(x)||VN(y)-VN(x)):[];
+const PES=D?agrupaPessoas(D.alertas||[]).sort((x,y)=>TOPO(y)-TOPO(x)||PCL(y)-PCL(x)||VN(y)-VN(x)):[];
 // periodos da pessoa que atendem aos filtros de busca, nivel e dimensao (ign: o grafico ignora o proprio filtro)
 function casa(p,ign){
   const q=$("q").value.toLowerCase(),nv=$("nv").value;
@@ -651,7 +653,7 @@ function leitura(){
 <ul><li><span class="nivel forte">${NV.forte}</span>: aumentou ${m.forte.razao*100}% ou mais <i>e</i> mais que ${m.forte.percentil} de cada 100 colegas.</li>
 <li><span class="nivel atencao">${NV.atencao}</span>: aumentou ${m.atencao.razao*100}% ou mais <i>e</i> mais que ${m.atencao.percentil} de cada 100 colegas, ou mais que 98 de cada 100 colegas.</li>
 <li><span class="nivel informativo">${NV.informativo}</span>: aumentou mais que ${m.informativo.percentil} de cada 100 colegas.</li></ul>
-<p><b>Ordem</b>: primeiro quem teve o maior aumento percentual do patrimônio.</p>
+<p><b>Ordem</b>: primeiro o presidente e o vice em exercício; depois, quem está mais à frente na régua dos colegas, ou seja, quem teve o patrimônio crescendo mais que os colegas do mesmo cargo. Em empate, o maior aumento percentual.</p>
 ${PROC_ON?`<p><b>"Responde a processo?"</b>: o nome da pessoa aparece como réu em processo público de uma lista informada e revisada por leitores antes de entrar no site (tribunal, número e link da consulta). A lista casa pelo nome e pelo estado, então <b>pode ser homônimo: confira o processo</b> antes de qualquer conclusão. Para procurar outros processos pelo nome, use o link "Conferir processos" de cada card. Ser réu não significa condenação.</p>`:""}
 <p><b>Uma pessoa, um card</b>: quem tem mais de um período analisado aparece uma vez só; os períodos (cargo, anos e números de cada um) ficam em "Ver detalhes". Quando a pessoa tem mais de um período, o card soma o crescimento de todos (por exemplo, de 2018 a 2026) e o alerta aponta o período em que ela mais cresceu; "Daria para comprar" usa a soma e as tags juntam todos os períodos. Filtros, gráficos e contagens contam pessoas: uma pessoa entra no filtro se algum período dela atender.</p>
 <p><b>"Tem empresas declaradas"</b>: a pessoa declarou ao TSE participação em empresas (quotas, ações, capital social) no início ou no fim do período. Como há outra fonte de renda declarada, o destaque desce um grau (de "${NV.forte}" para "${NV.atencao}" e de "${NV.atencao}" para "${NV.informativo}").</p>

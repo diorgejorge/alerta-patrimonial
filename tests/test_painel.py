@@ -198,15 +198,15 @@ def test_presidente_some_com_filtro_que_nao_o_inclui(abrir):
 
 
 def test_aumento_percentual(abrir):
-    """#62: aumento sobre o patrimonio do inicio, sem salario; o presidente fica no topo e o resto pelo maior aumento."""
+    """#62: aumento sobre o patrimonio do inicio, sem salario; o presidente fica no topo e o resto pela regua dos colegas."""
     pg = abrir()
     assert pg.evaluate("VO({cresc:2e6,pat_ini:1e6})") == "+200%"
     assert pg.evaluate("VO({cresc:-4e5,pat_ini:1e6})") == "−40%"
     assert pg.evaluate("VO({cresc:2.3e7,pat_ini:1e6})") == "+2.300%"
     assert pg.evaluate("VO({cresc:5,pat_ini:0})") == "começou do zero"
     assert pg.evaluate("VO({cresc:null,pat_ini:1})") == "Não informado"
-    vn = pg.evaluate("PES.filter(p=>!TOPO(p)).map(VN)")
-    assert vn == sorted(vn, reverse=True)
+    ordem = pg.evaluate("PES.filter(p=>!TOPO(p)).map(p=>[PCL(p),VN(p)])")  # regua dos colegas; empate pelo percentual
+    assert ordem == sorted(ordem, reverse=True)
 
 
 def test_dados_antigos_nao_quebram_a_tela(abrir):
