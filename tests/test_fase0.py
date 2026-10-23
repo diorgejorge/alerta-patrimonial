@@ -118,6 +118,8 @@ def test_painel(saida):
     dados = json.loads(re.search(r"^const D=(.*);$", texto, re.M).group(1))
     assert all(a.get("pagina", "").startswith("pessoa/p") for a in dados["alertas"])
     assert not any("chave" in a or "empresas_cnpj" in a for a in dados["alertas"])
+    # contador do card (#47): quantas empresas distintas a pessoa declarou, nunca menos que os nomes publicados
+    assert all(a["qtd_empresas"] >= len(a["empresas"]) for a in dados["alertas"])
 
 
 def test_trava_com_lista(tmp_path, monkeypatch):

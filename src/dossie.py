@@ -510,9 +510,11 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
             '<small>(busca em sites de tribunais, no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome)</small></p>')
     procs = [x for x in (ult.get("processos") or []) if url_ok(x.get("link")) and x["link"].startswith("https://")]
     if procs:  # lista curada por issue (config/processos.csv): so tribunal, numero e link oficial
-        cab += ('<p class="ficha">Responde a processo como réu: ' + " · ".join(
+        cab += ('<p class="ficha" title="Informação de lista revisada por leitores; pode ser homônimo, confira o processo">'
+                'Responde a processo? ' + " · ".join(
             f'<a href="{e(x["link"])}" target="_blank" rel="noopener">{e(x.get("tribunal") or "")} {e(x.get("numero") or "")}</a>'
-            for x in procs) + ' <small>(informado e revisado por issue; ser réu não significa condenação)</small></p>')
+            for x in procs) + ' <small>(informação de lista revisada por leitores; pode ser homônimo, confira o processo. '
+                              'Ser réu não significa condenação)</small></p>')
     nome = urna or str(ult["nome"])
     vals = dict(TITULO=e(nome), NOME=e(nome), CABECALHO=cab, PERIODOS="".join(periodo(a) for a in linhas),
                 RECENTES=lista(recentes, "Nenhuma notícia recente que cite a pessoa ou empresa ligada pelo nome."),

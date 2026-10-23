@@ -55,19 +55,15 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 .alerta dl{margin:0;display:grid;gap:2px;font-size:.875rem}.alerta dl div{display:flex;justify-content:space-between;gap:10px}
 .alerta dt{color:var(--mut)}.alerta dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .tags{margin:0;display:flex;flex-wrap:wrap;gap:6px}
-#exemplares td:nth-child(n+5),#exemplares th:nth-child(n+5){white-space:nowrap}
 /* tabelas no PC: palavras inteiras (sem quebrar letra a letra), nome com largura minima e tags sem quebrar por dentro */
 table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-space:nowrap}
-@media (min-width:600px){#exemplares td:first-child,#tabela td:first-child{min-width:16ch}#tabela td:nth-child(2){min-width:22ch}}
+@media (min-width:600px){#tabela td:first-child{min-width:16ch}#tabela td:nth-child(2){min-width:22ch}}
 .legenda-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:.2em 0 .8em;font-size:.875rem}.legenda-tags button[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px}.legenda-tags .rotulo{color:var(--mut)}
 .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
-.estrela{color:#a77d00}.alerta.exemplar{border-color:#a77d00}
 .tag.selo{background:var(--ouro);color:var(--tinta);border:2px solid var(--tinta);font-weight:700}
 .tag.q0{background:#f6eee4;color:#3b2a20;border-color:#e3d3bf}.tag.q1{background:#eec5a8;color:#3b1d10;border-color:#dfae8c}
 .tag.q2{background:#b5432f;color:#fff;border-color:#9c3524}.tag.q3{background:#7f1d1d;color:#fff;border-color:#661515}
 .tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
-.tag.reu{--c:#6f42c1;background:var(--card);border-color:var(--c);color:var(--c);font-weight:600;text-decoration:none}
-@media (prefers-color-scheme:dark){.tag.reu{--c:#c4a8ff}}
 .tag.renda{background:var(--card);border-color:var(--info);color:var(--info);font-weight:600}
 button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 .alerta .compra{margin:0;font-size:.875rem;padding:.4em .6em;border-radius:10px;background:var(--realce)}
@@ -94,12 +90,13 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 </div>
 <section class="kpis" id="kpis" aria-label="Resumo"></section>
 <section class="graf">
-<div class="card"><h2>Destaques por partido</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gp"></div><div class="leg" id="lg1"></div></div>
-<div class="card"><h2>Destaques por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
+<div class="card"><h2>Pessoas em destaque por partido</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gp"></div><div class="leg" id="lg1"></div></div>
+<div class="card"><h2>Pessoas em destaque por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
 </section>
 <section id="exemplares" hidden><h2><span class="estrela" aria-hidden="true">★</span> Parlamentares exemplares</h2>
 <p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência.</p>
-<div class="tab"><table class="resp"><caption class="sr">Parlamentares exemplares</caption><thead><tr><th>Nome</th><th>Cargo</th><th>Partido</th><th>UF</th><th>Período</th><th class="n">Crescimento do patrimônio</th><th class="n">Poderia juntar com o salário</th><th class="n">Cota parlamentar (4 anos)</th><th class="n">Média do cargo</th><th>Fonte</th></tr></thead><tbody id="exemplares-lista"></tbody></table></div></section>
+<p id="exemplares-qtd"></p>
+<ul class="alertas" id="exemplares-lista" aria-label="Parlamentares exemplares"></ul></section>
 <section id="projetos" hidden><h2><span aria-hidden="true">🐾</span> Quem mais propôs e aprovou projetos</h2>
 <p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: projetos de lei, de lei complementar e propostas de emenda à Constituição (PL, PLP e PEC) apresentados nos últimos quatro anos como autor ou coautor, e quantos viraram norma jurídica. O selo <b>Mão na massa</b> vai para quem está entre os 10% da sua casa com mais projetos aprovados. Quantidade não mede a qualidade das propostas. Fontes: dados abertos da Câmara dos Deputados e do Senado Federal.</p>
 <ol class="alertas" id="projetos-lista"></ol></section>
@@ -112,7 +109,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <p class="contagem" id="contagem" aria-live="polite"></p>
 <section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
 <h2>Todos os destaques</h2>
-<div class="legenda-tags" id="legenda" aria-label="Legenda das tags; clique para filtrar"><span class="rotulo">Concentração de destaques no estado:</span><button type="button" class="tag q0" data-f="conc" data-v="q0">poucos</button><button type="button" class="tag q1" data-f="conc" data-v="q1">alguns</button><button type="button" class="tag q2" data-f="conc" data-v="q2">muitos</button><button type="button" class="tag q3" data-f="conc" data-v="q3">os que mais concentram</button><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button><button type="button" class="tag selo" data-f="flag" data-v="selo"><span aria-hidden="true">🐾</span> Mão na massa</button><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo</button></div>
+<div class="legenda-tags" id="legenda" aria-label="Legenda das tags; clique para filtrar"><span class="rotulo">Concentração de destaques no estado:</span><button type="button" class="tag q0" data-f="conc" data-v="q0">poucos</button><button type="button" class="tag q1" data-f="conc" data-v="q1">alguns</button><button type="button" class="tag q2" data-f="conc" data-v="q2">muitos</button><button type="button" class="tag q3" data-f="conc" data-v="q3">os que mais concentram</button><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button><button type="button" class="tag selo" data-f="flag" data-v="selo"><span aria-hidden="true">🐾</span> Mão na massa</button><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo?</button></div>
 <ul class="alertas" id="cards"></ul>
 <div id="vz" class="vazio" hidden>O Caramelo não farejou nenhum destaque com este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
@@ -129,32 +126,66 @@ function COMPRA(v){
   if(!b)return"";const n=Math.floor(v/b.preco);
   return`<p class="compra">Daria para comprar <b>${n.toLocaleString("pt-BR")}</b> ${esc(n>1?b.plural:b.singular)}${/^https:\/\//.test(b.link||"")?` · <a href="${esc(b.link)}" target="_blank" rel="noopener" title="${esc(b.referencia)}">ver preço</a>`:""}</p>`;
 }
-const R=v=>v==null?"Não informado":"R$ "+Math.round(v).toLocaleString("pt-BR");
+// negativo com o sinal antes do R$: "−R$ 11.973.159"
+const R=v=>v==null?"Não informado":(v<0?"−":"")+"R$ "+Math.round(Math.abs(v)).toLocaleString("pt-BR");
 const NV={forte:"Muito acima do esperado",atencao:"Acima do esperado",informativo:"Para conhecer"};
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
-const LK=a=>(/^https:\/\//.test(a.link_tse||"")?` · <a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE)">TSE</a>`:"")+(REL(a.pagina)?` · <a class="lk" href="${esc(a.pagina)}">Dossiê</a>`:"")+(REL(a.dossie)?` · <a class="lk" href="${esc(a.dossie)}">Notícias</a>`:"")
-  +` · <a class="lk" href="${esc(PROC(a))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`;
+// link do TSE de um periodo
+const TSE=a=>/^https:\/\//.test(a.link_tse||"")?`<a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE), período ${a.ano_ini}–${a.ano_fim}">TSE</a>`:"";
+// links da pessoa: TSE (so com um periodo; com varios, cada periodo traz o seu), dossie, noticias e busca de processos
+const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Notícias</a>`:"",
+  `<a class="lk" href="${esc(PROC(p))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`].filter(Boolean).join(" · ");
 // busca para o proprio leitor conferir processos pelo nome (o robo nao consulta esses sites)
 const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);
 const NIVEIS=["forte","atencao","informativo"];
 const F={partido:"",uf:"",cargo:"",regiao:"",conc:"",flag:""};
-const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar],selo:["Mão na massa",a=>a.selo],renda:["Tem empresas declaradas",a=>a.outras_rendas],reu:["Responde a processo",a=>(a.processos||[]).length>0]};
+// marcacoes da pessoa (uniao dos periodos): rotulo, teste e texto do botao da legenda quando ninguem tem a marcacao
+const REU_OBS="Informação de lista revisada por leitores; pode ser homônimo, confira o processo. Ser réu não significa condenação";
+const FLAG={exemplar:["Parlamentar exemplar",a=>a.exemplar,"Nenhuma pessoa em destaque é parlamentar exemplar nesta atualização"],
+  selo:["Mão na massa",a=>a.selo,"Nenhuma pessoa em destaque tem o selo Mão na massa nesta atualização"],
+  renda:["Tem empresas declaradas",a=>a.outras_rendas,"Nenhuma pessoa em destaque tem empresas declaradas nesta atualização"],
+  reu:["Responde a processo?",a=>(a.processos||[]).length>0,"Nenhuma pessoa em destaque está na lista de processos revisada por leitores nesta atualização"]};
 const CONC_ROT={q0:"poucos",q1:"alguns",q2:"muitos",q3:"os que mais concentram"};
 const REGIOES={Norte:"AC AM AP PA RO RR TO",Nordeste:"AL BA CE MA PB PE PI RN SE","Centro-Oeste":"DF GO MS MT",Sudeste:"ES MG RJ SP",Sul:"PR RS SC"};
 const REG={BR:"Nacional",ZZ:"Exterior"};for(const [r,ufs] of Object.entries(REGIOES))for(const u of ufs.split(" "))REG[u]=r;
 const RC=v=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL",notation:"compact",maximumFractionDigits:1}).format(v);
 const $=id=>document.getElementById(id);
 const el=(t,c,txt)=>{const e=document.createElement(t);if(c)e.className=c;if(txt!=null)e.textContent=txt;return e;};
-// filtros de busca e nivel valem para tudo; cada grafico ignora o proprio filtro de dimensao
-function filtra(ign){
+// uma pessoa por card/linha (regra do site: sem redundancia); os periodos (registros de D.alertas) ficam dentro
+const ORD={forte:0,atencao:1,informativo:2};
+function agrupaPessoas(l){
+  const m=new Map();for(const a of l){const k=a.pessoa||`${a.nome}|${a.uf}`;if(!m.has(k))m.set(k,[]);m.get(k).push(a);}
+  return[...m.values()].map(per=>{
+    per=[...per].sort((x,y)=>(x.ano_ini||0)-(y.ano_ini||0)||(x.ano_fim||0)-(y.ano_fim||0));
+    const u=c=>[...new Set(per.map(a=>a[c]).filter(Boolean))],ult=per[per.length-1],cs=per.map(a=>a.cresc).filter(v=>v!=null);
+    const procs=[...new Map(per.flatMap(a=>a.processos||[]).map(x=>[`${x.tribunal}|${x.numero}`,x])).values()],qe=per.map(a=>a.qtd_empresas).filter(v=>v!=null);
+    return{per,nome:ult.nome,nome_urna:ult.nome_urna||per.find(a=>a.nome_urna)?.nome_urna,cargos:u("cargo"),partidos:u("partido"),ufs:u("uf"),
+      nivel:per.reduce((x,a)=>ORD[a.nivel]<ORD[x]?a.nivel:x,per[0].nivel),cresc:cs.length?Math.max(...cs):null,
+      ano_ini:Math.min(...per.map(a=>a.ano_ini)),ano_fim:Math.max(...per.map(a=>a.ano_fim)),
+      exemplar:per.some(a=>a.exemplar),selo:per.some(a=>a.selo),outras_rendas:per.some(a=>a.outras_rendas),processos:procs,
+      novo:per.some(a=>a.novo),mencoes:Math.max(0,...per.map(a=>a.mencoes||0)),
+      pagina:per.find(a=>REL(a.pagina))?.pagina,dossie:per.find(a=>REL(a.dossie))?.dossie,
+      // contadores do card: empresas (qtd_empresas do pipeline; sem o campo, nomes distintos), projetos do periodo mais recente
+      qtd_empresas:qe.length?Math.max(...qe):new Set(per.flatMap(a=>a.empresas||[])).size,sem_qtd:!qe.length,
+      projetos:per.map(a=>a.projetos).filter(Boolean).sort((x,y)=>(y.ate||0)-(x.ate||0))[0]||null,
+      parlamentar:per.some(a=>/^(DEPUTADO FEDERAL|SENADOR)$/i.test(a.cargo||""))};});
+}
+const PES=D?agrupaPessoas(D.alertas||[]):[];
+// periodos da pessoa que atendem aos filtros de busca, nivel e dimensao (ign: o grafico ignora o proprio filtro)
+function casa(p,ign){
   const q=$("q").value.toLowerCase(),nv=$("nv").value;
-  return D.alertas.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)&&(ign==="uf"||!F.regiao||REG[a.uf]===F.regiao)&&(!F.cargo||a.cargo===F.cargo)&&(!F.conc||QT("uf",a.uf)===F.conc)&&(!F.flag||!!FLAG[F.flag][1](a))
+  return p.per.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)&&(ign==="uf"||!F.regiao||REG[a.uf]===F.regiao)&&(!F.cargo||a.cargo===F.cargo)&&(!F.conc||QT("uf",a.uf)===F.conc)
     &&(`${a.nome} ${a.nome_urna??""} ${a.cargo} ${a.uf} ${a.partido}`.toLowerCase().includes(q)));
 }
+// a pessoa entra no filtro se algum periodo dela atender; as marcacoes valem para a pessoa (uniao dos periodos)
+const filtra=ign=>PES.filter(p=>(!F.flag||!!FLAG[F.flag][1](p))&&casa(p,ign).length>0);
+// graficos: cada pessoa conta uma vez por barra, com o nivel mais alto e o maior crescimento entre os periodos daquela barra
 function agrupa(rows,dim,max){
   const g={};
-  for(const a of rows){const k=a[dim]||"Não informado";const o=g[k]??={k,n:0,cresc:0,forte:0,atencao:0,informativo:0};o.n++;o[a.nivel]++;o.cresc+=a.cresc||0;}
+  for(const p of rows){const v={};
+    for(const a of casa(p,dim)){const k=a[dim]||"Não informado",o=v[k]??={nivel:a.nivel,cresc:a.cresc||0};if(ORD[a.nivel]<ORD[o.nivel])o.nivel=a.nivel;o.cresc=Math.max(o.cresc,a.cresc||0);}
+    for(const [k,x] of Object.entries(v)){const o=g[k]??={k,n:0,cresc:0,forte:0,atencao:0,informativo:0};o.n++;o[x.nivel]++;o.cresc+=x.cresc;}}
   let l=Object.values(g).sort((x,y)=>y.n-x.n||y.cresc-x.cresc);
   if(max&&l.length>max){const r=l.slice(max),o={k:"Outros",outros:true,n:0,cresc:0,forte:0,atencao:0,informativo:0};
     for(const x of r)for(const c of ["n","cresc",...NIVEIS])o[c]+=x[c];l=[...l.slice(0,max),o];}
@@ -163,7 +194,7 @@ function agrupa(rows,dim,max){
 function tip(ev,x){
   const t=$("tip");t.replaceChildren(el("b",null,x.k+(x.outros?"":"")));
   const lin=(rot,val,cls)=>{const d=el("div"),s=el("span");if(cls){const k=el("s");k.style.background=`var(--${cls==="informativo"?"info":cls})`;s.append(k);}s.append(rot);d.append(s,el("strong",null,val));t.append(d);};
-  lin("Destaques",x.n.toLocaleString("pt-BR"));for(const n of NIVEIS)if(x[n])lin(NV[n],x[n].toLocaleString("pt-BR"),n);
+  lin("Pessoas",x.n.toLocaleString("pt-BR"));for(const n of NIVEIS)if(x[n])lin(NV[n],x[n].toLocaleString("pt-BR"),n);
   lin("Crescimento somado",RC(x.cresc));
   t.hidden=false;const r=ev.target.closest(".trilho").getBoundingClientRect(),w=t.offsetWidth;
   t.style.left=Math.max(8,Math.min(innerWidth-w-8,(ev.clientX??r.left+r.width/2)-w/2))+"px";
@@ -185,7 +216,7 @@ function grafico(id,dim,max){
     const trk=el("div","trk"),st=el("div","st");st.style.width=(x.n/top*100)+"%";
     for(const n of NIVEIS)if(x[n]){const s=el("i",n);s.style.flex=x[n]+" 1 0";st.append(s);}
     trk.append(st);tr.append(trk,el("span","tot",x.n));
-    tr.setAttribute("aria-label",`${x.k}: ${x.n} destaques (`+NIVEIS.filter(n=>x[n]).map(n=>`${NV[n]} ${x[n]}`).join(", ")+")");
+    tr.setAttribute("aria-label",`${x.k}: ${x.n} ${x.n===1?"pessoa":"pessoas"} (`+NIVEIS.filter(n=>x[n]).map(n=>`${NV[n]} ${x[n]}`).join(", ")+")");
     tr.onpointermove=ev=>tip(ev,x);tr.onpointerleave=()=>$("tip").hidden=true;
     if(!x.outros){tr.tabIndex=0;tr.setAttribute("role","button");tr.setAttribute("aria-pressed",F[dim]===x.k);
       tr.onfocus=ev=>tip(ev,x);tr.onblur=()=>$("tip").hidden=true;
@@ -193,19 +224,20 @@ function grafico(id,dim,max){
       tr.onclick=tg;tr.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();tg();}};}
     box.append(el("span","rot",x.k),tr);
   }
-  if(!l.length)box.append(el("span","rot","—"),el("span","tot","Nenhum destaque"));
+  if(!l.length)box.append(el("span","rot","—"),el("span","tot","Nenhuma pessoa"));
   return l;
 }
 function tabela(id,titulo,l){
-  const t=el("table"),h=el("tr");for(const c of [titulo,"Destaques",NV.forte,NV.atencao,NV.informativo,"Crescimento somado"])h.append(el("th",c===titulo?null:"n",c));
+  const t=el("table"),h=el("tr");for(const c of [titulo,"Pessoas",NV.forte,NV.atencao,NV.informativo,"Crescimento somado"])h.append(el("th",c===titulo?null:"n",c));
   const tb=el("tbody");for(const x of l){const r=el("tr");r.append(el("td",null,x.k));for(const c of ["n",...NIVEIS])r.append(el("td","n",x[c].toLocaleString("pt-BR")));r.append(el("td","n",R(x.cresc)));tb.append(r);}
   const th=el("thead");th.append(h);t.append(th,tb);$(id).replaceChildren(t);
 }
 function painel(rows){
-  const pessoas=new Set(rows.map(a=>a.nome+"|"+a.uf)).size,cr=rows.reduce((s,a)=>s+(a.cresc||0),0);
+  // rows = pessoas; o crescimento somado usa o maior periodo de cada pessoa (periodos podem se sobrepor)
+  const cr=rows.reduce((s,p)=>s+(p.cresc||0),0),n=nv=>rows.filter(p=>p.nivel===nv).length.toLocaleString("pt-BR");
   const k=$("kpis");k.replaceChildren();
-  for(const [v,r] of [[rows.length.toLocaleString("pt-BR"),"Destaques"],[pessoas.toLocaleString("pt-BR"),"Pessoas"],
-    [rows.filter(a=>a.nivel==="forte").length.toLocaleString("pt-BR"),"Muito acima do esperado"],[RC(cr),"Crescimento patrimonial somado"]]){
+  for(const [v,r] of [[rows.length.toLocaleString("pt-BR"),"Pessoas em destaque"],[n("forte"),"Muito acima do esperado"],[n("atencao"),"Acima do esperado"],
+    [RC(cr),"Crescimento patrimonial somado (maior período de cada pessoa)"]]){
     const d=el("div","kpi");d.append(el("b",null,v),el("span",null,r));k.append(d);}
   tabela("tp","Partido",grafico("gp","partido",0));tabela("tu","UF",grafico("gu","uf",0));
   const c=$("chips");c.replaceChildren();
@@ -221,37 +253,63 @@ const COR_PARTIDO={PT:"#c8102e",PL:"#1f4e9c",PP:"#0b6bb5",MDB:"#1b8a3e",PSDB:"#0
   DEMOCRATA:"#0b4ea2",DEM:"#0b4ea2",PV:"#2e9a3a",PSL:"#1b5ea8",PROS:"#f39200",PMB:"#7b2d8b",DC:"#1b6fb5",AGIR:"#e94e1b",
   PSOL:"#f9c300",PCdoB:"#da251d",MOBILIZA:"#0067b1"};
 const PD=p=>COR_PARTIDO[p]?`<i class="cor" style="background:${COR_PARTIDO[p]}" aria-hidden="true"></i>`:"";
-// intensidade da tag pela concentracao de destaques (todo o painel): q3 = os que mais concentram (vermelho-escuro)
+// intensidade da tag pela concentracao de pessoas em destaque (todo o painel): q3 = os que mais concentram (vermelho-escuro)
 const CONC={};
 function QT(dim,v){
   if(!v||!D)return"";
-  if(!CONC[dim]){const c={};for(const a of D.alertas)if(a[dim])c[a[dim]]=(c[a[dim]]||0)+1;CONC[dim]={c,max:Math.max(1,...Object.values(c))};}
+  if(!CONC[dim]){const c={};for(const p of PES)for(const x of new Set(p.per.map(a=>a[dim]).filter(Boolean)))c[x]=(c[x]||0)+1;CONC[dim]={c,max:Math.max(1,...Object.values(c))};}
   const r=(CONC[dim].c[v]||0)/CONC[dim].max;return"q"+(r>=.75?3:r>=.5?2:r>=.25?1:0);
 }
 // processos em que a pessoa e re (lista curada por issue): tag com link para a consulta do primeiro
 const PR=a=>{const p=(a.processos||[]).filter(x=>/^https:\/\//.test(x.link||""));
   if(!p.length)return"";
-  return`<a class="tag reu" href="${esc(p[0].link)}" target="_blank" rel="noopener" title="${esc(p.map(x=>`${x.tribunal} ${x.numero}`).join("; "))} (ser réu não significa condenação)">Responde a processo${p.length>1?` (${p.length})`:""}</a>`;};
-// tags de uma pessoa (cards e tabela): marcacoes + cargo, partido e UF com a cor da concentracao; todas filtram
+  return`<a class="tag reu" href="${esc(p[0].link)}" target="_blank" rel="noopener" title="${esc(p.map(x=>`${x.tribunal} ${x.numero}`).join("; "))}. ${REU_OBS}.">Responde a processo?${p.length>1?` (${p.length})`:""}</a>`;};
+// tags de uma pessoa (cards e tabela): marcacoes + cargos, partidos e UF (uniao dos periodos) com a cor da concentracao; todas filtram
 const BT=(cls,attrs,title,txt)=>`<button type="button" class="tag ${cls}" ${attrs} title="${esc(title)}">${txt}</button>`;
-const TAGS=a=>(a.exemplar?BT("","data-f=\"flag\" data-v=\"exemplar\"","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções. Clique para ver só os exemplares",'<span class="estrela" aria-hidden="true">★</span> exemplar'):"")
-  +(a.selo?BT("selo","data-f=\"flag\" data-v=\"selo\"","Mão na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",'<span aria-hidden="true">🐾</span> Mão na massa'):"")
-  +PR(a)
-  +(a.outras_rendas?BT("renda","data-f=\"flag\" data-v=\"renda\"",`Declarou participação em empresas: o salário não é a única fonte de renda${a.nivel_calculado&&a.nivel_calculado!==a.nivel?`; destaque reduzido de ${NV[a.nivel_calculado]} para ${NV[a.nivel]}`:""}. Clique para ver só quem tem empresas`,"Tem empresas declaradas"):"")
-  +(a.cargo?BT(QT("cargo",a.cargo),`data-dim="cargo" data-v="${esc(a.cargo)}"`,`Filtrar pelo cargo ${a.cargo}`,esc(a.cargo)):`<span class="tag">Não informado</span>`)
-  +(a.partido?BT(QT("partido",a.partido),`data-dim="partido" data-v="${esc(a.partido)}"`,`Filtrar pelo partido ${a.partido}`,PD(a.partido)+esc(a.partido)):"")
-  +(a.uf?BT(QT("uf",a.uf),`data-dim="uf" data-v="${esc(a.uf)}"`,`Filtrar pelo estado ${a.uf}`,esc(a.uf)):"");
-// cards em lotes de PAG (pagina leve); a tabela completa so e montada quando aberta
+const DIM=(dim,v,rot,txt)=>BT(QT(dim,v),`data-dim="${dim}" data-v="${esc(v)}"`,`Filtrar pelo ${rot} ${v}`,txt);
+const CPU=p=>(p.cargos.length?p.cargos.map(c=>DIM("cargo",c,"cargo",esc(c))).join(""):`<span class="tag">Não informado</span>`)
+  +p.partidos.map(x=>DIM("partido",x,"partido",PD(x)+esc(x))).join("")+p.ufs.map(u=>DIM("uf",u,"estado",esc(u))).join("");
+const TAGS=p=>{const rd=p.per.find(a=>a.nivel_calculado&&a.nivel_calculado!==a.nivel);
+  return(p.exemplar?BT("","data-f=\"flag\" data-v=\"exemplar\"","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções. Clique para ver só os exemplares",'<span class="estrela" aria-hidden="true">★</span> exemplar'):"")
+  +(p.selo?BT("selo","data-f=\"flag\" data-v=\"selo\"","Mão na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",'<span aria-hidden="true">🐾</span> Mão na massa'):"")
+  +PR(p)
+  +(p.outras_rendas?BT("renda","data-f=\"flag\" data-v=\"renda\"",`Declarou participação em empresas: o salário não é a única fonte de renda${rd?`; destaque reduzido de ${NV[rd.nivel_calculado]} para ${NV[rd.nivel]}${p.per.length>1?` em ${rd.ano_ini}–${rd.ano_fim}`:""}`:""}. Clique para ver só quem tem empresas`,"Tem empresas declaradas"):"")
+  +CPU(p);};
+// cards em lotes de PAG pessoas (pagina leve); a tabela completa so e montada quando aberta
 const PAG=24;let ROWS=[],VIS=0;
-const CARD=a=>`<li class="card alerta${a.exemplar?" exemplar":""}"><div class="topo"><span><b>${a.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> `:""}${esc(a.nome_urna||a.nome)}</b>${a.novo?' <span class="novo">novo</span>':""}<br><small>${a.ano_ini}–${a.ano_fim}${a.mencoes?` · ${a.mencoes} ${a.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span></div>
-<p class="tags">${TAGS(a)}</p>
-<p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>${COMPRA(a.cresc)}
-<dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>
-${LK(a)?`<p class="links">${LK(a).replace(/^ · /,"")}</p>`:""}</li>`;
+const CR=a=>`<p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>`;
+const DL=a=>`<dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>`;
+// um periodo dentro do card (so para quem tem mais de um): nivel, anos, cargo (e partido, se mudou), numeros e TSE
+const PER=(a,p)=>`<li class="periodo"><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span> <span class="anos">${a.ano_ini}–${a.ano_fim}</span> <span class="cargo">${esc(a.cargo||"Não informado")}${p.partidos.length>1&&a.partido?` · ${esc(a.partido)}`:""}</span>
+${CR(a)}${DL(a)}${TSE(a)?`<p class="links">${TSE(a)}</p>`:""}</li>`;
+// contadores da pessoa (card e tabela): empresas declaradas, processos da lista revisada e projetos aprovados (so deputado federal e senador)
+const CONT=(p,tag="p",cls="contadores")=>{
+  const ne=p.qtd_empresas||0,np=p.processos.length,lk=p.processos.find(x=>/^https:\/\//.test(x.link||""))?.link,j=p.projetos,n=v=>Number(v||0).toLocaleString("pt-BR");
+  const s=(z,t,txt,c="")=>`<span class="contador${c}${z?" zero":""}"${t?` title="${esc(t)}"`:""}>${txt}</span>`,ic=e=>`<span aria-hidden="true">${e}</span> `;
+  const pr=`<b>${n(np)}</b> ${np===1?"processo?":"processos?"}`;
+  return`<${tag} class="${cls}">`+(!ne&&p.sem_qtd&&p.outras_rendas?s(0,"",ic("🏢")+"Tem empresas declaradas"):s(!ne,"",ic("🏢")+(ne?`<b>${n(ne)}</b> ${ne===1?"empresa declarada":"empresas declaradas"}`:"Nenhuma empresa declarada")))+" "
+    +s(!np,REU_OBS,ic("⚖️")+(np?(lk?`<a href="${esc(lk)}" target="_blank" rel="noopener">${pr}</a>`:pr):"Nenhum processo informado")," processos")+" "
+    +(p.parlamentar?s(j&&!j.aprovados,j?"Projetos de lei, de lei complementar e PECs como autor ou coautor; aprovados = viraram norma jurídica":"",ic("🐾")+(j?`<b>${n(j.aprovados)}</b> ${j.aprovados===1?"projeto aprovado":"projetos aprovados"} de ${n(j.apresentados)} ${j.apresentados===1?"apresentado":"apresentados"}${j.de?` (${j.de}–${j.ate})`:""}${/^https:\/\//.test(j.link||"")?` · <a href="${esc(j.link)}" target="_blank" rel="noopener" aria-label="Ver os projetos no site oficial">ver</a>`:""}`:"Projetos: Não informado")):"")
+    +`</${tag}>`;};
+const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
+const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}"><div class="topo"><span><b>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> `:""}${esc(p.nome_urna||p.nome)}</b>${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${p.ano_ini}–${p.ano_fim}${p.mencoes?` · ${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${p.nivel}"${p.per.length>1?' title="O nível mais alto entre os períodos"':""}>${NV[p.nivel]}</span></div>
+<p class="tags">${TAGS(p)}</p>
+${CONT(p)}
+${p.per.length>1?`${COMPRA(p.cresc)}<ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:CR(p.per[0])+COMPRA(p.cresc)+DL(p.per[0])}
+<p class="links">${LK(p)}</p></li>`;
+// parlamentares exemplares: um card por pessoa (nome + UF), periodos agrupados
 function exemplares(){
-  const l=D.exemplares||[];if(!l.length)return;
-  const RS=v=>"R$ "+Math.round(v).toLocaleString("pt-BR");
-  $("exemplares-lista").innerHTML=l.map(x=>`<tr><td data-label="Nome"><span><span class="estrela" title="Parlamentar exemplar">★</span> <b>${esc(x.nome)}</b></span></td><td data-label="Cargo"><span>${x.cargo?BT(QT("cargo",x.cargo),`data-dim="cargo" data-v="${esc(x.cargo)}"`,`Filtrar pelo cargo ${x.cargo}`,esc(x.cargo)):"Não informado"}</span></td><td data-label="Partido"><span>${x.partido?BT(QT("partido",x.partido),`data-dim="partido" data-v="${esc(x.partido)}"`,`Filtrar pelo partido ${x.partido}`,PD(x.partido)+esc(x.partido)):"Não informado"}</span></td><td data-label="UF"><span>${x.uf?BT(QT("uf",x.uf),`data-dim="uf" data-v="${esc(x.uf)}"`,`Filtrar pelo estado ${x.uf}`,esc(x.uf)):"Não informado"}</span></td><td data-label="Período"><span>${x.ano_ini}–${x.ano_fim}</span></td><td class="n" data-label="Crescimento do patrimônio"><span>${R(x.cresc)}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${R(x.cap)}</span></td><td class="n" data-label="Cota parlamentar (4 anos)"><span>${RS(x.cota)}</span></td><td class="n" data-label="Média do cargo"><span>${RS(x.cota_media)}</span></td><td data-label="Fonte"><span>${/^https:\/\//.test(x.link||"")?`<a class="lk" href="${esc(x.link)}" target="_blank" rel="noopener">Site oficial</a>`:"Não informado"}</span></td></tr>`).join("");
+  const m=new Map();for(const x of D.exemplares||[]){const k=`${x.nome}|${x.uf}`;if(!m.has(k))m.set(k,[]);m.get(k).push(x);}
+  const l=[...m.values()];if(!l.length)return;
+  const RS=R;
+  const u=(g,c)=>[...new Set(g.map(x=>x[c]).filter(Boolean))];
+  $("exemplares-qtd").textContent=l.length===1?"1 parlamentar cumpre os três critérios nesta atualização.":`${l.length.toLocaleString("pt-BR")} parlamentares cumprem os três critérios nesta atualização.`;
+  $("exemplares-lista").innerHTML=l.map(g=>{const x=g[0],lk=g.find(y=>/^https:\/\//.test(y.link||""))?.link,mul=g.length>1;
+    const p={cargos:u(g,"cargo"),partidos:u(g,"partido"),ufs:u(g,"uf")};
+    return`<li class="card alerta exemplar"><div class="topo"><span><b><span class="estrela" title="Parlamentar exemplar">★</span> ${esc(x.nome)}</b>${mul?` <span class="multi">${g.length} períodos</span>`:""}<br><small>Patrimônio de ${Math.min(...g.map(y=>y.ano_ini))}–${Math.max(...g.map(y=>y.ano_fim))}</small></span></div>
+<p class="tags">${CPU(p)}</p>
+<dl><div><dt>Cota parlamentar (últimos 4 anos)</dt><dd>${RS(x.cota)}</dd></div><div><dt>Média do cargo</dt><dd>${RS(x.cota_media)}</dd></div>${g.map(y=>`<div><dt>Crescimento do patrimônio (${y.ano_ini}–${y.ano_fim})</dt><dd>${R(y.cresc)}</dd></div><div><dt>Poderia juntar com o salário${mul?` (${y.ano_ini}–${y.ano_fim})`:""}</dt><dd>${R(y.cap)}</dd></div>`).join("")}</dl>
+<p class="links">${lk?`<a class="lk" href="${esc(lk)}" target="_blank" rel="noopener">Site oficial</a>`:"Site oficial: Não informado"}</p></li>`;}).join("");
   $("exemplares").hidden=false;
 }
 function cota(){
@@ -260,7 +318,7 @@ function cota(){
   $("cota-lista").innerHTML=l.map((c,i)=>`<li class="card alerta"><div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
 <p class="tags"><span class="tag ${QT("cargo",c.cargo)}">${esc(c.cargo||"Não informado")}</span>${c.partido?`<span class="tag ${QT("partido",c.partido)}">${PD(c.partido)}${esc(c.partido)}</span>`:""}<span class="tag ${QT("uf",c.uf)}">${esc(c.uf)}</span></p>
 <p class="cresc"><small>Total gasto da cota</small><b>${RS(c.total)}</b></p>
-<dl>${(c.tipos||[]).map(t=>`<div><dt>${esc(t.tipo)}</dt><dd>${RS(t.valor)}</dd></div>`).join("")}</dl>
+<dl>${(c.tipos||[]).map(t=>`<div><dt>${esc(t.tipo||"Outros")}</dt><dd>${RS(t.valor)}</dd></div>`).join("")}</dl>
 <p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
   $("cota").hidden=false;
 }
@@ -278,13 +336,15 @@ function mais(){
 }
 function tabelaToda(){
   if(!$("tabela").open)return;
-  document.getElementById("tb").innerHTML=ROWS.map(a=>`<tr><td data-label="Nome"><span>${a.exemplar?'<span class="estrela" title="Parlamentar exemplar">★</span> ':""}${esc(a.nome)}${a.novo?' <span class="novo">novo</span>':""}<br><small>${LK(a).replace(/^ · /,"")}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(a)}</span></td><td data-label="Período"><span>${a.ano_ini}–${a.ano_fim}</span></td><td class="n" data-label="Patrimônio no início"><span>${R(a.pat_ini)}</span></td><td class="n" data-label="Patrimônio no fim"><span>${R(a.pat_fim)}</span></td><td class="n" data-label="Crescimento"><span>${R(a.cresc)}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${R(a.cap)}</span></td><td class="n" data-label="Quantas vezes o possível"><span>${VZ(a.razao)}</span></td><td class="n" data-label="Comparado aos colegas"><span>${PC(a.percentil)}</span></td><td class="nivel ${a.nivel}" data-label="Nível"><span>${NV[a.nivel]}</span></td></tr>`).join("");
+  // uma linha por pessoa; com varios periodos, cada celula traz uma linha por periodo, na mesma ordem da coluna Periodo
+  const L=(p,f)=>p.per.map(f).join("<br>");
+  document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?'<span class="estrela" title="Parlamentar exemplar">★</span> ':""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Patrimônio no início"><span>${L(p,a=>R(a.pat_ini))}</span></td><td class="n" data-label="Patrimônio no fim"><span>${L(p,a=>R(a.pat_fim))}</span></td><td class="n" data-label="Crescimento"><span>${L(p,a=>R(a.cresc))}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${L(p,a=>R(a.cap))}</span></td><td class="n" data-label="Quantas vezes o possível"><span>${L(p,a=>VZ(a.razao))}</span></td><td class="n" data-label="Comparado aos colegas"><span>${p.per.length>1?L(p,a=>PC(a.percentil).replace(/<br>/," ")):PC(p.per[0].percentil)}</span></td><td class="nivel ${p.nivel}" data-label="Nível"><span>${p.per.length>1?L(p,a=>`<span class="nivel ${a.nivel}">${NV[a.nivel]}</span>`):NV[p.nivel]}</span></td></tr>`).join("");
 }
 function draw(){
   const rows=filtra();painel(rows);
   $("cg").value=F.cargo;$("rg").value=F.regiao;for(const b of $("legenda").querySelectorAll("button"))b.setAttribute("aria-pressed",F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
   const fl=[F.flag&&FLAG[F.flag][0].toLowerCase(),F.conc&&`concentração ${CONC_ROT[F.conc]}`,F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
-  $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${D.alertas.length.toLocaleString("pt-BR")} registros`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
+  $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${PES.length.toLocaleString("pt-BR")} ${PES.length===1?"pessoa":"pessoas"}`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
   if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo=F.regiao=F.conc=F.flag="";$("cg").value="";$("rg").value="";draw();};
   document.getElementById("vz").hidden=rows.length>0;
 }
@@ -303,9 +363,10 @@ function leitura(){
 <ul><li><span class="nivel forte">${NV.forte}</span>: ${VZ(m.forte.razao)} o possível ou mais <i>e</i> acima de ${m.forte.percentil}% dos colegas.</li>
 <li><span class="nivel atencao">${NV.atencao}</span>: ${VZ(m.atencao.razao)} o possível ou mais <i>e</i> acima de ${m.atencao.percentil}% dos colegas, ou acima de 98% dos colegas.</li>
 <li><span class="nivel informativo">${NV.informativo}</span>: acima de ${m.informativo.percentil}% dos colegas, sem os outros critérios.</li></ul>
-<p><b>Cor das tags</b>: cargo, partido e estado ficam mais escuros (do bege ao vermelho-escuro) quanto mais destaques concentram no painel. A bolinha ao lado do partido usa uma cor aproximada da identidade visual do partido.</p>
+<p><b>Cor das tags</b>: cargo, partido e estado ficam mais escuros (do bege ao vermelho-escuro) quanto mais pessoas em destaque concentram no painel. A bolinha ao lado do partido usa uma cor aproximada da identidade visual do partido.</p>
 <p><b>Ordem</b>: primeiro quem tem mais menções na imprensa nos últimos 30 dias (Google Notícias no Brasil e Google News em inglês, só notícias que citam a pessoa pelo nome); depois, o maior crescimento do patrimônio.</p>
-<p><b>"Responde a processo"</b>: a pessoa figura como ré em processo público informado por leitores e revisado antes de entrar no site (tribunal, número e link da consulta). Para procurar outros processos pelo nome, use o link "Conferir processos" de cada card (confira se não é outra pessoa com o mesmo nome). Ser réu não significa condenação.</p>
+<p><b>"Responde a processo?"</b>: o nome da pessoa aparece como réu em processo público de uma lista informada e revisada por leitores antes de entrar no site (tribunal, número e link da consulta). A lista casa pelo nome e pelo estado, então <b>pode ser homônimo: confira o processo</b> antes de qualquer conclusão. Para procurar outros processos pelo nome, use o link "Conferir processos" de cada card. Ser réu não significa condenação.</p>
+<p><b>Uma pessoa, um card</b>: quem tem mais de um período analisado aparece uma vez só, com o selo "N períodos" e os períodos dentro do card (cargo, anos, nível e números de cada um). O nível no topo é o mais alto entre os períodos, as tags juntam todos os períodos e "Daria para comprar" usa o maior crescimento. Filtros, gráficos e contagens contam pessoas: uma pessoa entra no filtro se algum período dela atender.</p>
 <p><b>"Tem empresas declaradas"</b>: a pessoa declarou ao TSE participação em empresas (quotas, ações, capital social) no início ou no fim do período. Como o salário não é a única fonte de renda, o destaque desce um grau (de "${NV.forte}" para "${NV.atencao}" e de "${NV.atencao}" para "${NV.informativo}").</p>
 <p><b>"Não informado"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>
 <p>Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta, por isso cada destaque é um ponto de partida para pesquisar, não uma conclusão.</p>`+(BENS&&BENS.bens&&BENS.bens.length?`
@@ -324,12 +385,19 @@ function contrib(){
   $("fontes-uso").textContent="Notícias dos dossiês: Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
   $("contrib").hidden=false;
 }
+// legenda: cada marcacao mostra quantas pessoas do painel a tem; sem ninguem, o botao fica desativado e explica
+function legenda(){
+  const tt={exemplar:"Clique para ver só os parlamentares exemplares",selo:"Clique para ver só quem tem o selo Mão na massa",renda:"Clique para ver só quem tem empresas declaradas",reu:`${REU_OBS}. Clique para ver só quem está na lista`};
+  for(const b of $("legenda").querySelectorAll('button[data-f="flag"]')){const f=FLAG[b.dataset.v];if(!f)continue;
+    const n=PES.filter(f[1]).length;
+    if(n)b.removeAttribute("aria-disabled");else b.setAttribute("aria-disabled","true");b.title=n?tt[b.dataset.v]:f[2];}
+}
 // blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
 for(const s of document.querySelectorAll("section.grade.duas"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
-if(D){contrib();leitura();exemplares();projetos();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();legenda();exemplares();projetos();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
-$("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b)return;F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
+$("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 // tags clicaveis (cards e tabela): cargo, partido e UF filtram pela dimensao; marcacoes filtram pela legenda

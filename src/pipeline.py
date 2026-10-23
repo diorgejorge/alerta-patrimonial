@@ -111,7 +111,7 @@ def empresas_por_sq(bens):
         lst = out.setdefault(sq, [])
         nomes = empresas_do_bem(d, t)
         for nome in nomes:
-            if nome not in lst and len(lst) < MAX_EMPRESAS:
+            if nome not in lst:  # todas: o card mostra quantas sao; o painel publica so MAX_EMPRESAS nomes
                 lst.append(nome)
         # CNPJ da empresa (dado publico) so para consultar o Portal da Transparencia; nao vai para o site
         achados = [c for c in dict.fromkeys(re.sub(r"\D", "", x) for x in RE_CNPJ.findall(d)) if transparencia.cnpj_ok(c)]
@@ -230,8 +230,11 @@ def pares(serie, regras, extras, p):
                             ano_ini=a["ano"], ano_fim=b["ano"], pat_ini=a["patrimonio"], pat_fim=b["patrimonio"],
                             cresc=b["patrimonio"] - a["patrimonio"], cap=cap, cargo_ini=a["cargo"],
                             nome_urna=txt(b.get("nome_urna")) or None, link_tse=link_tse(b),
-                            empresas=[str(x) for x in b["empresas"]]
+                            empresas=[str(x) for x in b["empresas"]][:MAX_EMPRESAS]
                             if isinstance(b.get("empresas"), (list, tuple)) else [],
+                            # quantas empresas diferentes a pessoa declarou no inicio ou no fim do periodo (card)
+                            qtd_empresas=len({str(n) for x in (a, b) if isinstance(x.get("empresas"), (list, tuple))
+                                              for n in x["empresas"]}),
                             empresas_cnpj=list(b["empresas_cnpj"])
                             if isinstance(b.get("empresas_cnpj"), (list, tuple)) else [],
                             # participacao em empresas no inicio ou no fim do periodo: ha outra fonte de renda
@@ -456,8 +459,11 @@ def main():
             print(f"[aviso] secao de projetos falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_proj = '<p class="vazio"><b>Não informado</b>.</p>'
         secoes_proj.update({i: html_proj for i in q["idx"]})
-        if (proj.get(k) or {}).get("selo"):
-            for i in q["idx"]:
+        r = proj.get(k)
+        for i in q["idx"] if r else ():  # contagem no card: projetos apresentados e aprovados (deputado/senador)
+            dados["alertas"][i]["projetos"] = dict(apresentados=r["apresentados"], aprovados=r["aprovados"],
+                                                   de=r["de"], ate=r["ate"], link=r["link"])
+            if r["selo"]:
                 dados["alertas"][i]["selo"] = True
     # parlamentares exemplares (estrela): patrimonio compativel, cota abaixo da media e sem sancoes
     try:
