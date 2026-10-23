@@ -66,7 +66,17 @@ table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-sp
 .tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
 .tag.renda{background:var(--card);border-color:var(--info);color:var(--info);font-weight:600}
 button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
-.alerta .compra{margin:0;font-size:.875rem;padding:.4em .6em;border-radius:10px;background:var(--realce)}
+.alerta .compra{margin:0;font-size:.8125rem;color:var(--mut)}.alerta .compra b{color:var(--fg)}
+/* card compacto (#52): nome e nivel, resumo de uma linha, crescimento; o resto abre em "Ver detalhes" */
+.alerta .topo{align-items:center}.alerta .nome{flex:1 1 12ch;font-family:var(--fonte-marca);font-size:1.1rem;line-height:1.25;overflow-wrap:normal}
+.alerta .topo .chip{font-size:.75rem;padding:1px 8px}
+.alerta .resumo{margin:0;font-size:.875rem;color:var(--mut);line-height:1.5}.alerta .resumo .sep{margin:0 .1em}
+.tag.fil{display:inline;min-height:0;padding:0;border:0;background:none;color:inherit;font-size:inherit;text-align:left}
+.tag.fil:hover,.tag.fil:focus-visible{color:var(--fg);text-decoration:underline}.tag.fil .cor{box-shadow:none;width:.6em;height:.6em}
+.alerta>.cresc b{font-family:var(--fonte-marca);font-size:1.6rem;font-weight:800;color:var(--titulo)}.alerta>.cresc small{font-size:.8125rem}
+.alertas{align-items:start}details.det{border-top:1px solid var(--line);font-size:.875rem}.alerta .tags .tag{gap:.35em}.alerta>.links{margin:0}
+details.det summary{cursor:pointer;color:var(--link);min-height:44px;display:flex;align-items:center;font-weight:600;list-style-position:inside}
+details.det[open] summary{margin-bottom:.4em}details.det>*+*{margin-top:.5em}details.det .periodos{margin-top:.4em}
 .alerta .links{margin:auto 0 0;font-size:.9rem}.alerta .links .lk{min-height:44px}.mais{text-align:center}
 .leves{list-style:none;padding:0;margin:.6em 0;display:grid;gap:8px}
 .leve{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.6em .9em;content-visibility:auto;contain-intrinsic-size:auto 120px}
@@ -74,11 +84,30 @@ button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 .leve ul{list-style:none;padding:0;margin:.3em 0 0;font-size:.875rem;font-variant-numeric:tabular-nums}.leve ul li{padding:.15em 0;border-top:1px solid var(--line)}
 .leve .tags{margin:.3em 0}.leve .links{margin:.2em 0 0;font-size:.9rem}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
+/* layout (#52): topo curto, abas fixas, filtros e ajudas recolhidos; o detalhe abre quando a pessoa pede */
+.marca{padding:10px 14px}.marca img{width:60px;height:60px}.marca h1{font-size:1.7rem}
+.intro{max-width:72ch;margin:.4em 0 0}.intro small{display:block;margin-top:.2em}
+details.sobre{margin:.2em 0 0}details.sobre>summary,details.ajuda>summary{cursor:pointer;color:var(--link);font-weight:600;font-size:.9rem;min-height:44px;display:flex;align-items:center}
+details.sobre[open]{padding-bottom:.4em}details.sobre .agregador,details.sobre .aviso,details.sobre .fonte{margin:.6em 0}
+.abas-site{position:sticky;top:0;z-index:5;display:flex;gap:2px;overflow-x:auto;margin:.6em 0 0;background:var(--bg);border-bottom:1px solid var(--line);scrollbar-width:thin}
+.abas-site button{flex:none;min-height:44px;padding:.5em .9em;border:0;border-bottom:3px solid transparent;background:none;color:var(--mut);font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.abas-site button:hover{color:var(--fg)}.abas-site button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--caramelo)}
+.painel-aba{padding-top:.4em;scroll-margin-top:56px}.painel-aba.fora{display:none}.painel-aba>h2:first-child{margin-top:.6em}
+#contagem{scroll-margin-top:56px}
+.filtros{display:contents}.filtros-bt{display:none}
+.ajudas{display:flex;flex-wrap:wrap;gap:0 18px}details.ajuda[open]{flex-basis:100%}
+.ajuda .legenda-tabela caption{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+.alerta .tags:empty{display:none}
+details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.leitura[open]>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.4em 1em}
+@media (max-width:599.98px){.filtros-bt{display:inline-flex;align-items:center;min-height:44px;padding:0 1em;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);font:inherit;font-weight:600;cursor:pointer}
+  .filtros{display:none;flex:1 1 100%;flex-direction:column;gap:8px}.filtros.aberto{display:flex}
+  .marca img{width:48px;height:48px}.marca h1{font-size:1.45rem}}
 </style>
 </head>
 <body><main>
 <header class="marca"><img src="logo.png" alt="" width="84" height="84"><div><h1>Caramelo Vasculha</h1><p class="lema">Farejando gastos públicos.</p></div></header>
-<small id="meta"></small>
+<p class="intro">Quanto o patrimônio declarado ao TSE cresceu, comparado com o que o salário do cargo permitiria. É um ponto de partida para pesquisar, não uma acusação. <small id="meta"></small></p>
+<details class="sobre"><summary>Como funciona e de onde vêm os dados</summary>
 <p class="agregador"><strong>O Caramelo Vasculha é apenas um agregador</strong>: reúne conteúdos públicos de fontes confiáveis e auditadas, como o TSE, o Portal da Transparência, a Câmara dos Deputados e o Senado Federal, além de veículos de notícias revisados antes de entrar. O site não produz nem altera esses dados; os destaques são só contas simples sobre eles, um ponto de partida para pesquisar. <strong>Para conferir, cada informação mostrada traz o link direto para a fonte.</strong></p>
 <p class="aviso">Os dados mostram diferenças entre o crescimento do patrimônio declarado e o que o salário do cargo permitiria. Há várias explicações possíveis; use como ponto de partida para pesquisar. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
 <p class="fonte">Fonte: declarações de bens e candidaturas do <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">Portal de Dados Abertos do TSE</a>. Para conferir a declaração de cada pessoa, consulte o <a href="https://divulgacandcontas.tse.jus.br/" target="_blank" rel="noopener">DivulgaCandContas</a>. <a href="privacidade.html">Privacidade e seus direitos</a>.</p>
@@ -86,34 +115,21 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <p id="fontes-uso"></p>
 <p class="acoes"><a id="sug-noticia" target="_blank" rel="noopener">Sugerir fonte de notícias</a><a id="sug-dados" target="_blank" rel="noopener">Sugerir fonte de dados</a><a id="sug-lista" target="_blank" rel="noopener">Ver sugestões enviadas</a></p>
 <small>As sugestões são feitas pelo GitHub (é preciso ter conta), ficam públicas e só entram no site depois de revisadas.</small></section>
+</details>
+<nav class="abas-site" id="abas" role="tablist" aria-label="Seções do painel" hidden></nav>
+<section id="destaques" class="painel-aba" aria-label="Destaques">
 <div class="barra">
 <input id="q" type="search" placeholder="Buscar por nome, cargo ou UF" aria-label="Buscar">
+<button type="button" class="filtros-bt" id="filtros-bt" aria-expanded="false" aria-controls="filtros">Filtros</button>
+<div class="filtros" id="filtros">
 <select id="cg" aria-label="Cargo"><option value="">Todos os cargos</option></select>
 <select id="rg" aria-label="Região"><option value="">Todas as regiões</option><option>Norte</option><option>Nordeste</option><option>Centro-Oeste</option><option>Sudeste</option><option>Sul</option><option>Nacional</option></select>
 <select id="nv" aria-label="Nível"><option value="">Todos os níveis</option><option value="forte">Muito acima do esperado</option><option value="atencao">Acima do esperado</option><option value="informativo">Para conhecer</option></select>
-<div id="chips" class="chips"></div>
 </div>
-<section class="kpis" id="kpis" aria-label="Resumo"></section>
-<section class="graf">
-<div class="card"><h2>Pessoas em destaque por partido</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gp"></div><div class="leg" id="lg1"></div></div>
-<div class="card"><h2>Pessoas em destaque por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
-</section>
-<section id="exemplares" hidden><h2><span class="estrela" aria-hidden="true">★</span> Parlamentares exemplares</h2>
-<p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência.</p>
-<p id="exemplares-qtd"></p>
-<ul class="alertas" id="exemplares-lista" aria-label="Parlamentares exemplares"></ul></section>
-<section id="projetos" hidden><h2><span aria-hidden="true">🐾</span> Quem mais propôs e aprovou projetos</h2>
-<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: projetos de lei, de lei complementar e propostas de emenda à Constituição (PL, PLP e PEC) apresentados nos últimos quatro anos como autor ou coautor, e quantos viraram norma jurídica. O selo <b>Mão na massa</b> vai para quem está entre os 10% da sua casa com mais projetos aprovados (no empate, conta quem apresentou mais); a conta inclui todos os parlamentares em exercício. Quantidade não mede a qualidade das propostas. Fontes: dados abertos da Câmara dos Deputados e do Senado Federal.</p>
-<ol class="alertas" id="projetos-lista"></ol></section>
-<section id="cota" hidden><h2>Quem mais gastou da cota parlamentar</h2>
-<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: total gasto da cota para o exercício da atividade parlamentar (CEAP) nos últimos quatro anos e os maiores tipos de despesa. Usar a cota faz parte do mandato; os dados ajudam a conhecer como ela é usada.</p>
-<ol class="alertas" id="cota-lista"></ol></section>
-<details class="dados"><summary>Ver dados dos gráficos em tabela</summary><div class="graf"><div class="tab" id="tp"></div><div class="tab" id="tu"></div></div></details>
-<div id="tip" role="tooltip" hidden></div>
-<details class="leitura" id="como-ler"><summary>Como ler a tabela</summary><div id="leitura"></div></details>
-<p class="contagem" id="contagem" aria-live="polite"></p>
-<section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
-<h2>Todos os destaques</h2>
+</div>
+<div id="chips" class="chips"></div>
+<div class="ajudas">
+<details class="ajuda" id="legenda-box"><summary>O que significam as marcações</summary>
 <table class="legenda-tabela" id="legenda">
 <caption>Legenda das tags <small>(clique numa tag para filtrar)</small></caption>
 <thead><tr><th scope="col">Tag</th><th scope="col">O que significa</th></tr></thead>
@@ -127,12 +143,38 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <tr><th scope="row"><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button></th><td>Declarou ao TSE participação em empresas; o destaque desce um grau</td></tr>
 <tr data-processos hidden><th scope="row"><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo?</button></th><td>Nome em lista revisada por leitores; pode ser homônimo, confira o processo</td></tr>
 </tbody></table>
+</details>
+<details class="ajuda leitura" id="como-ler"><summary>Como ler os números</summary><div id="leitura"></div></details>
+</div>
+<p class="contagem" id="contagem" aria-live="polite"></p>
 <ul class="alertas" id="cards"></ul>
 <div id="vz" class="vazio" hidden>O Caramelo não farejou nenhum destaque com este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
 <details class="dados" id="tabela"><summary>Ver todos em tabela</summary>
 <div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Tags <small>(clique para filtrar)</small></th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Poderia juntar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que poderia juntar com o salário">Quantas vezes<br><small>o possível</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Comparado<br><small>aos colegas</small></th><th>Nível</th></tr></thead><tbody id="tb"></tbody></table></div></details>
-<section id="todos" hidden><h2>Todas as pessoas analisadas</h2>
+</section>
+<section id="exemplares" class="painel-aba" hidden><h2><span class="estrela" aria-hidden="true">★</span> Parlamentares exemplares</h2>
+<p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência.</p>
+<p id="exemplares-qtd"></p>
+<ul class="alertas" id="exemplares-lista" aria-label="Parlamentares exemplares"></ul></section>
+<section id="projetos" class="painel-aba" hidden><h2><span aria-hidden="true">🐾</span> Quem mais propôs e aprovou projetos</h2>
+<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: projetos de lei, de lei complementar e propostas de emenda à Constituição (PL, PLP e PEC) apresentados nos últimos quatro anos como autor ou coautor, e quantos viraram norma jurídica. O selo <b>Mão na massa</b> vai para quem está entre os 10% da sua casa com mais projetos aprovados (no empate, conta quem apresentou mais); a conta inclui todos os parlamentares em exercício. Quantidade não mede a qualidade das propostas. Fontes: dados abertos da Câmara dos Deputados e do Senado Federal.</p>
+<ol class="alertas" id="projetos-lista"></ol></section>
+<section id="cota" class="painel-aba" hidden><h2>Quem mais gastou da cota parlamentar</h2>
+<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: total gasto da cota para o exercício da atividade parlamentar (CEAP) nos últimos quatro anos e os maiores tipos de despesa. Usar a cota faz parte do mandato; os dados ajudam a conhecer como ela é usada.</p>
+<ol class="alertas" id="cota-lista"></ol></section>
+<section id="numeros" class="painel-aba" aria-label="Números">
+<h2>Números do painel</h2>
+<p class="fonte">Os números e gráficos seguem a busca e os filtros dos destaques. Clique numa barra para ver as pessoas.</p>
+<div class="kpis" id="kpis"></div>
+<section class="graf">
+<div class="card"><h2>Pessoas em destaque por partido</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gp"></div><div class="leg" id="lg1"></div></div>
+<div class="card"><h2>Pessoas em destaque por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
+</section>
+<details class="dados"><summary>Ver dados dos gráficos em tabela</summary><div class="graf"><div class="tab" id="tp"></div><div class="tab" id="tu"></div></div></details>
+<section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
+</section>
+<section id="todos" class="painel-aba" hidden><h2>Todas as pessoas analisadas</h2>
 <p class="fonte">Todas as pessoas com duas declarações de bens ao TSE que dá para comparar, com ou sem destaque. Cada pessoa aparece uma vez, com os períodos dentro. O dossiê completo existe só para quem está entre os destaques. Os números são o que foi declarado ao TSE; confira cada período no link da fonte.</p>
 <p><button type="button" class="botao" id="todos-abrir" aria-controls="todos-box" aria-expanded="false"></button></p>
 <div id="todos-box" hidden>
@@ -148,6 +190,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <ul class="leves" id="todos-lista" aria-label="Lista completa de pessoas"></ul>
 <p class="mais"><button type="button" class="botao" id="todos-mais" hidden></button></p>
 </div></section>
+<div id="tip" role="tooltip" hidden></div>
 <p class="rodape"><span aria-hidden="true">🐾</span> O Caramelo fareja os dados públicos; quem confere e tira as conclusões é você.</p>
 </main>
 <script>
@@ -170,7 +213,7 @@ const TSE=a=>/^https:\/\//.test(a.link_tse||"")?`<a class="lk" href="${esc(a.lin
 const PROC_ON=D?.processos_ativo===true;
 if(PROC_ON)for(const e of document.querySelectorAll("[data-processos]"))e.hidden=false;
 // links da pessoa: TSE (so com um periodo; com varios, cada periodo traz o seu), dossie, noticias e busca de processos
-const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Notícias</a>`:"",
+const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}"${p.mencoes?` title="${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias"`:""}>Notícias${p.mencoes?` (${p.mencoes})`:""}</a>`:"",
   PROC_ON&&`<a class="lk" href="${esc(PROC(p))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`].filter(Boolean).join(" · ");
 // busca para o proprio leitor conferir processos pelo nome (o robo nao consulta esses sites)
 const PROC=a=>"https://www.google.com/search?q="+encodeURIComponent(`"${(a.nome||"").trim()}" processo (site:jus.br OR site:jusbrasil.com.br OR site:escavador.com OR site:processorapido.com)`);
@@ -260,7 +303,7 @@ function grafico(id,dim,max){
     tr.onpointermove=ev=>tip(ev,x);tr.onpointerleave=()=>$("tip").hidden=true;
     if(!x.outros){tr.tabIndex=0;tr.setAttribute("role","button");tr.setAttribute("aria-pressed",F[dim]===x.k);
       tr.onfocus=ev=>tip(ev,x);tr.onblur=()=>$("tip").hidden=true;
-      const tg=()=>{F[dim]=F[dim]===x.k?"":x.k;$("tip").hidden=true;draw();if(F[dim])$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
+      const tg=()=>{F[dim]=F[dim]===x.k?"":x.k;$("tip").hidden=true;draw();if(F[dim])verDestaques();};
       tr.onclick=tg;tr.onkeydown=ev=>{if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();tg();}};}
     box.append(el("span","rot",x.k),tr);
   }
@@ -332,12 +375,34 @@ const CONT=(p,tag="p",cls="contadores")=>{
     +(PROC_ON?s(!np,REU_OBS,ic("⚖️")+(np?(lk?`<a href="${esc(lk)}" target="_blank" rel="noopener">${pr}</a>`:pr):"Nenhum processo informado")," processos")+" ":"")
     +(p.parlamentar?s(j&&!j.aprovados,j?"Projetos de lei, de lei complementar e PECs como autor ou coautor; aprovados = viraram norma jurídica":"",ic("🐾")+(j?`<b>${n(j.aprovados)}</b> ${j.aprovados===1?"projeto aprovado":"projetos aprovados"} de ${n(j.apresentados)} ${j.apresentados===1?"apresentado":"apresentados"}${j.de?` (${j.de}–${j.ate})`:""}${/^https:\/\//.test(j.link||"")?` · <a href="${esc(j.link)}" target="_blank" rel="noopener" aria-label="Ver os projetos no site oficial">ver</a>`:""}`:"Projetos: Não informado")):"")
     +`</${tag}>`;};
-const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
-const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}"><div class="topo"><span><b>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> `:""}${esc(p.nome_urna||p.nome)}</b>${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${p.ano_ini}–${p.ano_fim}${p.mencoes?` · ${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${p.nivel}"${p.per.length>1?` title="Nível do período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})"`:""}>${NV[p.nivel]}</span></div>
-<p class="tags">${TAGS(p)}</p>
-${CONT(p)}
-${p.per.length>1?`<p class="cresc"><small>Crescimento de <span class="total-periodo">${p.ano_ini} a ${p.ano_fim}</span> (soma dos ${p.per.length} períodos)</small><b>${R(p.cresc)}</b><small>${R(p.pat_ini)} → ${R(p.pat_fim)}</small><small>Maior crescimento: <b class="maior-ano">${p.maior.ano_ini}–${p.maior.ano_fim}</b></small></p>${COMPRA(p.cresc)}<ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:CR(p.per[0])+COMPRA(p.cresc)+DL(p.per[0])}
-<p class="links">${LK(p)}</p></li>`;
+// nome e cargo do TSE em caixa alta viram "Zé da Silva", "Deputado Estadual" (conectivos ficam minusculos)
+const MIN=new Set(["de","da","do","das","dos","e"]);
+const CAP=c=>String(c).toLowerCase().replace(/\p{L}+/gu,w=>MIN.has(w)?w:w[0].toUpperCase()+w.slice(1));
+// filtro discreto no resumo do card: texto clicavel com o mesmo data-dim das tags (porTag)
+const FIL=(dim,v,rot,txt)=>`<button type="button" class="tag fil" data-dim="${dim}" data-v="${esc(v)}" title="Filtrar pelo ${rot} ${esc(v)}">${txt}</button>`;
+const SEP=' <span class="sep" aria-hidden="true">·</span> ';
+// uma linha: cargo · partido · UF · anos (mudancas entre periodos com seta)
+const CPU_RES=p=>[p.cargos.length?p.cargos.map(c=>FIL("cargo",c,"cargo",esc(CAP(c)))).join(" → "):"Não informado",
+  p.partidos.map(x=>FIL("partido",x,"partido",PD(x)+esc(x))).join(" → "),p.ufs.map(u=>FIL("uf",u,"estado",esc(u))).join(" → ")].filter(Boolean).join(SEP);
+const RESUMO=p=>CPU_RES(p)+SEP+`${p.ano_ini}–${p.ano_fim}`;
+// listas de cota e projetos: um registro por pessoa, mesmo resumo neutro dos cards
+const RES1=c=>`<p class="resumo">${CPU_RES({cargos:[c.cargo].filter(Boolean),partidos:[c.partido].filter(Boolean),ufs:[c.uf].filter(Boolean)})}</p>`;
+// marcacoes que valem a pena na face do card; zeros e "Não informado" ficam nos detalhes
+const MARCAS=p=>{const ne=p.qtd_empresas||0,rd=p.per.find(a=>a.nivel_calculado&&a.nivel_calculado!==a.nivel);
+  const l=[p.selo&&BT("selo","data-f=\"flag\" data-v=\"selo\"","Mão na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",'<span aria-hidden="true">🐾</span> Mão na massa'),
+    PROC_ON&&PR(p),
+    (ne||p.outras_rendas)&&BT("renda","data-f=\"flag\" data-v=\"renda\"",`Declarou participação em empresas: o salário não é a única fonte de renda${rd?`; destaque reduzido de ${NV[rd.nivel_calculado]} para ${NV[rd.nivel]}${p.per.length>1?` em ${rd.ano_ini}–${rd.ano_fim}`:""}`:""}. Clique para ver só quem tem empresas`,
+      `<span aria-hidden="true">🏢</span> ${ne?`${ne.toLocaleString("pt-BR")} ${ne===1?"empresa":"empresas"}`:"Tem empresas"}`)].filter(Boolean);
+  return l.length?`<p class="tags">${l.join("")}</p>`:"";};
+// detalhes sob demanda: contadores completos, numeros do calculo e periodos
+const DET=p=>{const m=p.per.length>1;
+  return`<details class="det"><summary>Ver detalhes${m?` dos ${p.per.length} períodos`:""}</summary>${CONT(p)}
+${m?`<p class="mut">Maior crescimento: <b class="maior-ano">${p.maior.ano_ini}–${p.maior.ano_fim}</b></p><ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:DL(p.per[0])}</details>`;};
+const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}"><div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b><span class="chip nv-${p.nivel}"${p.per.length>1?` title="Nível do período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})"`:""}>${NV[p.nivel]}</span></div>
+<p class="resumo">${RESUMO(p)}</p>
+<p class="cresc"><b>${R(p.cresc)}</b><small>de crescimento: ${p.pat_ini==null?"Não informado":RC(p.pat_ini)} → ${p.pat_fim==null?"Não informado":RC(p.pat_fim)}</small></p>
+${COMPRA(p.cresc)}${MARCAS(p)}
+<p class="links">${LK(p)}</p>${DET(p)}</li>`;
 // parlamentares exemplares: um card por pessoa (nome + UF), periodos agrupados
 function exemplares(){
   const m=new Map();for(const x of D.exemplares||[]){const k=`${x.nome}|${x.uf}`;if(!m.has(k))m.set(k,[]);m.get(k).push(x);}
@@ -350,7 +415,7 @@ function exemplares(){
   $("exemplares-lista").innerHTML=l.map(g=>{const x=g[0],lk=g.find(y=>/^https:\/\//.test(y.link||""))?.link,mul=g.length>1;
     const p={cargos:u(g,"cargo"),partidos:u(g,"partido"),ufs:u(g,"uf")};
     return`<li class="card alerta exemplar"><div class="topo"><span><b><span class="estrela" title="Parlamentar exemplar">★</span> ${esc(x.nome)}</b>${mul?` <span class="multi">${g.length} períodos</span>`:""}<br><small>Patrimônio de ${Math.min(...g.map(y=>y.ano_ini))}–${Math.max(...g.map(y=>y.ano_fim))}</small></span></div>
-<p class="tags">${CPU(p)}</p>
+<p class="resumo">${CPU_RES(p)}</p>
 <dl><div><dt>Cota parlamentar (últimos 4 anos)</dt><dd>${RS(x.cota)}</dd></div><div><dt>Média do cargo</dt><dd>${RS(x.cota_media)}</dd></div>${g.map(y=>`<div><dt>Crescimento do patrimônio (${y.ano_ini}–${y.ano_fim})</dt><dd>${R(y.cresc)}</dd></div><div><dt>Poderia juntar com o salário${mul?` (${y.ano_ini}–${y.ano_fim})`:""}</dt><dd>${R(y.cap)}</dd></div>`).join("")}</dl>
 <p class="links">${lk?`<a class="lk" href="${esc(lk)}" target="_blank" rel="noopener">Site oficial</a>`:"Site oficial: Não informado"}</p></li>`;}).join("");
   $("exemplares").hidden=false;
@@ -359,7 +424,7 @@ function cota(){
   const l=D.cota||[];if(!l.length)return;
   const RS=v=>"R$ "+v.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
   $("cota-lista").innerHTML=l.map((c,i)=>`<li class="card alerta"><div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
-<p class="tags"><span class="tag ${QT("cargo",c.cargo)}">${esc(c.cargo||"Não informado")}</span>${c.partido?`<span class="tag ${QT("partido",c.partido)}">${PD(c.partido)}${esc(c.partido)}</span>`:""}<span class="tag ${QT("uf",c.uf)}">${esc(c.uf)}</span></p>
+${RES1(c)}
 <p class="cresc"><small>Total gasto da cota</small><b>${RS(c.total)}</b></p>
 <dl>${(c.tipos||[]).map(t=>`<div><dt>${esc(t.tipo||"Outros")}</dt><dd>${RS(t.valor)}</dd></div>`).join("")}</dl>
 <p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
@@ -368,7 +433,7 @@ function cota(){
 function projetos(){
   const l=D.projetos||[];if(!l.length)return;
   $("projetos-lista").innerHTML=l.map((c,i)=>`<li class="card alerta"><div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
-<p class="tags">${c.selo?'<span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados"><span aria-hidden="true">🐾</span> Mão na massa</span>':""}<span class="tag ${QT("cargo",c.cargo)}">${esc(c.cargo||"Não informado")}</span>${c.partido?`<span class="tag ${QT("partido",c.partido)}">${PD(c.partido)}${esc(c.partido)}</span>`:""}<span class="tag ${QT("uf",c.uf)}">${esc(c.uf)}</span></p>
+${RES1(c)}${c.selo?'<p class="tags"><span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados"><span aria-hidden="true">🐾</span> Mão na massa</span></p>':""}
 <dl><div><dt>Projetos apresentados</dt><dd>${c.apresentados.toLocaleString("pt-BR")}</dd></div><div><dt>Aprovados (viraram norma jurídica)</dt><dd>${c.aprovados.toLocaleString("pt-BR")}</dd></div></dl>
 <p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Ver a lista no site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
   $("projetos").hidden=false;
@@ -438,7 +503,7 @@ function todosMais(){
 // abre a lista completa ja filtrada por uma marcacao (legenda, quando ninguem entre os destaques a tem)
 function todosCom(m){
   if(TD){$("tmc").value=m;todosDraw();}else TPEND=m;
-  todosAbrir(true);$("todos").scrollIntoView({behavior:"smooth",block:"start"});
+  if(ABA)abrirAba("todos");todosAbrir(true);$("todos").scrollIntoView({behavior:"smooth",block:"start"});
 }
 function todos(){
   const t=D.todos;if(!t||!t.pessoas)return;
@@ -448,7 +513,7 @@ function todos(){
 }
 function draw(){
   const rows=filtra();painel(rows);
-  $("cg").value=F.cargo;$("rg").value=F.regiao;for(const b of $("legenda").querySelectorAll("button"))b.setAttribute("aria-pressed",F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
+  $("cg").value=F.cargo;$("rg").value=F.regiao;const nf=[F.cargo,F.regiao,$("nv").value].filter(Boolean).length;$("filtros-bt").textContent=nf?`Filtros (${nf})`:"Filtros";for(const b of $("legenda").querySelectorAll("button"))b.setAttribute("aria-pressed",F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
   const fl=[F.flag&&FLAG[F.flag][0].toLowerCase(),F.conc&&`concentração ${CONC_ROT[F.conc]}`,F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${PES.length.toLocaleString("pt-BR")} ${PES.length===1?"pessoa":"pessoas"}`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
   if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo=F.regiao=F.conc=F.flag="";$("cg").value="";$("rg").value="";draw();};
@@ -501,15 +566,37 @@ function legenda(){
     b.title=n?tt[b.dataset.v]:nt?`${f[2]}. Clique para ver na lista completa`:f[2];
     const td=b.closest("tr")?.querySelector("td");if(!n&&td)td.append(" ",el("small",null,nt?"(nenhum entre os destaques; veja na lista completa)":"(ninguém nesta atualização)"));}
 }
+// abas (#52): uma secao por vez e a pessoa escolhe o que aprofundar; sem JS tudo aparece em sequencia
+const ABAS=[["destaques","Destaques"],["exemplares","★ Exemplares"],["projetos","🐾 Projetos"],["cota","Cota parlamentar"],["numeros","Números"],["todos","Todas as pessoas"]];
+let ABA="";
+function abrirAba(id,foco,inicio){
+  if(!$("aba-"+id))id="destaques";ABA=id;
+  for(const [x] of ABAS){const b=$("aba-"+x);if(!b)continue;const on=x===id;$(x).classList.toggle("fora",!on);b.setAttribute("aria-selected",on);b.tabIndex=on?0:-1;if(on&&foco)b.focus();}
+  if(id==="todos")todosAbrir(true);
+  if(!inicio)try{history.replaceState(null,"","#"+id);}catch(e){}  // na carga nao: o navegador rolaria ate a ancora
+}
+function abas(){
+  const nav=$("abas"),ids=ABAS.map(([id])=>id).filter(id=>!$(id).hidden);
+  for(const [id,rot] of ABAS){if(!ids.includes(id))continue;const b=el("button",null,rot);b.type="button";b.id="aba-"+id;
+    b.setAttribute("role","tab");b.setAttribute("aria-controls",id);b.onclick=()=>abrirAba(id);
+    $(id).setAttribute("role","tabpanel");$(id).setAttribute("aria-labelledby",b.id);nav.append(b);}
+  nav.onkeydown=ev=>{const d={ArrowRight:1,ArrowLeft:-1}[ev.key];if(!d)return;ev.preventDefault();abrirAba(ids[(ids.indexOf(ABA)+d+ids.length)%ids.length],true);};
+  $("todos-abrir").parentElement.hidden=true;nav.hidden=false;
+  abrirAba(location.hash.slice(1),false,true);
+}
+// depois de filtrar (tag, legenda ou barra de grafico): volta aos destaques, na contagem
+function verDestaques(){if(ABA&&ABA!=="destaques")abrirAba("destaques");$("contagem").scrollIntoView({behavior:"smooth",block:"start"});}
+// filtros recolhidos no celular; o botao mostra quantos estao ativos
+$("filtros-bt").onclick=()=>$("filtros-bt").setAttribute("aria-expanded",$("filtros").classList.toggle("aberto"));
 // blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
 for(const s of document.querySelectorAll("section.grade.duas"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
-if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();abas();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
-$("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;if(b.dataset.todos){todosCom(b.dataset.v==="exemplar"?"e":"s");return;}F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
+$("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;if(b.dataset.todos){todosCom(b.dataset.v==="exemplar"?"e":"s");return;}F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();verDestaques();};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 // tags clicaveis (cards e tabela): cargo, partido e UF filtram pela dimensao; marcacoes filtram pela legenda
-const porTag=ev=>{const t=ev.target.closest("button.tag");if(!t)return;if(t.dataset.f)F[t.dataset.f]=t.dataset.v;else F[t.dataset.dim]=t.dataset.v;draw();$("contagem").scrollIntoView({behavior:"smooth",block:"start"});};
-$("cards").onclick=porTag;$("tb").onclick=porTag;$("exemplares-lista").onclick=porTag;$("tabela").ontoggle=tabelaToda;draw();}
+const porTag=ev=>{const t=ev.target.closest("button.tag");if(!t)return;if(t.dataset.f)F[t.dataset.f]=t.dataset.v;else F[t.dataset.dim]=t.dataset.v;draw();verDestaques();};
+$("cards").onclick=porTag;$("tb").onclick=porTag;$("exemplares-lista").onclick=$("cota-lista").onclick=$("projetos-lista").onclick=porTag;$("tabela").ontoggle=tabelaToda;draw();}
 </script></body></html>
