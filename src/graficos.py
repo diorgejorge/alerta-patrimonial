@@ -361,3 +361,45 @@ def tabela_noticias_por_tema(series: dict[str, dict[str, int]],
     cab = ["Mês"] + [_rot_tag(t) for t, _, _ in temas] + ["Total"]
     rodape = ["Total"] + [inteiro(t) for _, _, t in temas] + [inteiro(sum(t for _, _, t in temas))]
     return _tabela(titulo, cab, linhas, rodape)
+
+
+# ---------------------------------------------------------------- 5. noticias da pessoa: % por tema (#54)
+def _fatias(contagens):
+    """[(tag, qtd, %)] so com qtd > 0, da maior para a menor (empate: ordem de ROTULO_TAG)."""
+    ordem = list(ROTULO_TAG)
+    vals = [(str(t), _qtd(q)) for t, q in (contagens or {}).items() if _qtd(q)]
+    tot = sum(q for _, q in vals)
+    vals.sort(key=lambda v: (-v[1], ordem.index(v[0]) if v[0] in ordem else len(ordem), v[0]))
+    return [(t, q, q * 100 / tot) for t, q in vals]
+
+
+def _pct(v):
+    return f"{_num(v)}%" if v >= 1 or v == 0 else "<1%"
+
+
+def percentual_por_tema(contagens: dict[str, int], uid: str, titulo: str = "Notícias por tema") -> str:
+    fatias = _fatias(contagens)
+    if not fatias:
+        return VAZIO_NOTICIAS
+    p = _id(uid, "pct")
+    W, X0, LIN, ESP, TOPO = 340, 88, 28, 18, 6
+    area = W - X0 - 76  # espaco para "100% (999)" na ponta
+    desc = "Barras horizontais, porcentagem das notícias por tema principal. " + "; ".join(
+        f"{_rot_tag(t)}: {_pct(v)} ({_qtd_noticias(q)})" for t, q, v in fatias) + "."
+    partes = [_abre(p, W, TOPO * 2 + LIN * len(fatias), titulo, desc, "g-pct")]
+    for i, (t, q, v) in enumerate(fatias):
+        y = TOPO + i * LIN + (LIN - ESP) / 2
+        w, meio = max(2.0, v / 100 * area), y + ESP / 2
+        cls = t if t in ROTULO_TAG else "outros"
+        partes += [_texto(X0 - 8, meio, _rot_tag(t), ancora="end"),
+                   f'<path d="{_ponta_dir(X0, y, w, ESP)}" class="g-barra tag-{cls}"/>',
+                   _texto(X0 + w + 6, meio, f"{_pct(v)} ({inteiro(q)})")]
+    return "".join(partes) + "</svg>"
+
+
+def tabela_percentual_por_tema(contagens: dict[str, int], titulo: str = "Notícias por tema") -> str:
+    fatias = _fatias(contagens)
+    if not fatias:
+        return ""
+    return _tabela(titulo, ("Tema", "Notícias", "%"), [(_rot_tag(t), inteiro(q), _pct(v)) for t, q, v in fatias],
+                   ("Total", inteiro(sum(q for _, q, _ in fatias)), "100%"))

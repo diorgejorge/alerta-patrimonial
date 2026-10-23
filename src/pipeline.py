@@ -14,6 +14,7 @@ import projetos
 import parlamentares
 import empresas
 import estados
+import temas
 from ids import Ids, varrer
 from cache import Cache, salvar_resultados
 import cifra
@@ -613,10 +614,13 @@ def main():
         if achou:
             a["processos"] = achou
     bens = carregar_bens()
+    noticias = {}  # {indice: noticias com tags} para a aba Noticias (#54); fora do JSON do painel
     for i, cam in gerar_dossies(dados["alertas"], docs, buscar=not args.demo, fontes_extra=fontes,
-                                transparencia=secoes, bens=bens, cota=secoes_cota,
-                                receita=secoes_receita, cache=caches.get("noticias"), projetos=secoes_proj).items():
+                                transparencia=secoes, bens=bens, cota=secoes_cota, receita=secoes_receita,
+                                cache=caches.get("noticias"), projetos=secoes_proj, noticias=noticias).items():
         dados["alertas"][i]["dossie"] = cam
+    if args.demo:  # noticias ficticias para ver a aba sem internet
+        noticias = {i: temas.demo(i) for i in noticias}
     # painel: quem mais gastou da cota parlamentar (entre as pessoas em destaque) e com o que
     ranking = []
     for k, q in pessoas.items():
@@ -651,7 +655,7 @@ def main():
                 for c, g in serie[serie.chave.isin(set(vis.chave))].groupby("chave")}
         try:
             cartoes, graficos_painel = paginas.gerar(dados["alertas"], pessoas, hist, secoes, docs,
-                                                     gerado=dados["gerado_em"])
+                                                     gerado=dados["gerado_em"], noticias=noticias)
         except Exception as ex:  # nunca derruba o painel
             print(f"[aviso] paginas por pessoa falharam ({ex!r})", file=sys.stderr)
     # lista completa leve (#43): todas as pessoas com duas declaracoes, em arquivo separado (docs/todos.json)

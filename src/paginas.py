@@ -2,7 +2,7 @@
 So usa o id interno (p0001...): CPF, chave e CNPJ nunca entram no HTML."""
 import csv, html, json, re, shutil
 from pathlib import Path
-import graficos
+import graficos, temas
 
 SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
@@ -115,12 +115,32 @@ def _patrimonio(hist, linhas, uid):
             "Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta.</small></p>")
 
 
-def _noticias(linhas):
-    dossie = next((a.get("dossie") for a in linhas if a.get("dossie")), None)
-    link = (f'<p><a class="botao" href="../{e(dossie)}">Ver as notícias coletadas para esta pessoa</a></p>'
-            if dossie and not re.match(r"^\s*[a-z][a-z0-9+.-]*:", dossie, re.I) else "")
-    return ('<p class="vazio">As notícias com tags (político, eleitoral, legislativo, gestão, patrimonial, judicial, '
-            'segurança, outros) entram nesta aba na próxima fase.</p>' + link)
+def _chips(tags):
+    return "".join(f'<span class="chip tag-{e(t)}">{e(graficos.ROTULO_TAG[t])}</span>'
+                   for t in tags or () if t in graficos.ROTULO_TAG)
+
+
+def _item_noticia(n):
+    meta = " · ".join(x for x in (e(n.get("veiculo") or ""), n["data"].strftime("%d/%m/%Y") if n.get("data") else "") if x)
+    titulo = e(n.get("titulo") or n["link"])
+    return (f'<li><a href="{e(n["link"])}" target="_blank" rel="noopener">{titulo}</a>'
+            f'<br>{f"<small>{meta}</small> " if meta else ""}{_chips(n.get("tags"))}</li>')
+
+
+def _noticias(noticias, uid):
+    """Lista de noticias com link e tags (#54) + grafico da % por tema; texto = aviso da busca."""
+    if isinstance(noticias, str):
+        return f'<p class="vazio">{e(noticias)}</p>'
+    if noticias is None:
+        return '<p class="vazio">Não informado: busca de notícias não realizada para esta pessoa.</p>'
+    itens = [n for n in noticias if str(n.get("link") or "").startswith("https://")]
+    if not itens:
+        return '<p class="vazio">Nenhuma notícia que cite a pessoa ou empresa ligada pelo nome.</p>'
+    cont = temas.contar(itens)
+    return (graficos.percentual_por_tema(cont, uid=uid) + _alt(graficos.tabela_percentual_por_tema(cont))
+            + '<ul class="nt">' + "".join(_item_noticia(n) for n in itens) + "</ul>"
+            '<p class="mut"><small>Tags automáticas, pelas palavras do título e do resumo; podem errar. O gráfico conta '
+            "cada notícia uma vez, pela primeira tag.</small></p>")
 
 
 def _propostas(pid):
@@ -140,11 +160,12 @@ def _cabecalho(a, nome):
             + f'<p class="ficha">{ficha}</p>{chip_nivel(a.get("nivel"))}</div></header>')
 
 
-def pagina(tpl, pid, linhas, hist, dinheiro, gerado):
+def pagina(tpl, pid, linhas, hist, dinheiro, gerado, noticias=None):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("ano_fim") or 0))
     nome = str(topo.get("nome") or "")
     vals = dict(TITULO=e((topo.get("nome_urna") or nome).strip()), CABECALHO=_cabecalho(topo, nome),
-                RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"), NOTICIAS=_noticias(linhas),
+                RESUMO=_resumo(linhas), PATRIMONIO=_patrimonio(hist, linhas, f"pt-{pid}"),
+                NOTICIAS=_noticias(noticias, f"nt-{pid}"),
                 DINHEIRO=dinheiro or '<p class="vazio">Sem consulta nesta execução.</p>',
                 PROPOSTAS=_propostas(pid), GERADO=e(gerado))
     return re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl)
@@ -163,8 +184,10 @@ def cartao(pid, linhas, hist):
             f'<span class="mini">{mini}</span></li>')
 
 
-def gerar(alertas, pessoas, hist, secoes, docs, gerado):
-    """Escreve docs/pessoa/<id>.html e devolve (html dos cartoes, {marca: html dos graficos do painel})."""
+def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None):
+    """Escreve docs/pessoa/<id>.html e devolve (html dos cartoes, {marca: html dos graficos do painel}).
+    `noticias`: {indice_da_linha: lista de noticias com tags ou aviso em texto} (dossie.gerar_dossies)."""
+    noticias = noticias or {}
     pasta = Path(docs) / "pessoa"
     pasta.mkdir(parents=True, exist_ok=True)
     for f in pasta.glob("*.html"):
@@ -177,7 +200,8 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado):
         if not pid or not re.fullmatch(r"p\d+", str(pid)):
             continue
         h = hist.get(q["chave"], [])
-        (pasta / f"{pid}.html").write_text(pagina(tpl, pid, linhas, h, secoes.get(q["idx"][0]), gerado), encoding="utf-8")
+        (pasta / f"{pid}.html").write_text(pagina(tpl, pid, linhas, h, secoes.get(q["idx"][0]), gerado,
+                                                           noticias.get(q["idx"][0])), encoding="utf-8")
         for i in q["idx"]:
             alertas[i]["pagina"] = f"pessoa/{pid}.html"
         itens.append((max(ORDEM.get(a.get("nivel"), 0) for a in linhas), max(a.get("cresc") or 0 for a in linhas),
@@ -185,10 +209,10 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado):
     itens.sort(key=lambda t: (t[0], t[1]), reverse=True)
     cartoes = '<ul class="pessoas">' + "".join(t[2] for t in itens) + "</ul>" if itens else ""
     cont = {n: sum(1 for a in alertas if a.get("nivel") == n) for n in ("forte", "atencao", "informativo")}
-    temas = {}  # fase 1: {tag: {"AAAA-MM": n}} a partir de data/noticias.jsonl
+    series = temas.por_mes(n for v in noticias.values() if isinstance(v, list) for n in v)
     graf = dict(GRAFICO_NIVEIS=graficos.barras_niveis(cont, uid="pn") + _alt(graficos.tabela_niveis(cont)),
-                GRAFICO_TEMAS=graficos.noticias_por_tema(temas, uid="pt")
-                + (_alt(graficos.tabela_noticias_por_tema(temas)) if temas else ""))
+                GRAFICO_TEMAS=graficos.noticias_por_tema(series, uid="pt")
+                + (_alt(graficos.tabela_noticias_por_tema(series)) if series else ""))
     return cartoes, graf
 
 

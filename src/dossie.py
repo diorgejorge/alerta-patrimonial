@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 from concurrent.futures import ThreadPoolExecutor
 from email.utils import parsedate_to_datetime
 from pathlib import Path
+import temas
 
 TPL = Path(__file__).resolve().parent / "dossie.html"
 RSS = "https://news.google.com/rss/search?"
@@ -25,6 +26,7 @@ MAX_FALHAS = 5         # falhas seguidas numa fonte: para de buscar nela (provav
 MAX_EMPRESAS = 5       # empresas exibidas por pessoa
 MAX_BUSCA_EMP = 3      # empresas pesquisadas por pessoa
 MAX_PAGINA = 2_000_000  # bytes lidos de cada materia
+MAX_ABA = 30           # noticias na aba Noticias da pagina da pessoa (#54)
 # processos (#51): fora do site ate haver base oficial e gratuita de consulta por CPF que rode no Actions;
 # o codigo e config/processos.csv ficam guardados. True volta a ler a lista e a mostrar tag, filtro e links
 PROCESSOS_ATIVO = False
@@ -390,7 +392,8 @@ def preparar(p, paginas, fim, max_verif):
 
 
 def _saida(c, onde, quem):
-    return dict(titulo=c["titulo"], veiculo=c["veiculo"], data=c["data"], link=c["link"], onde=onde, quem=quem)
+    return dict(titulo=c["titulo"], veiculo=c["veiculo"], data=c["data"], link=c["link"], onde=onde, quem=quem,
+                tags=temas.classificar(c["titulo"], c.get("resumo")))
 
 
 def _ordenar(nts):
@@ -542,11 +545,12 @@ def pagina(tpl, linhas, q, recentes, patrimonio, empresas, gerado, transp="", be
 # ---------------------------------------------------------------- entrada
 def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, timeout=20,
                   tempo_max=12 * 60, max_verif=20, workers=12, fontes_extra=(), transparencia=None, bens=None, cota=None,
-                  receita=None, cache=None, projetos=None):
+                  receita=None, cache=None, projetos=None, noticias=None):
     """Gera destino/dossie/<slug>.html por pessoa (nome+UF) e devolve {indice_da_linha: "dossie/<slug>.html"}.
     Noticias so para as primeiras max_pessoas (ordem de `alertas`); as demais saem sem busca automatica.
     As buscas RSS correm numa fila por fonte (Google e fontes sugeridas em paralelo, `pausa` s entre buscas na mesma
-    fonte) e a leitura das materias num pool de `workers` threads; nada novo comeca apos `tempo_max` s."""
+    fonte) e a leitura das materias num pool de `workers` threads; nada novo comeca apos `tempo_max` s.
+    Se `noticias` (dict) vier, recebe {indice_da_linha: lista unica de noticias com tags (#54) ou aviso em texto}."""
     pasta = Path(destino) / "dossie"
     pasta.mkdir(parents=True, exist_ok=True)
     for f in pasta.glob("*.html"):
@@ -651,6 +655,10 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
         cota_p = next((cota[i] for i in p["idx"] if i in (cota or {})), "")
         receita_p = next((receita[i] for i in p["idx"] if i in (receita or {})), "")
         projetos_p = next((projetos[i] for i in p["idx"] if i in (projetos or {})), "")
+        if noticias is not None:
+            todas = temas.juntar(rec, pat, *(nts for _, nts in empresas), limite=MAX_ABA)
+            aviso = rec if isinstance(rec, str) and isinstance(pat, str) else None
+            noticias.update({i: todas or aviso or [] for i in p["idx"]})
         (pasta / f"{s}.html").write_text(pagina(tpl, p["linhas"], p["q"], rec, pat, empresas, gerado, transp, bens, cota_p,
                                                 receita_p, projetos_p),
                                          encoding="utf-8")

@@ -120,7 +120,7 @@ svg .g-txt{fill:var(--fg)}svg .g-mut{fill:var(--mut)}svg .g-eixo{stroke:var(--li
 svg polyline.g-txt,svg path.g-txt,svg line.g-txt{fill:none;stroke:var(--fg)}
 svg .nv-forte{fill:var(--forte)}svg .nv-atencao{fill:var(--atencao)}svg .nv-informativo{fill:var(--info)}
 svg .g-hachura{color:var(--card)}svg .g-padrao{opacity:.45}  /* cor da hachura vem do <pattern>, nunca dar fill ao .g-padrao */
-svg .g-coluna{fill:var(--info)}.grafico{max-width:720px}
+svg .g-coluna{fill:var(--info)}.grafico{max-width:720px}.g-pct{max-width:520px}
 svg .tag-politico{fill:var(--t-politico)}svg .tag-eleitoral{fill:var(--t-eleitoral)}svg .tag-legislativo{fill:var(--t-legislativo)}
 svg .tag-gestao{fill:var(--t-gestao)}svg .tag-patrimonial{fill:var(--t-patrimonial)}svg .tag-judicial{fill:var(--t-judicial)}
 svg .tag-criminal{fill:var(--t-criminal)}svg .tag-outros{fill:var(--t-outros)}
