@@ -503,7 +503,7 @@ const PRES=p=>`<div class="faixa-pres"><span class="avatar g" aria-hidden="true"
 const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
 const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}${p.presidente?" presidente":p.vice?" vice":""}">${TOPO(p)?PRES(p):""}<div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b>${NV[p.nivel]?`<span class="chip nv-${p.nivel}" role="img" aria-label="${NV[p.nivel]}: o patrimônio aumentou ${VO(p.maior)}" title="${NV[p.nivel]}${p.per.length>1?` no período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})`:""}. Veja a fórmula em Como ler os números">${NV[p.nivel]}</span>`:""}</div>
 <p class="resumo">${CPU_RES(p)}</p>
-<p class="valor">${AUM(p)}<span>vezes o valor original: quanto o patrimônio aumentou de ${p.ano_ini} a ${p.ano_fim}</span></p>
+<p class="valor">${AUM(p)}<span>foi quanto o patrimônio aumentou de ${p.ano_ini} a ${p.ano_fim}, em vezes o valor original</span></p>
 ${FATOS(p)}${MARCAS(p)}${DET(p)}
 <div class="pe"><p class="links">${LK(p)}</p><button type="button" class="ver" aria-expanded="false" data-rot="${ROT_VER}"${p.per.length>1?` title="Números do cálculo e os ${p.per.length} períodos"`:""}>${ROT_VER}<span aria-hidden="true"> ▾</span></button></div></li>`;
 // parlamentares exemplares: um card por pessoa (nome + UF), periodos agrupados
