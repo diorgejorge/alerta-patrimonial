@@ -10,6 +10,7 @@
 <link rel="apple-touch-icon" href="logo.png">
 <link rel="stylesheet" href="estilo.css">
 <script src="selo.js" defer></script>
+<script src="representantes.js" defer></script>
 <style>
 main{max-width:1100px;margin:0 auto}
 .barra{display:flex;gap:10px;flex-wrap:wrap;margin:1em 0}input,select{font:inherit;padding:.45em 1em;border:1px solid var(--line);border-radius:999px;box-shadow:var(--elev);background:var(--card);color:var(--fg)}input:focus,select:focus{border-color:var(--caramelo)}
@@ -93,6 +94,21 @@ button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 .leve ul{list-style:none;padding:0;margin:.3em 0 0;font-size:.875rem;font-variant-numeric:tabular-nums}.leve ul li{padding:.15em 0;border-top:1px solid var(--line)}
 .leve .tags{margin:.3em 0}.leve .links{margin:.2em 0 0;font-size:.9rem}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
+/* meus representantes (#59): bloco em destaque antes das abas; mini cards com foto, numeros e links */
+.meus{margin:.8em 0 0;padding:1em 1.2em;border:1px solid var(--line);border-left:4px solid var(--ouro);border-radius:var(--raio);background:var(--card);box-shadow:var(--elev)}
+.meus-topo{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;justify-content:space-between}.meus-topo>div{flex:1 1 320px}
+.meus h2{margin:0;font-size:1.25rem}.meus-topo p{margin:.2em 0 0;color:var(--mut);font-size:.9rem}.meus select{flex:0 1 260px;font-weight:600}
+.meus.escolhido select{border-color:var(--ouro)}
+.rep-resumo{margin:.8em 0 .4em}.rep-acoes{display:flex;flex-wrap:wrap;gap:8px;margin:.4em 0 .6em}.rep-acoes .botao{text-decoration:none}
+.rep-grupo h3{margin:.9em 0 .4em;font-size:1rem}.rep-grupo h3 small{font-weight:400}
+.rep-lista{list-style:none;margin:0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
+.rep-grupo.curto .rep:nth-child(n+7){display:none}
+.rep{display:flex;gap:12px;align-items:flex-start;padding:.7em .9em;border:1px solid var(--line);border-radius:14px;background:var(--realce);content-visibility:auto;contain-intrinsic-size:auto 140px}
+.rep-txt{min-width:0;flex:1}.rep p{margin:0}.rep-nome small{display:block}.rep .tags{margin:.3em 0 0;display:flex;flex-wrap:wrap;gap:4px}
+.rep-num{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin:.4em 0 0;font-size:.8125rem;font-variant-numeric:tabular-nums}
+.rep-num dt{color:var(--mut)}.rep-num dd{margin:0;font-weight:600}.rep-num small{display:block;font-weight:400}.rep-num .acima{color:var(--atencao)}
+.rep-links{font-size:.875rem}.meus .fonte{font-size:.8125rem;margin:.8em 0 0}
+@media (max-width:599.98px){.rep-grupo.curto .rep:nth-child(n+4){display:none}.meus{padding:.9em}.meus select{flex:1 1 100%}.rep-num{grid-template-columns:1fr}}
 /* layout (#52): topo curto, abas fixas, filtros e ajudas recolhidos; o detalhe abre quando a pessoa pede */
 /* cabecalho: logo grande, faixa marinho com borda ouro, sem contorno no titulo; a frase de abertura fica dentro */
 .marca{gap:28px;padding:28px 32px;border-radius:28px}
@@ -143,6 +159,10 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <p class="acoes"><a id="sug-noticia" target="_blank" rel="noopener">Sugerir fonte de notícias</a><a id="sug-dados" target="_blank" rel="noopener">Sugerir fonte de dados</a><a id="sug-lista" target="_blank" rel="noopener">Ver sugestões enviadas</a></p>
 <small>As sugestões são feitas pelo GitHub (é preciso ter conta), ficam públicas e só entram no site depois de revisadas.</small></section>
 </details>
+<section class="meus" id="meus" aria-labelledby="meus-tit" hidden><div class="meus-topo"><div><h2 id="meus-tit">Quem representa você</h2>
+<p>Escolha seu estado e veja quem foi eleito por ele e está no cargo hoje. A escolha fica guardada só neste navegador.</p></div>
+<select id="meu-uf" aria-label="Seu estado"><option value="">Escolha seu estado</option></select></div>
+<div id="meus-corpo" aria-live="polite"></div></section>
 <nav class="abas-site" id="abas" role="tablist" aria-label="Seções do painel" hidden></nav>
 <section id="destaques" class="painel-aba" aria-label="Destaques">
 <div class="barra">

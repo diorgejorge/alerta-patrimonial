@@ -20,6 +20,7 @@ from ids import Ids, varrer
 from cache import Cache, salvar_resultados
 import cifra
 import paginas
+import representantes, shutil
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE, DOCS, CFG = ROOT / "data" / "cache", ROOT / "docs", ROOT / "config"
@@ -707,6 +708,14 @@ def main():
                                                                   ensure_ascii=False), encoding="utf-8")
     except Exception as ex:
         print(f"[aviso] base do dossie por estado falhou ({ex!r})", file=sys.stderr)
+    # meus representantes (#59): um arquivo leve por estado, baixado so quando o visitante escolhe o estado
+    try:
+        parl_uf, tse_uf, ano_est = (representantes.demo() if args.demo else
+                                    (parl, *representantes.eleitos(serie, link_tse, link_foto, pag)))
+        dados["representantes"] = representantes.gravar(docs, parl_uf, tse_uf, dados["gerado_em"], ano_est)
+        shutil.copyfile(ROOT / "src" / "representantes.js", docs / "representantes.js")
+    except Exception as ex:  # nunca derruba o painel: sem os arquivos, o bloco mostra "Fonte não encontrada"
+        print(f"[aviso] meus representantes falhou ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)
     # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
     dados["alertas"].sort(key=lambda a: (-(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
