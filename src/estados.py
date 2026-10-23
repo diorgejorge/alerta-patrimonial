@@ -669,9 +669,9 @@ def secao_receita(f, emd):
 
 
 def carimbo(texto=CARIMBO, pequeno=False):
-    """Selo de cera (animado em estado.html) com o texto ao lado."""
-    return (f'<span class="carimbo{" p" if pequeno else ""}"><span class="cera" aria-hidden="true">!</span>'
-            f'<span class="txt">{e(texto)}</span></span>')
+    """Selo de cera comum do site (estilo.css + selo.js) com o texto ao lado."""
+    return (f'<span class="selo-cera alerta-cera{" p" if pequeno else ""}"><span class="cera" aria-hidden="true">'
+            f'<span>!</span></span><span class="rot">{e(texto)}</span></span>')
 
 
 def _carimbada(d):
