@@ -6,24 +6,29 @@ import re, unicodedata
 
 MAX_TAGS = 3
 OUTROS = "outros"
-# radicais sem acento e em minusculas; \b no inicio, sufixo livre so onde termina em \w*
+# radicais sem acento e em minusculas, com \b nos dois lados; "_" junta expressoes de mais de uma palavra.
+# Inclui termos em ingles (Google News exterior) e siglas de partido
 PALAVRAS = {
     "politico": r"partid\w* filiad\w* filiacao ministr\w* planalto oposicao alianca aliad\w* centrao lideranca"
-                r" lider governista articulacao federacao bancada",
-    "eleitoral": r"eleic\w* eleitora\w* reeleic\w* candidat\w* campanha\w* votos? urnas? tse tre turno"
-                 r" coligac\w* intencao pesquisa\w* debate\w*",
-    "legislativo": r"projetos? lei pec pls? plenario camara senado assembleia comissao\w* cpi cpmi emendas?"
-                   r" relator\w* votac\w* aprov\w* veto\w* sancion\w* medida provisoria mp tramitac\w*",
+                r" lider governista articulacao federacao bancada apoio governo pt pl mdb psdb psd pp psol pdt psb"
+                r" pcdob republicanos podemos avante solidariedade cidadania uniao_brasil party",
+    "eleitoral": r"eleic\w* eleit\w* reeleit\w* reeleic\w* candidat\w* campanha\w* votos? urnas? tse tre turno"
+                 r" coligac\w* intencao pesquisa\w* debate\w* elect\w* vote\w* voters?",
+    "legislativo": r"projetos?_de_lei pec plenario camara senado assembleia comissao\w* cpi cpmi emendas?"
+                   r" relator\w* votac\w* aprov\w* veto\w* sancion\w* medida_provisoria tramitac\w* congress\w*"
+                   r" lawmakers? senate",
     "gestao": r"prefeitura\w* secretari\w* obras? saude educacao orcamento\w* licitac\w* contrat\w* investiment\w*"
               r" gestao administracao programa\w* hospita\w* escolas? verbas? repass\w* recursos",
     "patrimonial": r"patrimoni\w* bens imove\w* imovel fazendas? enriquec\w* empresas? socios? socia heranca"
-                   r" mansao fortuna milionari\w* declaracao",
+                   r" mansao fortuna milionari\w* declaracao_de_bens wealth assets",
     "judicial": r"justica juiz\w* tribuna\w* stf stj tcu processo\w* acao reu re denunci\w* conden\w* inelegiv\w*"
-                r" julgament\w* sentenca liminar recurso\w* improbidade ministerio publico mpf",
+                r" julgament\w* sentenca liminar recurso\w* improbidade ministerio_publico mpf court judge\w*",
     "criminal": r"policia\w* pf operac\w* pris\w* pres[oa]s? crimes? criminos\w* corrupc\w* lavagem desvi\w*"
-                r" propinas? fraude\w* homicidi\w* violencia seguranca trafic\w* milicia\w* investigad\w*",
+                r" propinas? fraude\w* homicidi\w* violencia seguranca trafic\w* milicia\w* investigad\w*"
+                r" police arrest\w* corruption scandal\w*",
 }
-REGRAS = {t: re.compile(r"\b(?:" + "|".join(p.split()) + r")\b") for t, p in PALAVRAS.items()}
+REGRAS = {t: re.compile(r"\b(?:" + "|".join(w.replace("_", " ") for w in p.split()) + r")\b")
+          for t, p in PALAVRAS.items()}
 ORDEM = (*PALAVRAS, OUTROS)
 
 

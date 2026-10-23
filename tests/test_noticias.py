@@ -27,9 +27,20 @@ def nt(titulo, link, data=D, tags=None):
     ("STF julga recurso e mantém condenação", "judicial"),
     ("Prefeitura abre licitação para obras no hospital", "gestao"),
     ("Partido anuncia que senador será líder da bancada", "politico"),
+    ("Fulano é eleito deputado federal em Roraima", "eleitoral"),
+    ("Fulano (PL) recebe apoio do governo", "politico"),
+    ("Brazilian lawmaker elected again", "eleitoral"),
+    ("Brazil police arrest congressman in corruption scandal", "criminal"),
 ])
+
 def test_classificar_tag_principal(titulo, tag):
     assert temas.classificar(titulo)[0] == tag
+
+
+def test_expressao_de_varias_palavras_so_casa_inteira():
+    assert temas.classificar("Medida provisória chega ao plenário")[0] == "legislativo"
+    assert temas.classificar("Ministério Público denuncia vereador")[0] == "judicial"
+    assert temas.classificar("Evento público na praça") == ["outros"]
 
 
 def test_classificar_sem_palavra_e_outros_e_vazio():
