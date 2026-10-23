@@ -471,10 +471,7 @@ def periodo(a):
                  + (f'; destaque reduzido de {e(NV.get(a.get("nivel_calculado"), ""))}'
                     if a.get("nivel_calculado") and a.get("nivel_calculado") != a.get("nivel") else "") + "</small>")
     return (f"<tr><td>{a['ano_ini']}–{a['ano_fim']}{novo}<br><small>{e(cap(a.get('cargo')))}</small></td>"
-            f'<td class="n" data-label="Patrimônio no início">{brl(a.get("pat_ini"))}</td>'
-            f'<td class="n" data-label="Patrimônio no fim">{brl(a.get("pat_fim"))}</td>'
-            f'<td class="n" data-label="Crescimento">{brl(a.get("cresc"))}</td>'
-            f'<td class="n" data-label="Daria para guardar somente com o salário">{brl(a.get("cap"))}</td>'
+            f'<td class="n" data-label="Aumento do patrimônio">{graficos.variacao(a.get("pat_fim"), a.get("pat_ini"))}</td>'
             f'<td class="n" data-label="Cresceu quantas vezes isso">{rz}</td>'
             f'<td class="n" data-label="Entre colegas do mesmo cargo">{pc}</td>'
             f'<td class="nivel {e(nv)}" data-label="Faixa">{e(NV.get(nv, nv))}</td></tr>')
@@ -493,7 +490,7 @@ def compra(cresc, bens):
                 if url_ok(b.get("link")) and b["link"].startswith("https://") else "")
         li.append(f'<li><b>{qtd}</b> {e(nome or b["singular"])}<br><small>{brl(b["preco"])} cada · '
                   f'{e(b.get("referencia") or "")}{link}</small></li>')
-    return (f'<h3>Com o crescimento de {brl(cresc)} no período mais recente daria para comprar</h3>'
+    return ('<h3>Com o crescimento do patrimônio no período mais recente daria para comprar</h3>'
             f'<ul class="nt">{"".join(li)}</ul><p><small>Preços de referência de {e(bens.get("atualizado_em") or "")}; '
             f'podem mudar. {e(bens.get("aviso") or "")}</small></p>')
 

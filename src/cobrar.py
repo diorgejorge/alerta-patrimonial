@@ -5,6 +5,7 @@ Nada aqui consulta a rede: os contatos chegam prontos (contatos.py)."""
 import html, json, re, urllib.parse
 from estados import UFS
 from texto import cap, de_estado
+import graficos
 
 e = html.escape
 TSE_DADOS = "https://dadosabertos.tse.jus.br/"
@@ -35,7 +36,9 @@ def resumo(linhas):
     caps = [_num(a.get("cap")) for a in per]
     total = sum(c for c in cresc if c is not None) if any(c is not None for c in cresc) else None
     guardar = sum(caps) if caps and all(c is not None and c > 0 for c in caps) else None
+    ini = _num(per[0].get("pat_ini"))
     return dict(ano_ini=per[0].get("ano_ini"), ano_fim=per[-1].get("ano_fim"), cresc=total, cap=guardar,
+                aumento=None if total is None or ini is None else graficos.variacao(ini + total, ini),  # #62: sem reais
                 razao=total / guardar if guardar and total and total > 0 else None,
                 tse=next((a["link_tse"] for a in reversed(per) if str(a.get("link_tse") or "").startswith("https://")),
                          None))
@@ -56,12 +59,10 @@ def texto(nome, uf, r, cota=None, projetos=None):
     pontos = []
     cresceu = r.get("cresc") is not None and r["cresc"] > 0
     if cresceu:
-        p = (_vi("no site do TSE", r.get("tse")) + f" que seu patrimônio declarado aumentou {brl(r['cresc'])} de "
-             f"{r['ano_ini']} a {r['ano_fim']}.")
-        if r.get("cap"):
-            p += f" Só com o salário do cargo, daria para guardar {brl(r['cap'])}."
-            if r.get("razao") and r["razao"] >= 1.05:
-                p += f" O aumento foi {vezes(r['razao'])} vezes isso."
+        p = _vi("no site do TSE", r.get("tse")) + " que seu patrimônio declarado aumentou" + (
+            f" {r['aumento']}" if r.get("aumento") and r["aumento"][0] in "+−" else "") + f" de {r['ano_ini']} a {r['ano_fim']}."
+        if r.get("razao") and r["razao"] >= 1.05:
+            p += f" O aumento foi {vezes(r['razao'])} vezes o que daria para guardar somente com o salário do cargo."
         pontos.append(p)
     if cota and _num(cota.get("total")):
         pontos.append(_vi(f"nos dados abertos {_da_casa('camara.leg.br' in str(cota.get('link')))}", cota.get("link"))
@@ -146,11 +147,8 @@ def imagem(linhas):
     topo = max(linhas, key=lambda a: a.get("ano_fim") or 0)
     r = resumo(linhas)
     numeros = []
-    if r["cresc"] is not None:
-        numeros.append([("+" if r["cresc"] > 0 else "−" if r["cresc"] < 0 else "") + brl(abs(r["cresc"])),
-                        f"a mais no patrimônio de {r['ano_ini']} a {r['ano_fim']}"])
-    if r["cap"]:
-        numeros.append([brl(r["cap"]), "daria para guardar somente com o salário"])
+    if r["aumento"]:
+        numeros.append([r["aumento"], f"no patrimônio de {r['ano_ini']} a {r['ano_fim']}"])
     if r["razao"]:
         numeros.append([vezes(r["razao"]) + "×", "o que daria para guardar somente com o salário"])
     ficha = " · ".join(str(x) for x in (cap(topo.get("cargo")), topo.get("partido"), topo.get("uf")) if x)

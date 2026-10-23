@@ -206,7 +206,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <div id="vz" class="vazio" hidden>O Caramelo não farejou nenhum destaque com este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
 <details class="dados" id="tabela"><summary>Ver todos em tabela</summary>
-<div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Tags <small>(clique para filtrar)</small></th><th>Período</th><th class="n">Patrimônio no início</th><th class="n">Patrimônio no fim</th><th class="n">Crescimento</th><th class="n" title="Quanto a pessoa conseguiria guardar no período só com o salário do cargo">Daria para guardar<br><small>com o salário</small></th><th class="n" title="Crescimento dividido pelo que daria para guardar somente com o salário">Cresceu quantas<br><small>vezes isso</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Entre colegas<br><small>do mesmo cargo</small></th><th>Faixa</th></tr></thead><tbody id="tb"></tbody></table></div></details>
+<div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Tags <small>(clique para filtrar)</small></th><th>Período</th><th class="n" title="Quanto o patrimônio declarado ao TSE aumentou, em porcentagem">Aumento do<br><small>patrimônio</small></th><th class="n" title="Crescimento dividido pelo que daria para guardar somente com o salário">Cresceu quantas<br><small>vezes isso</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Entre colegas<br><small>do mesmo cargo</small></th><th>Faixa</th></tr></thead><tbody id="tb"></tbody></table></div></details>
 </section>
 <section id="exemplares" class="painel-aba" hidden><h2><span class="estrela"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg></span> Parlamentares exemplares</h2>
 <p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência. Fontes: <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">TSE</a>, <a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener">Câmara dos Deputados</a>, <a href="https://www12.senado.leg.br/dados-abertos" target="_blank" rel="noopener">Senado Federal</a> e <a href="https://portaldatransparencia.gov.br/" target="_blank" rel="noopener">Portal da Transparência</a>.</p>
@@ -350,7 +350,6 @@ function tip(ev,x){
   const t=$("tip");t.replaceChildren(el("b",null,x.k+(x.outros?"":"")));
   const lin=(rot,val,cls)=>{const d=el("div"),s=el("span");if(cls){const k=el("s");k.style.background=COR(cls);s.append(k);}s.append(rot);d.append(s,el("strong",null,val));t.append(d);};
   lin("Pessoas",x.n.toLocaleString("pt-BR"));for(const n of NIVEIS)if(x[n])lin(NV[n],x[n].toLocaleString("pt-BR"),n);
-  lin("Crescimento somado",RC(x.cresc));
   t.hidden=false;const r=ev.target.closest(".trilho").getBoundingClientRect(),w=t.offsetWidth;
   t.style.left=Math.max(8,Math.min(innerWidth-w-8,(ev.clientX??r.left+r.width/2)-w/2))+"px";
   t.style.top=(r.top-t.offsetHeight-8<8?r.bottom+8:r.top-t.offsetHeight-8)+"px";
@@ -383,16 +382,16 @@ function grafico(id,dim,max){
   return l;
 }
 function tabela(id,titulo,l){
-  const t=el("table"),h=el("tr");for(const c of [titulo,"Pessoas",NV.forte,NV.atencao,NV.informativo,NV.sem_salario,"Crescimento somado"])h.append(el("th",c===titulo?null:"n",c));
-  const tb=el("tbody");for(const x of l){const r=el("tr");r.append(el("td",null,x.k));for(const c of ["n",...NIVEIS])r.append(el("td","n",x[c].toLocaleString("pt-BR")));r.append(el("td","n",R(x.cresc)));tb.append(r);}
+  const t=el("table"),h=el("tr");for(const c of [titulo,"Pessoas",NV.forte,NV.atencao,NV.informativo,NV.sem_salario])h.append(el("th",c===titulo?null:"n",c));
+  const tb=el("tbody");for(const x of l){const r=el("tr");r.append(el("td",null,x.k));for(const c of ["n",...NIVEIS])r.append(el("td","n",x[c].toLocaleString("pt-BR")));tb.append(r);}
   const th=el("thead");th.append(h);t.append(th,tb);$(id).replaceChildren(t);
 }
 function painel(rows){
   // rows = pessoas; o crescimento de cada pessoa e a soma dos seus periodos
-  const cr=rows.reduce((s,p)=>s+(p.cresc||0),0),n=nv=>rows.filter(p=>p.nivel===nv).length.toLocaleString("pt-BR");
+  const n=nv=>rows.filter(p=>p.nivel===nv).length.toLocaleString("pt-BR");
   const k=$("kpis");k.replaceChildren();
   for(const [v,r] of [[rows.length.toLocaleString("pt-BR"),"Pessoas em destaque"],[n("forte"),NV.forte],[n("atencao"),NV.atencao],
-    [RC(cr),"Crescimento patrimonial somado"]]){
+    [n("informativo"),NV.informativo]]){
     const d=el("div","kpi");d.append(el("b",null,v),el("span",null,r));k.append(d);}
   tabela("tp","Partido",grafico("gp","partido",0));tabela("tu","UF",grafico("gu","uf",0));
   const c=$("chips");c.replaceChildren();
@@ -428,8 +427,8 @@ const TAGS=p=>{const rd=p.per.find(a=>a.nivel_calculado&&a.nivel_calculado!==a.n
   +CPU(p);};
 // cards em lotes de PAG pessoas (pagina leve); a tabela completa so e montada quando aberta
 const PAG=24;let ROWS=[],VIS=0;
-const CR=a=>`<p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>`;
-const DL=a=>`<dl><div><dt>Daria para guardar somente com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Cresceu quantas vezes isso</dt><dd>${VZ(a.razao)}</dd></div><div class="col"><dt>Entre colegas do mesmo cargo</dt><dd>${COL(a,1)}</dd></div></dl>`;
+const CR=a=>`<p class="cresc"><small>Aumento do patrimônio</small><b>${PCTA(a)||"Não informado"}</b></p>`;
+const DL=a=>`<dl><div><dt>Cresceu quantas vezes isso</dt><dd>${VZ(a.razao)}</dd></div><div class="col"><dt>Entre colegas do mesmo cargo</dt><dd>${COL(a,1)}</dd></div></dl>`;
 // um periodo dentro do card (so para quem tem mais de um): anos, cargo (e partido, se mudou), numeros e TSE;
 // o chip de nivel so aparece no periodo de maior crescimento (classe maior)
 const PER=(a,p)=>`<li class="periodo"><span class="anos">${a.ano_ini}–${a.ano_fim}</span> <span class="cargo">${esc(a.cargo||"Não informado")}${p.partidos.length>1&&a.partido?` · ${esc(a.partido)}`:""}</span>
@@ -534,7 +533,7 @@ function tabelaToda(){
   if(!$("tabela").open)return;
   // uma linha por pessoa; com varios periodos, cada celula traz uma linha por periodo, na mesma ordem da coluna Periodo
   const L=(p,f)=>p.per.map(f).join("<br>");
-  document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar">${ICO.estrela}</span> `:""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Patrimônio no início"><span>${L(p,a=>R(a.pat_ini))}</span></td><td class="n" data-label="Patrimônio no fim"><span>${L(p,a=>R(a.pat_fim))}</span></td><td class="n" data-label="Crescimento"><span>${p.per.length>1?`<b>${R(p.cresc)}</b><br><small>${L(p,a=>`${a.ano_ini}–${a.ano_fim}: ${R(a.cresc)}`)}</small>`:R(p.cresc)}</span></td><td class="n" data-label="Daria para guardar somente com o salário"><span>${L(p,a=>R(a.cap))}</span></td><td class="n" data-label="Cresceu quantas vezes isso"><span>${L(p,a=>VZ(a.razao))}</span></td><td class="n" data-label="Entre colegas do mesmo cargo"><span>${L(p,a=>COL(a,1))}</span></td><td class="nivel ${p.nivel||""}" data-label="Faixa"><span>${NV[p.nivel]||"Sem faixa"}${p.per.length>1?`<br><small>maior crescimento: ${p.maior.ano_ini}–${p.maior.ano_fim}</small>`:""}</span></td></tr>`).join("");
+  document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar">${ICO.estrela}</span> `:""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Aumento do patrimônio"><span>${p.per.length>1?`<b>${PCTA(p)||"Não informado"}</b><br><small>${L(p,a=>`${a.ano_ini}–${a.ano_fim}: ${PCTA(a)||"Não informado"}`)}</small>`:PCTA(p)||"Não informado"}</span></td><td class="n" data-label="Cresceu quantas vezes isso"><span>${L(p,a=>VZ(a.razao))}</span></td><td class="n" data-label="Entre colegas do mesmo cargo"><span>${L(p,a=>COL(a,1))}</span></td><td class="nivel ${p.nivel||""}" data-label="Faixa"><span>${NV[p.nivel]||"Sem faixa"}${p.per.length>1?`<br><small>maior crescimento: ${p.maior.ano_ini}–${p.maior.ano_fim}</small>`:""}</span></td></tr>`).join("");
 }
 // lista completa leve (#43): docs/todos.json so e baixado quando o leitor abre a lista
 // pessoa: [nome publico, nome civil, pagina do dossie, marcas ("e" exemplar, "s" selo), periodos]
@@ -581,10 +580,11 @@ function todosDraw(){
   TV=0;$("todos-lista").replaceChildren();todosMais();
 }
 const TLK=s=>/^https:\/\//.test(TD.link_tse||"")&&/^[A-Z]+\/[A-Z]{2}\/\d+\/\d+\/\d{4}\/\w+$/.test(s||"")?TD.link_tse+s:"";
-const VAR=v=>(v>0?"+":"")+R(v);
+// lista completa: so a variacao em porcentagem (#62: sem valores em reais do patrimonio)
+const VAR=(ini,fim)=>ini==null||fim==null?"Não informado":PCTA({cresc:fim-ini,pat_ini:ini})||"Não informado";
 const LEVE=p=>`<li class="leve"><div class="topo"><span><b>${p.m.includes("e")?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(p.n)}</b>${p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:""}${p.c?`<br><small>${esc(p.c)}</small>`:""}</span><span class="chip${p.nv?` nv-${TNC[p.nv]}`:""}">${TN[p.nv]}</span></div>
 <p class="tags">${p.m.includes("s")?`<span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos">${ICO.pata} Mão na massa</span>`:""}${[...p.cg,...p.pt,...p.uf].map(v=>`<span class="tag">${esc(v)}</span>`).join("")}</p>
-<ul>${p.per.map(x=>{const l=TLK(x[8]);return`<li>${x[0]}–${x[1]}${p.per.length>1?` · ${esc(TD.cargos[x[2]])}`:""}: patrimônio ${R(x[5])} → ${R(x[6])}, variação ${VAR(x[6]-x[5])}${l?` · <a href="${esc(l)}" target="_blank" rel="noopener" title="Declaração no DivulgaCandContas (TSE), ${x[0]}–${x[1]}">TSE</a>`:" · TSE: Não informado"}</li>`;}).join("")}</ul>
+<ul>${p.per.map(x=>{const l=TLK(x[8]);return`<li>${x[0]}–${x[1]}${p.per.length>1?` · ${esc(TD.cargos[x[2]])}`:""}: patrimônio ${VAR(x[5],x[6])}${l?` · <a href="${esc(l)}" target="_blank" rel="noopener" title="Declaração no DivulgaCandContas (TSE), ${x[0]}–${x[1]}">TSE</a>`:" · TSE: Não informado"}</li>`;}).join("")}</ul>
 ${REL(p.pg)?`<p class="links"><a class="lk" href="${esc(p.pg)}">Dossiê</a></p>`:""}</li>`;
 function todosMais(){
   const ate=Math.min(TL.length,TV+TPAG);$("todos-lista").insertAdjacentHTML("beforeend",TL.slice(TV,ate).map(LEVE).join(""));TV=ate;
@@ -695,10 +695,10 @@ function abas(){
   abrirAba(location.hash.slice(1),false,true);
 }
 // depois de filtrar (tag, legenda ou barra de grafico): volta aos destaques, na contagem
-// cabecalho: total de pessoas em destaque e quanto o patrimonio delas cresceu somado
+// cabecalho: total de pessoas em destaque e quantas cresceram mais do que o salario permitiria (sem valores em reais, #62)
 function heroNum(){
-  const cr=PES.reduce((s,p)=>s+(p.cresc>0?p.cresc:0),0),b=$("hero-num");
-  b.innerHTML=`<div><dd>${PES.length.toLocaleString("pt-BR")}</dd><dt>pessoas em destaque</dt></div><div><dd>${RC(cr)}</dd><dt>a mais no patrimônio, somado</dt></div>`;
+  const mais=PES.filter(p=>p.per.some(a=>a.razao>1)).length,b=$("hero-num");
+  b.innerHTML=`<div><dd>${PES.length.toLocaleString("pt-BR")}</dd><dt>pessoas em destaque</dt></div><div><dd>${mais.toLocaleString("pt-BR")}</dd><dt>cresceram mais do que daria para guardar somente com o salário</dt></div>`;
   b.hidden=!PES.length;
 }
 function verDestaques(){if(ABA&&ABA!=="destaques")abrirAba("destaques");$("contagem").scrollIntoView({behavior:"smooth",block:"start"});}

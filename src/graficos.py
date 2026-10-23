@@ -210,8 +210,19 @@ def _escala(m):
     return passo, max(1, math.ceil(m / passo - 1e-9))
 
 
+def variacao(v, base):
+    """Variacao em porcentagem de `base` ate `v` (#62: o site nao mostra o patrimonio em reais)."""
+    if _nulo(v) or _nulo(base):
+        return "Não informado"
+    if base <= 0:
+        return "começou do zero" if v > 0 else "0%"
+    pct = (v - base) / base * 100
+    return ("+" if round(pct) > 0 else "−" if round(pct) < 0 else "") + _num(abs(pct)) + "%"
+
+
 def patrimonio(pontos: list[tuple[int, float]], uid: str,
                titulo: str = "Patrimônio declarado por eleição") -> str:
+    """Colunas na proporcao do patrimonio, rotuladas pela variacao desde a primeira eleicao, sem valores em reais."""
     pts = _pontos(pontos)
     if not pts:
         return VAZIO_PATRIMONIO
@@ -223,24 +234,25 @@ def patrimonio(pontos: list[tuple[int, float]], uid: str,
     alt = H - TOPO - BAIXO
     passo, k = _escala(max(v for _, v in pts))
     topo = passo * k
+    base = pts[0][1]
+    rotulos = ["início"] + [variacao(v, base) for _, v in pts[1:]]
     if n == 1:
-        desc = f"Eleição de {pts[0][0]}: {brl_compacto(pts[0][1])}."
+        desc = f"Só há a declaração da eleição de {pts[0][0]}."
     else:
-        desc = (f"Colunas por eleição, de {pts[0][0]} a {pts[-1][0]}. "
-                + "; ".join(f"{a}: {brl_compacto(v)}" for a, v in pts) + ".")
+        desc = (f"Colunas por eleição, de {pts[0][0]} a {pts[-1][0]}, com a variação desde {pts[0][0]}. "
+                + "; ".join(f"{a}: {rot}" for (a, _), rot in zip(pts, rotulos)) + ".")
     partes = [_abre(p, W, H, titulo, desc, "g-patrimonio")]
     for i in range(k + 1):  # grade
         y = TOPO + alt - passo * i / topo * alt
-        partes += [f'<line x1="{ESQ}" y1="{_n(y)}" x2="{W - DIR}" y2="{_n(y)}" class="g-eixo" '
-                   'stroke="currentColor" stroke-width="1"/>',
-                   _texto(ESQ - 6, y, brl_compacto(passo * i), "g-mut", "end", ' font-size="10"')]
+        partes.append(f'<line x1="{ESQ}" y1="{_n(y)}" x2="{W - DIR}" y2="{_n(y)}" class="g-eixo" '
+                      'stroke="currentColor" stroke-width="1"/>')
     cw = min(40, slot * .6)
     fs = "11" if slot >= 60 else "10"
     for i, (ano, v) in enumerate(pts):
         cx = ESQ + slot * (i + .5)
         hv = max(2.0, max(v, 0) / topo * alt)
         y = TOPO + alt - hv
-        rot = brl_compacto(v) if slot >= 60 else brl_compacto(v).replace("R$ ", "")  # eixo ja diz R$
+        rot = rotulos[i]
         partes += [f'<path d="{_ponta_topo(cx - cw / 2, y, cw, hv)}" class="g-coluna" fill="currentColor"/>',
                    _texto(cx, y - 7 - (12 if escalona and i % 2 else 0), rot, ancora="middle",
                           extra=f' font-size="{fs}"'),
@@ -253,19 +265,10 @@ def tabela_patrimonio(pontos: list[tuple[int, float]],
     pts = _pontos(pontos)
     if not pts:
         return ""
-    linhas, ant = [], None
-    for ano, v in pts:
-        if ant is None:
-            var = "—"
-        else:
-            dif = v - ant
-            var = ("+" if round(dif) > 0 else "") + brl(dif)
-            if ant > 0:
-                pct = dif / ant * 100
-                var += f" ({'+' if pct > 0 else ''}{_num(pct, 1)}%)"
-        linhas.append((str(ano), brl(v), var))
-        ant = v
-    return _tabela(titulo, ("Eleição", "Patrimônio declarado", "Variação sobre a eleição anterior"), linhas)
+    base = pts[0][1]
+    linhas = [(str(ano), "—" if i == 0 else variacao(v, pts[i - 1][1]), "início" if i == 0 else variacao(v, base))
+              for i, (ano, v) in enumerate(pts)]
+    return _tabela(titulo, ("Eleição", "Variação sobre a eleição anterior", f"Variação desde {pts[0][0]}"), linhas)
 
 
 # ---------------------------------------------------------------- 3. mini grafico de patrimonio
@@ -282,7 +285,7 @@ def mini_patrimonio(pontos: list[tuple[int, float]], uid: str) -> str:
         return M + (a - a0) / (a1 - a0) * (W - 2 * M), y
 
     coords = [xy(a, v) for a, v in pts]
-    rot = f"Patrimônio de {brl_compacto(v0)} em {a0} para {brl_compacto(v1)} em {a1}"
+    rot = f"Patrimônio declarado de {a0} a {a1}: {variacao(v1, v0)}"
     linha = " ".join(f"{_n(x)},{_n(y)}" for x, y in coords)
     x, y = coords[-1]
     return (f'<svg xmlns="http://www.w3.org/2000/svg" class="grafico g-mini" viewBox="0 0 {W} {H}" '

@@ -20,7 +20,8 @@ SENADO = {"DetalheParlamentar": {"Parlamentar": {
     "Telefones": {"Telefone": [{"NumeroTelefone": "33036100", "IndicadorFax": "Sim"},
                                {"NumeroTelefone": "33036200", "IndicadorFax": "Não"}]}}}}
 LINHA = dict(nome="MARIA DA SILVA", nome_urna="MARIA", cargo="DEPUTADO FEDERAL", partido="XX", uf="BA",
-             ano_ini=2018, ano_fim=2022, cresc=1_000_000.0, cap=200_000.0, nivel="forte",
+             ano_ini=2018, ano_fim=2022, pat_ini=500_000.0, pat_fim=1_500_000.0, cresc=1_000_000.0, cap=200_000.0,
+             nivel="forte",
              link_tse="https://divulgacandcontas.tse.jus.br/divulga/#/candidato/X")
 
 
@@ -99,8 +100,9 @@ def test_texto_na_voz_do_cidadao_com_link_oficial():
                      projetos=dict(casa="senado", apresentados=10, aprovados=2, de=2023, ate=2026,
                                    link="https://www25.senado.leg.br/p"))
     assert t.startswith("Prezado(a) Maria,") and "da Bahia" in t
-    assert f"Vi no site do TSE ({LINHA['link_tse']}) que seu patrimônio declarado aumentou R$ 1.000.000" in t
-    assert "R$ 200.000" in t and "5,0 vezes isso" in t
+    assert f"Vi no site do TSE ({LINHA['link_tse']}) que seu patrimônio declarado aumentou +200% de 2018 a 2022" in t
+    assert "5,0 vezes o que daria para guardar somente com o salário" in t
+    assert "R$ 1.000.000" not in t and "R$ 200.000" not in t  # #62: patrimonio sem valores em reais
     assert "Vi nos dados abertos da Câmara dos Deputados (https://www.camara.leg.br/cota)" in t
     assert "Vi no site do Senado Federal (https://www25.senado.leg.br/p)" in t and "10 projetos e 2 foram aprovados" in t
     assert not re.search(r"caramelo|github\.io", t, re.I)  # nunca cita o nosso site
@@ -144,9 +146,9 @@ def test_imagem_numeros_do_card_e_link_do_tse():
     d = cobrar.imagem([LINHA])
     assert d["url"] == LINHA["link_tse"] and "nivel" not in d and "github.io" not in json.dumps(d)
     assert d["fontes"] == "Fonte: declarações de bens entregues ao TSE e salário oficial do cargo."
-    assert [n[0] for n in d["numeros"]] == ["+R$ 1.000.000", "R$ 200.000", "5,0×"]
-    d = cobrar.imagem([dict(LINHA, cresc=-10.0, cap=None, link_tse=None)])
-    assert d["numeros"][0][0] == "−R$ 10" and d["url"] == cobrar.TSE_DADOS
+    assert [n[0] for n in d["numeros"]] == ["+200%", "5,0×"]
+    d = cobrar.imagem([dict(LINHA, cresc=-250_000.0, cap=None, link_tse=None)])
+    assert d["numeros"][0][0] == "−50%" and d["url"] == cobrar.TSE_DADOS
 
 
 # ---------- integracao: --demo ----------

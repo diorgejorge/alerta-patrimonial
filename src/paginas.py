@@ -13,10 +13,6 @@ NUM = ' class="n"'  # colunas numericas (alinhadas a direita)
 e = html.escape
 
 
-def brl(v):
-    return "Não informado" if v is None else "R$ " + f"{v:,.0f}".replace(",", ".")
-
-
 def vezes(v):
     return "Não informado" if v is None else f"{v:,.1f}".replace(",", "_").replace(".", ",").replace("_", ".") + "×"
 
@@ -84,17 +80,17 @@ def ler_vinculos(caminho=ROOT / "config" / "vinculos.csv"):
 
 # ---------------------------------------------------------------- pagina da pessoa
 def _tabela_periodos(linhas):
-    cab = ["Período", "Cargo", "Patrimônio no início", "Patrimônio no fim", "Crescimento",
-           "Daria para guardar somente com o salário", "Cresceu quantas vezes isso", "Entre colegas do mesmo cargo", "Faixa"]
+    cab = ["Período", "Cargo", "Aumento do patrimônio", "Cresceu quantas vezes isso", "Entre colegas do mesmo cargo",
+           "Faixa"]  # sem valores em reais do patrimonio (#62): quem quiser confere no TSE
     corpo = []
     for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0)):
-        cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(cap(a.get("cargo"))), brl(a.get("pat_ini")),
-               brl(a.get("pat_fim")), brl(a.get("cresc")), brl(a.get("cap")), vezes(a.get("razao")),
+        cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(cap(a.get("cargo"))),
+               graficos.variacao(a.get("pat_fim"), a.get("pat_ini")), vezes(a.get("razao")),
                graficos.regua_colegas(a), chip_nivel(a.get("nivel"))]
-        corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if 2 <= i <= 6 else ""}>{v}</td>'
+        corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if 2 <= i <= 3 else ""}>{v}</td>'
                                       for i, (c, v) in enumerate(zip(cab, cel))) + "</tr>")
     return ('<div class="tab"><table class="resp"><caption class="sr">Períodos em destaque</caption><thead><tr>'
-            + "".join(f'<th scope="col"{NUM if 2 <= i <= 6 else ""}>{e(c)}</th>' for i, c in enumerate(cab))
+            + "".join(f'<th scope="col"{NUM if 2 <= i <= 3 else ""}>{e(c)}</th>' for i, c in enumerate(cab))
             + "</tr></thead><tbody>" + "".join(corpo) + "</tbody></table></div>")
 
 
@@ -102,7 +98,7 @@ def _resumo(linhas):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("cresc") or 0))
     rz = max((a["razao"] for a in linhas if a.get("razao") is not None), default=None)
     kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "Não informado"), "Faixa mais alta"),
-            (brl(topo.get("cresc")), f"Crescimento em {topo.get('ano_ini')}–{topo.get('ano_fim')}"),
+            (graficos.variacao(topo.get("pat_fim"), topo.get("pat_ini")), f"Aumento do patrimônio em {topo.get('ano_ini')}–{topo.get('ano_fim')}"),
             (vezes(rz), "Maior “quantas vezes o possível”"),
             (str(len(linhas)), "Períodos em destaque")]
     html_kpis = '<div class="kpis">' + "".join(f'<div class="card kpi"><b>{e(v)}</b><span>{e(r)}</span></div>'

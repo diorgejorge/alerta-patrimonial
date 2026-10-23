@@ -143,7 +143,7 @@ def test_card_um_periodo_esconde_zeros_e_detalha_sob_demanda(abrir):
     det, ver = c.locator(".det"), c.locator("button.ver")
     assert ver.text_content().startswith("Detalhes") and ver.get_attribute("aria-expanded") == "false"
     assert "Nenhuma empresa declarada" in det.text_content() and "Cresceu quantas vezes isso" in det.text_content()
-    assert "R$" in det.text_content()  # valores exatos ficam nos detalhes
+    assert "R$" not in det.text_content() and "+100%" in det.text_content()  # #62: nenhum valor do patrimonio em reais
     assert not det.is_visible()
     ver.click()
     assert det.is_visible() and ver.get_attribute("aria-expanded") == "true"

@@ -154,15 +154,14 @@ def test_patrimonio_um_ponto():
     raiz = acessivel(s)
     assert s.count('class="g-coluna"') == 1
     tx = textos(raiz)
-    assert "2022" in tx and "R$ 1,2 mi" in tx
+    assert "2022" in tx and "início" in tx and not any("R$" in x for x in tx)  # #62: sem reais
 
 
 def test_patrimonio_bilhoes():
     s = g.patrimonio(PAT, "p")
     raiz = acessivel(s)
     tx = textos(raiz)
-    assert "R$ 4 bi" in tx and "R$ 0" in tx  # grade arredondada
-    assert "R$ 3,4 bi" in tx
+    assert not any("R$" in x for x in tx) and tx.count("início") == 1  # #62: so variacao, sem reais
     assert 3 <= s.count('class="g-eixo"') - 1 <= 4  # linhas acima do zero
     assert s.count('class="g-coluna"') == 3
 
@@ -183,10 +182,11 @@ def test_tabela_patrimonio():
     raiz = ET.fromstring(t)
     linhas = raiz.find("tbody").findall("tr")
     assert [l.find("th").text for l in linhas] == ["2018", "2022"]
-    assert [td.text for td in linhas[0].findall("td")] == ["R$ 100.000", "—"]
-    assert [td.text for td in linhas[1].findall("td")] == ["R$ 150.000", "+R$ 50.000 (+50,0%)"]
+    assert [td.text for td in linhas[0].findall("td")] == ["—", "início"]
+    assert [td.text for td in linhas[1].findall("td")] == ["+50%", "+50%"]
     t = g.tabela_patrimonio([(2018, 100_000), (2022, 0)])
-    assert "-R$ 100.000 (-100,0%)" in t
+    assert "−100%" in t and "R$" not in t
+    assert g.variacao(5, 0) == "começou do zero" and g.variacao(None, 1) == "Não informado"
 
 
 # ---------------------------------------------------------------- 3. mini
@@ -194,7 +194,7 @@ def test_mini_patrimonio():
     s = g.mini_patrimonio([(2018, 100_000), (2022, 150_000)], "m")
     raiz = svg(s)
     assert raiz.get("viewBox") == "0 0 96 28"
-    assert raiz.get("aria-label") == "Patrimônio de R$ 100 mil em 2018 para R$ 150 mil em 2022"
+    assert raiz.get("aria-label") == "Patrimônio declarado de 2018 a 2022: +50%"
     c = raiz.find(NS + "circle")
     assert c.get("r") == "3"
     assert raiz.find(NS + "polyline").get("stroke-width") == "2"
