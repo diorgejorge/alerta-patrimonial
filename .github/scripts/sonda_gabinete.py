@@ -1,41 +1,35 @@
-"""Sonda temporaria (#gabinete): verifica fontes oficiais da equipe de gabinete. Apagar depois."""
+"""Sonda temporaria (#66): verifica fontes oficiais da equipe de gabinete. Apagar depois."""
 import json, re, urllib.request
+from collections import Counter
 UA = {"User-Agent": "alerta-patrimonial/1.0", "Accept": "application/json, text/html, */*"}
 
 
-def get(url, n=600):
+def get(url):
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=90) as r:
             b = r.read()
-            print(f"\n=== {r.status} {url} ({len(b)} bytes, {r.headers.get('Content-Type')})")
+            print(f"\n=== {r.status} {url} ({len(b)} bytes)")
             return b.decode("utf-8", "replace")
     except Exception as ex:
         print(f"\n=== ERRO {url}: {ex}")
         return ""
 
 
-doc = get("https://dadosabertos.camara.leg.br/api/v2/api-docs")
-print(sorted(set(re.findall(r'"(/[a-zA-Z/{}]+)"\s*:', doc))))
-arq = get("https://dadosabertos.camara.leg.br/arquivos/")
-print(sorted(set(re.findall(r'arquivos/([A-Za-z]+)/', arq)))[:200])
-for ano in (2025, 2026):
-    h = get(f"https://www.camara.leg.br/deputados/204554/pessoal-gabinete?ano={ano}")
-    i = h.find("<table")
-    print(re.sub(r"\s+", " ", h[i:i + 3000]))
-    print("linhas tbody:", h.count("<tr") - 1)
-sen = get("https://adm.senado.gov.br/adm-dadosabertos/v3/api-docs")
-print(sorted(set(re.findall(r'"(/api/[^"]+)"\s*:', sen))))
-s = get("https://adm.senado.gov.br/adm-dadosabertos/api/v1/servidores/servidores")
-try:
-    d = json.loads(s)
-    print(type(d), len(d))
-    print(json.dumps(d[:3], ensure_ascii=False)[:2000])
-    lot = {}
-    for x in d:
-        k = json.dumps({c: v for c, v in x.items() if "lota" in c.lower()}, ensure_ascii=False)
-        lot[k] = lot.get(k, 0) + 1
-    for k, v in sorted(lot.items(), key=lambda t: -t[1])[:40]:
-        print(v, k)
-    print("com GABINETE/SENADOR:", sum(v for k, v in lot.items() if re.search("GABINETE|SENADOR", k, re.I)))
-except Exception as ex:
-    print("json:", ex, s[:500])
+for dep in (204554, 220593, 178957):
+    for q in ("", "?ano=2024"):
+        h = get(f"https://www.camara.leg.br/deputados/{dep}/pessoal-gabinete{q}")
+        cel = re.findall(r'<td class="col-md-2">\s*(De [^<]*)</td>', h)
+        grp = re.findall(r'<td class="alinhar-esquerda col-md-2">\s*([^<]*)</td>', h)
+        print(len(cel), Counter(grp), [c for c in cel if not re.search(r" a \d", c)][:5], cel[-3:])
+        print(re.findall(r'<select[^>]*ano[^>]*>.*?</select>', h, re.S)[:1])
+        i = h.find("pessoal-gabinete")
+        print(re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", h[h.find("<main"):h.find("<table")]))[-800:])
+sen = json.loads(get("https://adm.senado.gov.br/adm-dadosabertos/api/v1/senadores") or "[]")
+print(type(sen), len(sen), json.dumps(sen[:2] if isinstance(sen, list) else sen, ensure_ascii=False)[:1500])
+lot = json.loads(get("https://adm.senado.gov.br/adm-dadosabertos/api/v1/servidores/lotacoes") or "[]")
+print(len(lot), json.dumps(lot[:3], ensure_ascii=False)[:1500])
+at = json.loads(get("https://adm.senado.gov.br/adm-dadosabertos/api/v1/servidores/servidores/ativos") or "[]")
+print(len(at), sorted({k for x in at for k in x}), Counter(x.get("situacao") for x in at), Counter(x.get("vinculo") for x in at))
+g = Counter((x.get("lotacao") or {}).get("nome") for x in at)
+print([(k, v) for k, v in g.most_common() if k and re.search("Senador", k)][:60])
+print("total em gabinete/escritorio de senador:", sum(v for k, v in g.items() if k and re.search("Senador", k)))
