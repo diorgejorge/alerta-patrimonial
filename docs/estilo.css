@@ -6,12 +6,14 @@
   --fonte-marca:"Baloo 2","Fredoka","Nunito",ui-rounded,"Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
   --bg:#fbf5e9;--fg:#2b1f14;--mut:#6a5643;--line:#e7d6b8;--card:#fff;--realce:#f6e9cf;--sombra:#e3cfa9;--titulo:#1b2f4e;
   --forte:#a8322a;--atencao:#8a4d12;--info:#2a5384;--novo:#1d5e34;--link:#1f4f86;
+  --exemplar:#8a6600;--sombra-exemplar:#ecd48f;  /* dourado do parlamentar exemplar (5,3:1 no card) */
   /* tags (paleta categorica fixa; o rotulo de texto sempre acompanha a cor) */
   --t-politico:#2a78d6;--t-eleitoral:#eb6834;--t-legislativo:#1baf7a;--t-gestao:#eda100;
   --t-patrimonial:#e87ba4;--t-judicial:#008300;--t-criminal:#6250d6;--t-outros:#7a7f84}
 @media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){color-scheme:dark;
   --bg:#0f1a2b;--fg:#f5ecdc;--mut:#c9b9a0;--line:#2c3d5c;--card:#172540;--realce:#1f3050;--sombra:#08111f;--titulo:#f4b223;
   --forte:#ff9b8f;--atencao:#f3b46a;--info:#9fc4ef;--novo:#84d9a2;--link:#f6c24a;
+  --exemplar:#f4b223;--sombra-exemplar:#3d3210;
   --t-politico:#3987e5;--t-eleitoral:#d95926;--t-legislativo:#199e70;--t-gestao:#c98500;
   --t-patrimonial:#d55181;--t-judicial:#008300;--t-criminal:#9085e9;--t-outros:#9aa0a5}}
 
@@ -128,6 +130,104 @@ details.alt{margin:.4em 0 1em}details.alt summary{cursor:pointer;color:var(--lin
 ul.nt{list-style:none;padding:0;margin:.4em 0;border:1px solid var(--line);border-radius:14px;background:var(--card)}
 ul.nt li{padding:.6em .9em;border-bottom:1px solid var(--line)}ul.nt li:last-child{border-bottom:0}
 
+/* periodos da mesma pessoa dentro do card (uma pessoa, um bloco, sem card dentro de card):
+   linha fina entre periodos; chip, anos e cargo numa linha; numeros em grade de 2 colunas (3 se o card for largo).
+   O <style> do template vem depois deste arquivo: os seletores aqui tem especificidade maior de proposito. */
+.periodos{list-style:none;margin:0;padding:0;container-type:inline-size}
+.periodo{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:.55em 0;border-top:1px solid var(--line)}
+.periodo:last-child{padding-bottom:0}
+.periodo>:is(p,div,dl,ul){flex:1 1 100%;margin:0}
+.periodo .chip{font-size:.8rem;padding:0 8px;line-height:1.5}
+.periodo .anos{font-weight:700;font-variant-numeric:tabular-nums}
+.periodo .cargo{color:var(--mut);font-size:.875rem}
+.periodos .periodo dl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;font-size:.8125rem}
+.periodos .periodo dl div{display:flex;flex-direction:column;justify-content:flex-start;gap:0;min-width:0}
+.periodos .periodo dt{color:var(--mut);font-size:.75rem;line-height:1.3}
+.periodos .periodo dd{margin:0;text-align:left;white-space:normal;font-weight:600;font-variant-numeric:tabular-nums}
+.periodos .periodo .cresc b{font-size:1.1rem}
+@container (min-width:440px){.periodos .periodo dl{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* periodo de maior crescimento (o unico com chip): fundo --realce leve e barra caramelo, conteudo alinhado aos demais */
+.periodo.maior{margin-inline:-8px;padding-inline:4px 8px;border-left:4px solid var(--caramelo);border-radius:0 8px 8px 0;background:var(--realce)}
+.periodo.maior:last-child{padding-bottom:.55em}
+.maior-rotulo{display:inline-block;padding:0 8px;border:1px solid var(--caramelo);border-radius:999px;background:var(--card);
+  color:var(--fg);font-size:.75rem;font-weight:700;line-height:1.6;white-space:nowrap}  /* --fg no --card: 13:1 / 13:1 */
+/* demais periodos mais discretos: rotulos em --mut, numeros seguem em --fg (AA) */
+.periodos:has(.maior) .periodo:not(.maior) :is(.anos,.cargo){color:var(--mut)}
+.periodos:has(.maior) .periodo:not(.maior) dd{font-weight:500}
+
+/* "3 periodos": pilula discreta no topo do card (creme com borda caramelo; vira botao/select de 44 px se for clicavel) */
+.multi{display:inline-flex;align-items:center;gap:4px;flex:none;padding:1px 10px;border:1.5px solid var(--caramelo);border-radius:999px;
+  background:var(--realce);color:var(--fg);font:inherit;font-size:.8rem;font-weight:600;line-height:1.5;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+button.multi,select.multi{min-height:44px;cursor:pointer}
+button.multi:hover,select.multi:hover{border-color:var(--fg)}
+
+/* parlamentar exemplar: mesmo card dos alertas, com borda e sombra douradas e estrela (par no tema escuro) */
+html .alerta.exemplar{border:2px solid var(--exemplar);box-shadow:3px 3px 0 var(--sombra-exemplar)}
+html .estrela{color:var(--exemplar)}
+.alerta.exemplar .topo .estrela{font-size:1.15em;line-height:1}
+
+/* contadores do card (empresas, processos, projetos): blocos leves logo abaixo das tags, quebram bem no celular.
+   Fundo --realce: texto --fg 13:1, numero --titulo 11:1 (claro) / 7:1 (escuro), link 6,9:1 / 8:1 */
+.contadores{display:flex;flex-wrap:wrap;gap:6px;margin:0;font-size:.8125rem;line-height:1.35}
+.contador{display:inline-block;max-width:100%;padding:.3em .7em;border:1px solid var(--line);border-radius:12px;
+  background:var(--realce);color:var(--fg)}
+.contador b{font-family:var(--fonte-marca);font-weight:800;font-size:1.1rem;line-height:1;color:var(--titulo);font-variant-numeric:tabular-nums}
+.contador a{font-weight:600;white-space:nowrap}
+/* zero: esmaecido, sem chamar atencao (--mut no card e AA) */
+.contador.zero{background:transparent;border-style:dotted;color:var(--mut)}
+.contador.zero b{font-family:inherit;font-size:inherit;font-weight:600;color:var(--mut)}
+/* processos: duvida (pode ser homonimo), tracejado ambar suave como a .tag.reu, nunca vermelho */
+.contador.processos{border:1.5px dashed var(--atencao)}
+.contador.processos b{color:var(--atencao)}
+.contador.processos.zero{border:1px dotted var(--line)}.contador.processos.zero b{color:var(--mut)}
+/* versao compacta na coluna Tags da tabela */
+.contadores.compacto,td .contadores{gap:4px;margin-top:4px;font-size:.75rem}
+.contadores.compacto .contador,td .contador{padding:.1em .5em;border-radius:10px}
+.contadores.compacto .contador b,td .contador b{font-size:.9rem}
+@media (max-width:599.98px){table.resp td .contadores{justify-content:flex-end}}
+
+/* legenda em tabelinha (tag | o que significa): card leve, linhas finas, cabecalho discreto.
+   Sem overflow:hidden para nao cortar o contorno de foco dos botoes; cantos do cabecalho arredondados a mao. */
+.legenda-tabela{width:100%;border-collapse:separate;border-spacing:0;margin:.4em 0 1em;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;box-shadow:3px 3px 0 var(--sombra);font-size:.875rem}
+.legenda-tabela caption{caption-side:top;text-align:left;padding:0 0 .4em;font-family:var(--fonte-marca);font-weight:800;
+  font-size:1rem;color:var(--titulo)}
+.legenda-tabela caption small{display:block;font:400 .8125rem/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--mut)}
+.legenda-tabela thead th{text-align:left;padding:.45em .8em;background:var(--realce);color:var(--mut);font-size:.75rem;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.legenda-tabela thead th:first-child{border-top-left-radius:13px}.legenda-tabela thead th:last-child{border-top-right-radius:13px}
+.legenda-tabela tbody :is(th,td){padding:.35em .8em;text-align:left;vertical-align:middle;border-top:1px solid var(--line)}
+.legenda-tabela tbody tr:first-child>*{border-top:0}
+.legenda-tabela tbody th[scope=row]{width:1%;white-space:nowrap;font-weight:400}  /* coluna das tags do tamanho do conteudo */
+.legenda-tabela tbody th .tag{margin:3px 4px 3px 0;vertical-align:middle}
+.legenda-tabela td{color:var(--fg)}.legenda-tabela td :is(small,.mut){color:var(--mut)}
+.legenda-tabela tr.grupo th{background:var(--realce);font-family:var(--fonte-marca);font-weight:800;font-size:.875rem;color:var(--titulo);
+  white-space:normal;width:auto}
+/* botoes de filtro: 44 px, estado ligado com contorno (forma, nao so cor) */
+.legenda-tabela button.tag{min-height:44px}
+.legenda-tabela button.tag[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px;font-weight:700}
+@media (max-width:599.98px){  /* celular: cada linha empilha (tags em cima, explicacao embaixo), sem rolagem lateral */
+  .legenda-tabela,.legenda-tabela tbody,.legenda-tabela tr,.legenda-tabela tbody :is(th,td){display:block;width:auto}
+  .legenda-tabela thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .legenda-tabela tbody tr{padding:.5em .8em;border-top:1px solid var(--line)}.legenda-tabela tbody tr:first-child{border-top:0}
+  .legenda-tabela tbody :is(th,td){padding:0;border:0}
+  .legenda-tabela caption{display:block}  /* table-caption dentro de tabela em bloco virava coluna de 11 px */
+  .legenda-tabela tbody th[scope=row]{display:flex;flex-wrap:wrap;gap:6px;white-space:normal;width:auto}
+  .legenda-tabela tbody th .tag{margin:0}
+  .legenda-tabela td{margin-top:.3em}
+  .legenda-tabela tr.grupo{padding:0}.legenda-tabela tr.grupo th{display:block;padding:.45em .8em}
+  .legenda-tabela tbody tr.grupo:first-child th{border-radius:13px 13px 0 0}
+}
+/* filtro sem nada para filtrar: esmaecido mas legivel (--mut e AA), sem hover */
+html .tag:is([disabled],[aria-disabled="true"]){background:transparent;color:var(--mut);border-color:var(--line);font-weight:400;cursor:not-allowed;box-shadow:none}
+html .tag:is([disabled],[aria-disabled="true"]):hover{border-color:var(--line);background:transparent}
+.tag:is([disabled],[aria-disabled="true"]) .cor{opacity:.55}
+
+/* "Responde a processo?" e duvida (pode ser homonimo): borda tracejada e ambar suave, nunca vermelho */
+html .tag.reu{background:var(--card);color:var(--atencao);border:1.5px dashed var(--atencao);font-weight:600;text-decoration:none}
+html button.tag.reu:hover{background:var(--realce);border-color:var(--atencao)}
+
 @media (min-width:600px){
   body{padding:24px}
   .kpis{grid-template-columns:repeat(4,1fr)}
@@ -145,8 +245,12 @@ ul.nt li{padding:.6em .9em;border-bottom:1px solid var(--line)}ul.nt li:last-chi
   .abas [role=tablist],.voltar,.pular,.nao-imprimir,details.alt summary{display:none}
   .abas [role=tabpanel]{display:block!important}
   details.alt{display:block}details.alt>*{display:block}
-  .card,.tab,ul.nt{border-color:#999;box-shadow:none}
+  .card,.tab,ul.nt,.legenda-tabela{border-color:#999;box-shadow:none}
+  .legenda-tabela thead th,.legenda-tabela tr.grupo th{background:none;color:#000}
   .marca{background:none;color:#000;box-shadow:none;padding:0}.marca h1{color:#000;text-shadow:none}.marca .lema{color:#000}
   a{color:#000}a[href^="http"]::after{content:" (" attr(href) ")";font-size:.8em;word-break:break-all}
   h2{break-after:avoid}tr,li,.card{break-inside:avoid}
+  .periodo{border-color:#999}.periodo.maior{background:none;border-left-color:#000}
+  .maior-rotulo{background:none;border-color:#000;color:#000}.multi,.contador{background:none;border-color:#999;color:#000}.contador b{color:#000}
+  html .tag.reu{background:none;color:#000;border-color:#000}html .alerta.exemplar{border-color:#000;box-shadow:none}html .estrela{color:#000}
 }
