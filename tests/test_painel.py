@@ -115,30 +115,42 @@ def test_cap_nomes_e_cargos(abrir):
 def test_card_um_periodo_esconde_zeros_e_detalha_sob_demanda(abrir):
     c = card(abrir(), UM_PERIODO)
     assert c.locator(".nome").text_content() == "Maria da Silva"
-    assert c.locator(".resumo").text_content().split() == ["Senador", "·", "PT", "·", "MS", "·", "2018–2026"]
+    assert c.locator(".resumo").text_content().split() == ["Senador", "·", "PT", "·", "MS"]
+    assert "de 2018 a 2026" in c.locator(".valor").text_content()
+    assert "Patrimônio foi de" in c.locator(".fatos").text_content() and "4,0×" in c.locator(".fatos").text_content()
     assert c.locator(".tags").count() == 0  # nenhuma marcacao: nada de "Nenhuma empresa" na face
-    det = c.locator("details.det")
-    assert det.locator("summary").text_content() == "Ver detalhes" and not det.get_attribute("open")
+    det, ver = c.locator(".det"), c.locator("button.ver")
+    assert ver.text_content().startswith("Detalhes") and ver.get_attribute("aria-expanded") == "false"
     assert "Nenhuma empresa declarada" in det.text_content() and "Cresceu quantas vezes isso" in det.text_content()
-    assert not det.locator(".contadores").is_visible()
-    det.locator("summary").click()
-    assert det.locator(".contadores").is_visible()
+    assert not det.is_visible()
+    ver.click()
+    assert det.is_visible() and ver.get_attribute("aria-expanded") == "true"
+    assert ver.text_content().startswith("Fechar")
+    ver.click()
+    assert not det.is_visible() and ver.text_content().startswith("Detalhes")
 
 
 def test_card_dois_periodos(abrir):
     c = card(abrir(), DOIS_PERIODOS)
     assert "PSDB → PL" in c.locator(".resumo").text_content()
-    assert c.locator("details.det summary").text_content() == "Ver detalhes dos 2 períodos"
-    assert c.locator("details.det .periodo").count() == 2
+    assert "2 períodos" in c.locator("button.ver").get_attribute("title")
+    assert c.locator(".det .periodo").count() == 2
     face = c.locator(".tags").text_content()
     assert "Mão na massa" in face and "3 empresas" in face
-    assert "R$ 3.000.000" in c.locator(":scope > .cresc b").text_content()  # soma dos periodos
+    assert "R$ 3.000.000" in c.locator(".valor b").text_content()  # soma dos periodos
     assert "Notícias (3)" in c.locator(".links").text_content()
+
+
+def test_cards_com_mesma_escala_tipografica(abrir):
+    pg = abrir()
+    tam = pg.evaluate("""()=>{const px=s=>[...document.querySelectorAll('#cards '+s)].map(e=>getComputedStyle(e).fontSize);
+        return {nome:px('.nome'),valor:px('.valor b'),fatos:px('.fatos li')}}""")
+    assert all(len(set(v)) == 1 for v in tam.values()), tam
 
 
 def test_vezes_o_salario(abrir):
     pg = abrir()
-    assert "<b>4,0×</b>" in pg.evaluate("l=>VEZES(agrupaPessoas(l)[0])", UM_PERIODO[:1] and [{**UM_PERIODO[0], "cap": 250000}])
+    assert "<b>4,0×</b>" in pg.evaluate("l=>VEZES(agrupaPessoas(l)[0])", [{**UM_PERIODO[0], "cap": 250000}])
     assert "6,0×" in pg.evaluate("l=>VEZES(agrupaPessoas(l)[0])", DOIS_PERIODOS)  # 3 mi / (2 x 250 mil)
     assert pg.evaluate("l=>VEZES(agrupaPessoas(l)[0])", [{**UM_PERIODO[0], "cap": None}]) == ""
 

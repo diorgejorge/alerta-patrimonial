@@ -64,18 +64,27 @@ table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-sp
 .tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
 .tag.renda{background:var(--card);border-color:var(--info);color:var(--info);font-weight:600}
 button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
-.alerta .vezes{margin:0;font-size:.9rem}.alerta .vezes b{color:var(--titulo)}.alerta .compra{margin:0;font-size:.8125rem;color:var(--mut)}.alerta .compra b{color:var(--fg)}
 /* card compacto (#52): nome e nivel, resumo de uma linha, crescimento; o resto abre em "Ver detalhes" */
-.alerta .topo{align-items:center}.alerta .nome{flex:1 1 12ch;font-family:var(--fonte-marca);font-size:1.1rem;line-height:1.25;overflow-wrap:normal}
-.alerta .topo .chip{font-size:.75rem;padding:1px 8px}
-.alerta .resumo{margin:0;font-size:.875rem;color:var(--mut);line-height:1.5}.alerta .resumo .sep{margin:0 .1em}
 .tag.fil{display:inline;min-height:0;padding:0;border:0;background:none;color:inherit;font-size:inherit;text-align:left}
 .tag.fil:hover,.tag.fil:focus-visible{color:var(--fg);text-decoration:underline}.tag.fil .cor{box-shadow:none;width:.6em;height:.6em}
-.alerta>.cresc b{font-family:var(--fonte-marca);font-size:1.6rem;font-weight:800;color:var(--titulo)}.alerta>.cresc small{font-size:.8125rem}
-.alertas{align-items:start}details.det{border-top:1px solid var(--line);font-size:.875rem}.alerta .tags .tag{gap:.35em}.alerta>.links{margin:0}
-details.det summary{cursor:pointer;color:var(--link);min-height:44px;display:flex;align-items:center;font-weight:600;list-style-position:inside}
-details.det[open] summary{margin-bottom:.4em}details.det>*+*{margin-top:.5em}details.det .periodos{margin-top:.4em}
-.alerta .links{margin:auto 0 0;font-size:.9rem}.alerta .links .lk{min-height:44px}.mais{text-align:center}
+.mais{text-align:center}
+/* card de destaque: escala fixa (1.125 nome, 1.75 valor, .875 texto, .75 rotulo), linhas alinhadas e rodape no fim */
+.alerta{gap:10px;padding:16px 18px}
+.alerta .topo{align-items:center;flex-wrap:nowrap}.alerta .nome{flex:1;min-width:0;font-family:var(--fonte-marca);font-size:1.125rem;font-weight:800;line-height:1.3;overflow-wrap:normal}
+.alerta .topo .chip{font-size:.75rem;line-height:1.5;padding:1px 9px}
+.alerta .resumo{margin:0;font-size:.875rem;line-height:1.4;color:var(--mut)}.alerta .resumo .sep{margin:0 .15em}
+.alerta .valor{margin:2px 0 0;display:flex;flex-direction:column;gap:2px}
+.alerta .valor b{font-family:var(--fonte-marca);font-size:1.75rem;font-weight:800;line-height:1.1;color:var(--titulo);font-variant-numeric:tabular-nums}
+.alerta .valor span{font-size:.8125rem;color:var(--mut)}
+.alertas{align-items:start}
+.fatos{list-style:none;margin:0;padding:12px 0 0;border-top:1px solid var(--line);display:grid;gap:8px;font-size:.875rem;line-height:1.5}
+.fatos li{display:grid;grid-template-columns:1.6em 1fr;align-items:start}.fatos .ic{line-height:1.5}.fatos b{font-variant-numeric:tabular-nums}
+.alerta .tags .tag{gap:.35em}
+.alerta .det{font-size:.875rem;display:grid;gap:8px;padding-top:10px;border-top:1px solid var(--line)}.alerta .det[hidden]{display:none}
+.alerta .pe{padding-top:10px;border-top:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.alerta .pe .links{margin:0;min-width:0;font-size:.875rem;font-weight:600}.alerta .pe .lk{min-height:36px;padding:0;text-decoration:none}.alerta .pe .lk:hover{text-decoration:underline}
+.ver{flex:none;min-height:36px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);font:inherit;font-size:.8125rem;font-weight:600;cursor:pointer}
+.ver:hover{border-color:var(--caramelo)}.ver[aria-expanded=true]{background:var(--card)}
 .leves{list-style:none;padding:0;margin:.6em 0;display:grid;gap:8px}
 .leve{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:.6em .9em;content-visibility:auto;contain-intrinsic-size:auto 120px}
 .leve .topo{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 8px;align-items:baseline}
@@ -211,7 +220,7 @@ const BENS=/*BENS*/null;  // config/bens_referencia.json
 function COMPRA(v){
   const b=(BENS&&BENS.bens||[]).filter(x=>x.preco>0&&v>=x.preco).sort((x,y)=>y.preco-x.preco)[0];
   if(!b)return"";const n=Math.floor(v/b.preco);
-  return`<p class="compra">Daria para comprar <b>${n.toLocaleString("pt-BR")}</b> ${esc(n>1?b.plural:b.singular)}${/^https:\/\//.test(b.link||"")?` · <a href="${esc(b.link)}" target="_blank" rel="noopener" title="${esc(b.referencia)}">ver preço</a>`:""}</p>`;
+  return`Daria para comprar <b>${n.toLocaleString("pt-BR")}</b> ${esc(n>1?b.plural:b.singular)}${/^https:\/\//.test(b.link||"")?` · <a href="${esc(b.link)}" target="_blank" rel="noopener" title="${esc(b.referencia)}">ver preço</a>`:""}`;
 }
 // negativo com o sinal antes do R$: "−R$ 11.973.159"
 const R=v=>v==null?"Não informado":(v<0?"−":"")+"R$ "+Math.round(Math.abs(v)).toLocaleString("pt-BR");
@@ -386,7 +395,6 @@ const SEP=' <span class="sep" aria-hidden="true">·</span> ';
 // uma linha: cargo · partido · UF · anos (mudancas entre periodos com seta)
 const CPU_RES=p=>[p.cargos.length?p.cargos.map(c=>FIL("cargo",c,"cargo",esc(CAP(c)))).join(" → "):"Não informado",
   p.partidos.map(x=>FIL("partido",x,"partido",PD(x)+esc(x))).join(" → "),p.ufs.map(u=>FIL("uf",u,"estado",esc(u))).join(" → ")].filter(Boolean).join(SEP);
-const RESUMO=p=>CPU_RES(p)+SEP+`${p.ano_ini}–${p.ano_fim}`;
 // listas de cota e projetos: um registro por pessoa, mesmo resumo neutro dos cards
 const RES1=c=>`<p class="resumo">${CPU_RES({cargos:[c.cargo].filter(Boolean),partidos:[c.partido].filter(Boolean),ufs:[c.uf].filter(Boolean)})}</p>`;
 // marcacoes que valem a pena na face do card; zeros e "Não informado" ficam nos detalhes
@@ -398,17 +406,26 @@ const MARCAS=p=>{const ne=p.qtd_empresas||0,rd=p.per.find(a=>a.nivel_calculado&&
   return l.length?`<p class="tags">${l.join("")}</p>`:"";};
 // analogia principal: quantas vezes o que daria para guardar com o salario (soma dos periodos; sem salario de referencia, nao aparece)
 const VEZES=p=>{const cap=p.per.reduce((s,a)=>a.cap>0&&s!=null?s+a.cap:null,0);
-  return cap&&p.cresc>0?`<p class="vezes">É <b>${VZ(p.cresc/cap)}</b> o que daria para guardar com o salário</p>`:"";};
+  return cap&&p.cresc>0?`É <b>${VZ(p.cresc/cap)}</b> o que daria para guardar com o salário`:"";};
+// fatos do card: mesma fonte e um icone por linha; linha sem dado nao aparece
+const FATOS=p=>{const ic=(e,t)=>t?`<li><span class="ic" aria-hidden="true">${e}</span><span>${t}</span></li>`:"";
+  const de=p.pat_ini==null?"Não informado":RC(p.pat_ini),ate=p.pat_fim==null?"Não informado":RC(p.pat_fim);
+  return`<ul class="fatos">${ic("📈",`Patrimônio foi de <b>${de}</b> para <b>${ate}</b>`)}${ic("💰",VEZES(p))}${ic("🛒",COMPRA(p.cresc))}</ul>`;};
 // detalhes sob demanda: contadores completos, numeros do calculo e periodos
 const DET=p=>{const m=p.per.length>1;
-  return`<details class="det"><summary>Ver detalhes${m?` dos ${p.per.length} períodos`:""}</summary>${CONT(p)}
-${m?`<p class="mut">Maior crescimento: <b class="maior-ano">${p.maior.ano_ini}–${p.maior.ano_fim}</b></p><ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:DL(p.per[0])}</details>`;};
+  return`<div class="det" hidden>${CONT(p)}
+${m?`<p class="mut">Maior crescimento: <b class="maior-ano">${p.maior.ano_ini}–${p.maior.ano_fim}</b></p><ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:DL(p.per[0])}</div>`;};
+const ROT_VER="Detalhes";
+// abre e fecha os detalhes do card (clique delegado no documento)
+function verDet(ev){const b=ev.target.closest("button.ver");if(!b)return false;
+  const d=b.closest("li").querySelector(".det"),abre=d.hidden;d.hidden=!abre;b.setAttribute("aria-expanded",abre);
+  b.firstChild.textContent=abre?"Fechar":b.dataset.rot;return true;}
 const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
 const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}"><div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b><span class="chip nv-${p.nivel}"${p.per.length>1?` title="Nível do período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})"`:""}>${NV[p.nivel]}</span></div>
-<p class="resumo">${RESUMO(p)}</p>
-<p class="cresc"><b>+${R(p.cresc)}</b><small>Patrimônio declarado foi de ${p.pat_ini==null?"Não informado":RC(p.pat_ini)} para ${p.pat_fim==null?"Não informado":RC(p.pat_fim)}</small></p>${VEZES(p)}
-${COMPRA(p.cresc)}${MARCAS(p)}
-<p class="links">${LK(p)}</p>${DET(p)}</li>`;
+<p class="resumo">${CPU_RES(p)}</p>
+<p class="valor"><b>+${R(p.cresc)}</b><span>a mais no patrimônio de ${p.ano_ini} a ${p.ano_fim}</span></p>
+${FATOS(p)}${MARCAS(p)}${DET(p)}
+<div class="pe"><p class="links">${LK(p)}</p><button type="button" class="ver" aria-expanded="false" data-rot="${ROT_VER}"${p.per.length>1?` title="Números do cálculo e os ${p.per.length} períodos"`:""}>${ROT_VER}<span aria-hidden="true"> ▾</span></button></div></li>`;
 // parlamentares exemplares: um card por pessoa (nome + UF), periodos agrupados
 function exemplares(){
   const m=new Map();for(const x of D.exemplares||[]){const k=`${x.nome}|${x.uf}`;if(!m.has(k))m.set(k,[]);m.get(k).push(x);}
@@ -616,5 +633,5 @@ $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 // tags clicaveis (cards e tabela): cargo, partido e UF filtram pela dimensao; marcacoes filtram pela legenda
 const porTag=ev=>{const t=ev.target.closest("button.tag");if(!t)return;if(t.dataset.f)F[t.dataset.f]=t.dataset.v;else F[t.dataset.dim]=t.dataset.v;draw();verDestaques();};
-$("cards").onclick=porTag;$("tb").onclick=porTag;$("exemplares-lista").onclick=$("cota-lista").onclick=$("projetos-lista").onclick=porTag;$("tabela").ontoggle=tabelaToda;draw();}
+$("cards").onclick=porTag;document.addEventListener("click",verDet);$("tb").onclick=porTag;$("exemplares-lista").onclick=$("cota-lista").onclick=$("projetos-lista").onclick=porTag;$("tabela").ontoggle=tabelaToda;draw();}
 </script></body></html>
