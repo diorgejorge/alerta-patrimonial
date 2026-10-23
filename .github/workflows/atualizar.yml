@@ -14,6 +14,7 @@ jobs:
     timeout-minutes: 150
     steps:
       - uses: actions/checkout@v5
+        with: { ref: main }  # disparo manual fixava o commit do clique e o push batia com a carga anterior
       - uses: ./.github/actions/python
       # data/cache: arquivos e resultados ja processados (TSE, cota, projetos, presenca, votacoes, Portal, contatos,
       # gabinete, noticias), todos cifrados; cada fonte so le de novo o que mudou

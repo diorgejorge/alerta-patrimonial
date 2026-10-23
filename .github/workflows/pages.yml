@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths: ["docs/**", "src/template.html", "src/estilo.css", "src/logo.png", "src/icone.png", "src/privacidade.html", "src/funcionamento.html",
-            "src/medicao.js", "src/selo.js", "src/paginas.py", "config/bens_referencia.json", "config/analytics.json", "config/privacidade.json"]
+            "src/medicao.js", "src/selo.js", "src/paginas.py", ".github/actions/**", ".github/workflows/pages.yml", "requirements.txt", "config/bens_referencia.json", "config/analytics.json", "config/privacidade.json"]
   workflow_run:
     workflows: ["1 · Dados dos políticos", "2 · Dossiê por estado"]
     types: [completed]
@@ -25,10 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with: { ref: main }
+      - uses: ./.github/actions/python  # paginas.py importa modulos que usam pandas
       # painel sempre com o template atual, mesmo sem rodar o pipeline (dados continuam os da ultima execucao)
       - name: Montar painel
         run: |
-          python3 - <<'PY'
+          python - <<'PY'
           import json, pathlib, re, shutil
           shutil.copytree("docs", "_site")
           m = re.search(r"^const D=(.*);$", pathlib.Path("docs/index.html").read_text(encoding="utf-8"), re.M)
