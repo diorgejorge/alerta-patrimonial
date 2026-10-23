@@ -11,14 +11,14 @@
 <link rel="stylesheet" href="estilo.css">
 <style>
 main{max-width:1100px;margin:0 auto}
-.barra{display:flex;gap:10px;flex-wrap:wrap;margin:1em 0}input,select{font:inherit;padding:.45em .7em;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg)}input:focus,select:focus{border-color:var(--caramelo)}
+.barra{display:flex;gap:10px;flex-wrap:wrap;margin:1em 0}input,select{font:inherit;padding:.45em 1em;border:1px solid var(--line);border-radius:999px;box-shadow:var(--elev);background:var(--card);color:var(--fg)}input:focus,select:focus{border-color:var(--caramelo)}
 input,select{min-height:44px}input{flex:1 1 200px;min-width:0}
 .lk{display:inline-flex;align-items:center;min-height:44px;padding:0 4px}
 .nivel{font-weight:600}.forte{color:var(--forte)}.atencao{color:var(--atencao)}.informativo{color:var(--info)}.novo{color:var(--novo);font-weight:600}
 small{color:var(--mut)}.vazio{padding:2em;color:var(--mut)}
 a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:1em 0}
-.kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.8em 1em;box-shadow:3px 3px 0 var(--sombra)}
+.kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:var(--raio);padding:.9em 1.1em;box-shadow:var(--elev)}
 .kpi b{display:block;font-family:var(--fonte-marca);font-size:1.6rem;font-weight:800;line-height:1.2;color:var(--titulo)}.kpi span{color:var(--mut);font-size:.85rem}
 .graf{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px;margin:1em 0;align-items:start}
 .card h2{font-size:1rem;margin:0}.card p{margin:.1em 0 .6em;color:var(--mut);font-size:.85rem}
@@ -39,7 +39,7 @@ a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 #tip b{display:block;margin-bottom:.2em}#tip div{display:flex;justify-content:space-between;gap:14px}#tip div span:first-child{color:var(--mut)}
 #tip s{display:inline-block;width:10px;height:2px;margin-right:6px;vertical-align:middle;text-decoration:none}
 .chips{display:flex;gap:8px;flex-wrap:wrap}.chips button{font:inherit;font-size:.85rem;padding:.3em .7em;border:2px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);cursor:pointer}
-.contrib{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.8em 1em;margin:1em 0;box-shadow:3px 3px 0 var(--sombra)}
+.contrib{background:var(--card);border:1px solid var(--line);border-radius:var(--raio);padding:.8em 1em;margin:1em 0;box-shadow:var(--elev)}
 .contrib h2{font-size:1rem;margin:0 0 .3em}.contrib p{margin:.3em 0}.acoes{display:flex;gap:8px;flex-wrap:wrap}
 .acoes a{display:inline-block;padding:.35em .8em;border:2px solid var(--caramelo);border-radius:999px;text-decoration:none;font-size:.9rem;font-weight:600}
 .acoes a:hover{background:var(--realce)}
@@ -48,6 +48,7 @@ details.leitura summary{cursor:pointer;font-weight:600}details.leitura p,details
 th small{font-weight:400}td.n small{color:var(--mut)}
 .contagem{margin:.4em 0;color:var(--mut)}.contagem button{font:inherit;font-size:.85rem;margin-left:6px;padding:.15em .6em;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);cursor:pointer}
 .alertas{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));list-style:none;padding:0;margin:.6em 0}
+.alerta{transition:transform .15s,box-shadow .15s}.alerta:hover{transform:translateY(-2px);box-shadow:var(--elev-alto)}
 .alerta{display:flex;flex-direction:column;gap:.5em;content-visibility:auto;contain-intrinsic-size:auto 230px}
 .alerta .topo{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 8px;align-items:flex-start}.alerta .chip{flex:none}
 .alerta .topo>span:first-child{flex:1 1 12ch;overflow-wrap:normal}
@@ -59,7 +60,7 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-space:nowrap}
 @media (min-width:600px){#tabela td:first-child{min-width:16ch}#tabela td:nth-child(2){min-width:22ch}}
 .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
-.tag.selo{background:var(--ouro);color:var(--tinta);border:2px solid var(--tinta);font-weight:700}
+.tag.selo{background:var(--ouro);color:var(--tinta);border:1px solid var(--ouro);font-weight:700}
 .tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
 .tag.renda{background:var(--card);border-color:var(--info);color:var(--info);font-weight:600}
 button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
@@ -83,23 +84,29 @@ details.det[open] summary{margin-bottom:.4em}details.det>*+*{margin-top:.5em}det
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
 /* layout (#52): topo curto, abas fixas, filtros e ajudas recolhidos; o detalhe abre quando a pessoa pede */
 /* cabecalho: logo grande, faixa marinho com borda ouro, sem contorno no titulo; a frase de abertura fica dentro */
-.marca{gap:22px;padding:18px 24px;border-radius:18px;border-bottom:4px solid var(--ouro);box-shadow:0 8px 24px rgba(8,17,31,.28)}
+.marca{gap:28px;padding:28px 32px;border-radius:28px}
 .marca img{width:120px;height:120px;border-width:4px;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .marca h1{font-size:2.4rem;text-shadow:none;letter-spacing:.01em}.marca .lema{margin:.1em 0 0;font-size:1.05rem;font-weight:600;color:var(--ouro);opacity:.9}
 @media print{.marca .lema,.marca .intro,.marca .intro small{color:#000}}
+.marca{flex-wrap:wrap}.marca>div{flex:1 1 420px;min-width:0}
+/* numeros grandes no cabecalho: o tamanho do assunto num relance */
+.hero-num{display:flex;gap:10px;margin:0;flex:0 1 auto}
+.hero-num div{padding:.7em 1.1em;border-radius:20px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(6px)}
+.hero-num dd{margin:0;font-family:var(--fonte-marca);font-weight:800;font-size:1.9rem;line-height:1.1;color:var(--ouro);font-variant-numeric:tabular-nums}
+.hero-num dt{font-size:.8125rem;color:var(--creme);opacity:.85}
 .marca .intro{max-width:64ch;margin:.5em 0 0;color:var(--creme);font-size:.95rem;line-height:1.45}.marca .intro small{display:block;margin-top:.3em;color:var(--creme);opacity:.75}
 details.sobre{margin:.2em 0 0}details.sobre>summary,details.ajuda>summary{cursor:pointer;color:var(--link);font-weight:600;font-size:.9rem;min-height:44px;display:flex;align-items:center}
 details.sobre[open]{padding-bottom:.4em}details.sobre .agregador,details.sobre .aviso,details.sobre .fonte{margin:.6em 0}
-.abas-site{position:sticky;top:0;z-index:5;display:flex;gap:2px;overflow-x:auto;margin:.6em 0 0;background:var(--bg);border-bottom:1px solid var(--line);scrollbar-width:thin}
-.abas-site button{flex:none;min-height:44px;padding:.5em .9em;border:0;border-bottom:3px solid transparent;background:none;color:var(--mut);font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
-.abas-site button:hover{color:var(--fg)}.abas-site button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--caramelo)}
+.abas-site{position:sticky;top:8px;z-index:5;display:flex;width:fit-content;max-width:100%;overflow-x:auto;margin:.8em 0 0;scrollbar-width:none}
+.abas-site button{flex:none;min-height:40px;background:none;color:var(--mut);font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
+.abas-site button:hover{color:var(--fg)}
 .painel-aba{padding-top:.4em;scroll-margin-top:56px}.painel-aba.fora{display:none}.painel-aba>h2:first-child{margin-top:.6em}
 #contagem{scroll-margin-top:56px}
 .filtros{display:contents}.filtros-bt{display:none}
 .ajudas{display:flex;flex-wrap:wrap;gap:0 18px}details.ajuda[open]{flex-basis:100%}
 /* legenda sempre aberta (#52): duas listas curtas (niveis e marcacoes), etiqueta + uma frase do dia a dia */
 .ajudas .legenda{flex-basis:100%}
-.legenda{margin:.6em 0 0;padding:.6em 1em;border:1px solid var(--line);border-radius:14px;background:var(--card)}
+.legenda{margin:.6em 0 0;padding:.8em 1.1em;border:1px solid var(--line);border-radius:var(--raio);background:var(--card);box-shadow:var(--elev)}
 .legenda h2{margin:0 0 .3em;font-size:1rem}.legenda h2 small{font:400 .8125rem/1.4 system-ui,sans-serif;color:var(--mut)}
 .leg-lista{list-style:none;margin:0;padding:0;display:grid;gap:6px 24px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
 .leg-lista+.leg-lista{margin-top:.5em;padding-top:.5em;border-top:1px solid var(--line)}
@@ -110,12 +117,12 @@ details.sobre[open]{padding-bottom:.4em}details.sobre .agregador,details.sobre .
 details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.leitura[open]>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.4em 1em}
 @media (max-width:599.98px){.filtros-bt{display:inline-flex;align-items:center;min-height:44px;padding:0 1em;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);font:inherit;font-weight:600;cursor:pointer}
   .filtros{display:none;flex:1 1 100%;flex-direction:column;gap:8px}.filtros.aberto{display:flex}
-  .marca{gap:14px;padding:14px 16px;align-items:flex-start}.marca img{width:76px;height:76px;border-width:3px}.marca h1{font-size:1.6rem}.marca .intro{font-size:.875rem}}
+  .marca{gap:14px;padding:16px 18px;align-items:flex-start;border-radius:22px}.marca>div{flex-basis:calc(100% - 90px)}.hero-num{flex:1 1 100%}.hero-num div{flex:1}.hero-num dd{font-size:1.45rem}.marca img{width:76px;height:76px;border-width:3px}.marca h1{font-size:1.6rem}.marca .intro{font-size:.875rem}}
 </style>
 </head>
 <body><main>
 <header class="marca"><img src="logo.png" alt="" width="84" height="84"><div><h1>Caramelo Vasculha</h1><p class="lema">Farejando gastos públicos.</p>
-<p class="intro">Quanto o patrimônio declarado ao TSE cresceu, comparado com o que o salário do cargo permitiria. É um ponto de partida para pesquisar, não uma acusação. <small id="meta"></small></p></div></header>
+<p class="intro">Quanto o patrimônio declarado ao TSE cresceu, comparado com o que o salário do cargo permitiria. É um ponto de partida para pesquisar, não uma acusação. <small id="meta"></small></p></div><dl class="hero-num" id="hero-num" hidden></dl></header>
 <details class="sobre"><summary>Como funciona e de onde vêm os dados</summary>
 <p class="agregador"><strong>O Caramelo Vasculha é apenas um agregador</strong>: reúne conteúdos públicos de fontes confiáveis e auditadas, como o TSE, o Portal da Transparência, a Câmara dos Deputados e o Senado Federal, além de veículos de notícias revisados antes de entrar. O site não produz nem altera esses dados; os destaques são só contas simples sobre eles, um ponto de partida para pesquisar. <strong>Para conferir, cada informação mostrada traz o link direto para a fonte.</strong></p>
 <p class="aviso">Os dados mostram diferenças entre o crescimento do patrimônio declarado e o que o salário do cargo permitiria. Há várias explicações possíveis; use como ponto de partida para pesquisar. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
@@ -590,13 +597,19 @@ function abas(){
   abrirAba(location.hash.slice(1),false,true);
 }
 // depois de filtrar (tag, legenda ou barra de grafico): volta aos destaques, na contagem
+// cabecalho: total de pessoas em destaque e quanto o patrimonio delas cresceu somado
+function heroNum(){
+  const cr=PES.reduce((s,p)=>s+(p.cresc>0?p.cresc:0),0),b=$("hero-num");
+  b.innerHTML=`<div><dd>${PES.length.toLocaleString("pt-BR")}</dd><dt>pessoas em destaque</dt></div><div><dd>${RC(cr)}</dd><dt>a mais no patrimônio, somado</dt></div>`;
+  b.hidden=!PES.length;
+}
 function verDestaques(){if(ABA&&ABA!=="destaques")abrirAba("destaques");$("contagem").scrollIntoView({behavior:"smooth",block:"start"});}
 // filtros recolhidos no celular; o botao mostra quantos estao ativos
 $("filtros-bt").onclick=()=>$("filtros-bt").setAttribute("aria-expanded",$("filtros").classList.toggle("aberto"));
 // blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
 for(const s of document.querySelectorAll("section.grade.duas"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
-if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();abas();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();abas();heroNum();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
 $("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;if(b.dataset.todos){todosCom(b.dataset.v==="exemplar"?"e":"s");return;}F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();verDestaques();};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
