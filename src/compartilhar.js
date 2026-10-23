@@ -55,7 +55,7 @@
     ctx.fillStyle = brilho; ctx.fillRect(0, 0, W, H);
     ctx.textBaseline = "alphabetic";
 
-    escreve(ctx, "DADOS OFICIAIS", M, 120, larg, 32, "#f4b223", "800", 1);
+    escreve(ctx, "DADOS OFICIAIS", M, 160, larg, 32, "#f4b223", "800", 1);
     ctx.fillStyle = "#f4b223"; ctx.fillRect(M, 196, larg, 4);
 
     // pessoa: iniciais, nome, cargo · partido · UF
