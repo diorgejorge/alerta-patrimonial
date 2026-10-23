@@ -347,8 +347,8 @@ def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
     assert 'data-json="SP.json"' in sp
     assert sp.count('<span class="rot">Emergência sem reconhecimento oficial</span>') == 1 and "1 sem reconhecimento oficial" in sp
     assert "Santos, 2026" in sp and "nenhuma encontrada" in sp
-    assert "Santos · R$ 40 empenhados em 2024, nada pago" in sp and "1 parada" in sp
-    assert "59% do empenhado pago" in sp and "<b>59%</b> já foram pagos" in sp  # 82 pagos de 140 empenhados
+    assert "Santos · R$ 40 reservados em 2024, nada pago" in sp and "1 parada" in sp
+    assert "59% do prometido já pago" in sp and "<b>59%</b> já " in sp  # 82 pagos de 140 empenhados
     assert 'Autor: <a href="../pessoa/p0001.html">Fulana Dep</a>' in sp
     rj = (tmp_path / "estado" / "RJ.html").read_text(encoding="utf-8")
     assert "Fonte não encontrada" in rj  # despesa do RJ falhou e o link da Alerj nao abriu
@@ -384,7 +384,7 @@ def test_pipeline_demo_publica_os_estados(tmp_path, monkeypatch):
     rodar(tmp_path, monkeypatch, ID_SEGREDO="teste")
     pasta = tmp_path / "docs" / "estado"
     assert len(list(pasta.glob("*.html"))) == 28 and len(list(pasta.glob("*.json"))) == 27
-    assert "Parlamentares autores de emendas" in (pasta / "MG.html").read_text(encoding="utf-8")
+    assert "Quem mandou emendas para Minas Gerais" in (pasta / "MG.html").read_text(encoding="utf-8")
 
 
 def test_base_do_pipeline_sem_cpf():
@@ -465,3 +465,23 @@ def test_andamento_das_emendas_por_pagina():
     prog.etapa("Emendas no Portal")
     estados.emendas(Api({2026: [emenda("A", "CAMPINAS - SP", 1)]}), [2026], None, dt.date(2026, 10, 23), prog)
     assert any("ano 2026, página 1 · 100" in l for l in linhas) and any("ano 2026: 1 emendas" in l for l in linhas)
+
+
+def test_receitas_com_rotulo_limpo_e_linhas_iguais_somadas():
+    itens = [dict(coluna="Receitas Brutas Realizadas", conta=f"1.7.1.{c}.0.0 - {r}", valor=v) for c, r, v in (
+        ("5.11", "Transferências do SUS \u00bf Bloco de Manutenção", 300),
+        ("9.21", "Outras Transferências de Convênios da União", 20),
+        ("9.22", "Outras Transferências de Convênios da União", 30))]
+    r = estados.receitas_uniao(itens)
+    assert ("Transferências do SUS – Bloco de Manutenção", 300.0, "legais") in r
+    assert [x for x in r if x[0].startswith("Outras")] == [("Outras Transferências de Convênios da União", 50.0, "voluntarias")]
+
+
+def test_texto_para_leigo():
+    assert estados._pct(1, 1000) == "menos de 1%" and estados._pct(300, 1000) == "30%"
+    html = estados.secao_despesa(dict(ano_despesa=2025, despesa=[("Encargos Especiais", 800.0), ("Saúde", 200.0)]))
+    assert "Dívidas, juros e repasses<small>Encargos Especiais</small>" in html and "Em 2025, o estado gastou" in html
+    pag, extra = estados.demo()
+    sp = estados.pagina_uf(pag["SP"])
+    assert "Individual, tipo Pix (sem destino definido)<small>Emenda Individual - Transferências Especiais</small>" in sp
+    assert 'href="../index.html#meus=SP">Ver meus representantes' in sp and "do prometido já pago" in sp

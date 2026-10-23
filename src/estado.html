@@ -78,12 +78,12 @@ __CORPO__
         if (++n > limite) return;
         var li = el("li"), rot = el("span", m[0], "rot");
         var aut = m[4].map(function(a){ return a[0] + " (" + brl(a[1]) + ")"; }).join(", ");
-        rot.appendChild(el("small", (m[2] ? m[2] + " emenda" + (m[2] > 1 ? "s" : "") + (aut ? ": " + aut : "") : "sem emenda paga")));
+        rot.appendChild(el("small", (m[2] ? m[2] + " emenda" + (m[2] > 1 ? "s" : "") + (aut ? ": " + aut : "") : "nenhuma emenda paga")));
         var val = el("span", null, "val");
         val.appendChild(document.createTextNode(brl(m[1]) + " em emendas"));
-        val.appendChild(el("small", (d.siconfi_municipios ? brl(m[3]) : "Não informado") + " da União em " + (d.ano_uniao || "")));
+        val.appendChild(el("small", (d.siconfi_municipios ? brl(m[3]) : "Não informado") + " do governo federal em " + (d.ano_uniao || "")));
         val.lastChild.style.display = "block";
-        if (m[5]) rot.appendChild(carimbo(m[5] + " emergencial sem reconhecimento oficial", "alerta-cera"));
+        if (m[5]) rot.appendChild(carimbo(m[5] + " sem emergência reconhecida", "alerta-cera"));
         if (m[6]) rot.appendChild(carimbo(m[6] + " emenda" + (m[6] > 1 ? "s" : "") + " parada" + (m[6] > 1 ? "s" : ""), "parada-cera"));
         li.appendChild(rot); li.appendChild(val); ul.appendChild(li);
       });
@@ -93,7 +93,7 @@ __CORPO__
     busca.addEventListener("input", function(){ limite = 20; desenhar(); });
     mais.addEventListener("click", function(){ limite += 40; desenhar(); });
     alvo.appendChild(busca); alvo.appendChild(ul); alvo.appendChild(mais);
-    alvo.appendChild(el("p", "Emendas: Portal da Transparência (local do gasto). Verbas da União: balanço do município no SICONFI. Municípios que ainda não entregaram o balanço aparecem como Não informado.", "fonte"));
+    alvo.appendChild(el("p", "Fontes: Portal da Transparência e balanço de cada cidade no Tesouro. Cidade que não entregou o balanço aparece como Não informado.", "fonte"));
     desenhar();
   }
   function estaduais(d, alvo){

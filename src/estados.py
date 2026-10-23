@@ -31,8 +31,18 @@ UFS = {"AC": ("12", "Acre"), "AL": ("27", "Alagoas"), "AP": ("16", "Amapá"), "A
        "RN": ("24", "Rio Grande do Norte"), "RS": ("43", "Rio Grande do Sul"), "RO": ("11", "Rondônia"),
        "RR": ("14", "Roraima"), "SC": ("42", "Santa Catarina"), "SP": ("35", "São Paulo"), "SE": ("28", "Sergipe"),
        "TO": ("17", "Tocantins")}
-TIPOS_RECEITA = {"legais": "Constitucionais e legais", "voluntarias": "Voluntárias (convênios)",
-                 "especiais": "Transferências especiais (emendas Pix)"}
+TIPOS_RECEITA = {"legais": "Obrigatório por lei", "voluntarias": "Convênios (negociados)",
+                 "especiais": "Emendas Pix"}
+EMENDAS_LEIGO = {"Emenda Individual - Transferências Especiais": "Individual, tipo Pix (sem destino definido)",
+                 "Emenda Individual - Transferências com Finalidade Definida": "Individual, com destino definido",
+                 "Emenda de Bancada": "Da bancada do estado", "Emenda de Comissão": "De comissão da Câmara ou do Senado",
+                 "Emenda de Relator": "Do relator (orçamento secreto)"}
+# nome da funcao no balanco -> como qualquer pessoa entende (o nome oficial fica entre parenteses)
+FUNCOES_LEIGO = {"Encargos Especiais": "Dívidas, juros e repasses", "Judiciária": "Tribunais de Justiça",
+                 "Essencial à Justiça": "Ministério Público e Defensoria", "Legislativa": "Assembleia e Tribunal de Contas",
+                 "Previdência Social": "Aposentadorias e pensões", "Administração": "Máquina pública",
+                 "Urbanismo": "Cidades (ruas, praças, iluminação)", "Gestão Ambiental": "Meio ambiente",
+                 "Desporto e Lazer": "Esporte e lazer", "Organização Agrária": "Reforma agrária"}
 CARGOS_ESTADUAIS = {"DEPUTADO ESTADUAL", "DEPUTADO DISTRITAL"}
 
 
@@ -235,7 +245,16 @@ def receitas_uniao(itens):
     # grupo sem nenhum detalhe com valor entra inteiro (nao soma duas vezes o mesmo dinheiro)
     com_detalhe = {c.rsplit(".", 1)[0] for c in detalhe}
     linhas = list(detalhe.values()) + [v for c, v in grupo.items() if c.rsplit(".", 1)[0] not in com_detalhe]
-    return sorted(((r, v, tipo_receita(r)) for r, v in linhas), key=lambda x: -x[1])
+    somadas = {}
+    for r, v in linhas:  # a fonte repete o mesmo rotulo em contas diferentes: vira uma linha so
+        r = rotulo_limpo(r)
+        somadas[r] = somadas.get(r, 0.0) + v
+    return sorted(((r, round(v, 2), tipo_receita(r)) for r, v in somadas.items()), key=lambda x: -x[1])
+
+
+def rotulo_limpo(r):
+    """O SICONFI troca o travessao por "¿" (erro de codificacao na origem)."""
+    return re.sub(r"\s+", " ", str(r).replace("\u00bf", "–")).strip()
 
 
 VERSAO_DCA = 1  # mude ao mudar despesa_por_funcao/receitas_uniao: invalida os resumos guardados
@@ -775,10 +794,15 @@ def _barras(linhas, total):
     topo = max(v for _, v, _ in linhas) or 1
     itens = "".join(
         f'<li><span class="rot">{e(r)}{x}</span><span class="val">{brl_curto(v)}'
-        f'<small>{v / total * 100:.0f}%</small></span>'
+        f'<small>{_pct(v, total)}</small></span>'
         f'<span class="barra" aria-hidden="true"><i style="width:{max(v / topo * 100, 1):.1f}%"></i></span></li>'
         for r, v, x in linhas) if total else ""
     return f'<ul class="barras">{itens}</ul>'
+
+
+def _pct(v, total):
+    p = v / total * 100
+    return "menos de 1%" if 0 < p < 0.5 else f"{p:.0f}%"
 
 
 def _mais(linhas, total, rotulo):
@@ -793,9 +817,9 @@ def secao_despesa(f):
     if not d:
         return '<p class="vazio"><b>Não informado</b>: o estado ainda não entregou o balanço do ano ao Tesouro.</p>'
     total = sum(v for _, v in d)
-    linhas = [(r, v, "") for r, v in d]
-    return (f'<p class="destaque"><b>{brl_curto(total)}</b> gastos (liquidados) em {f["ano_despesa"]}. '
-            f'Onde mais foi o dinheiro:</p>{_barras(linhas[:TOP_FUNCOES], total)}'
+    linhas = [(FUNCOES_LEIGO.get(r, r), v, f"<small>{e(r)}</small>" if r in FUNCOES_LEIGO else "") for r, v in d]
+    return (f'<p class="destaque">Em {f["ano_despesa"]}, o estado gastou <b>{brl_curto(total)}</b>. '
+            f'As áreas que mais levaram dinheiro:</p>{_barras(linhas[:TOP_FUNCOES], total)}'
             + _mais(linhas[TOP_FUNCOES:], total, f"Ver as outras {len(linhas) - TOP_FUNCOES} áreas"))
 
 
@@ -804,8 +828,8 @@ def _execucao(emd):
     pct = execucao(emd["pago"], emd.get("empenhado"))
     if pct is None:
         return ""
-    return (f'<p class="exec-total">Execução: de {brl_curto(emd["empenhado"])} empenhados, <b>{pct}%</b> já foram '
-            f'pagos.<span class="barra" aria-hidden="true"><i style="width:{max(pct, 1)}%"></i></span></p>')
+    return (f'<p class="exec-total">Do que foi prometido ({brl_curto(emd["empenhado"])} empenhados), <b>{pct}%</b> já '
+            f'foi pago.<span class="barra" aria-hidden="true"><i style="width:{max(pct, 1)}%"></i></span></p>')
 
 
 def secao_receita(f, emd):
@@ -820,20 +844,21 @@ def secao_receita(f, emd):
         for _, v, t in r:
             tipos[t] = tipos.get(t, 0.0) + v
         resumo = [(TIPOS_RECEITA[t], v, "") for t, v in sorted(tipos.items(), key=lambda kv: -kv[1])]
-        corpo = (f'<p class="destaque"><b>{brl_curto(total)}</b> recebidos da União em {f["ano_receita"]}, '
-                 f'segundo o balanço do próprio estado.</p>{_barras(resumo, total)}'
+        corpo = (f'<p class="destaque">Em {f["ano_receita"]}, chegaram <b>{brl_curto(total)}</b> do governo federal, '
+                 f'segundo o próprio estado. A maior parte é obrigatória por lei; convênios e emendas dependem de '
+                 f'negociação política.</p>{_barras(resumo, total)}'
                  + _mais([(rot, v, f' <span class="tag">{e(TIPOS_RECEITA[t])}</span>') for rot, v, t in r], total,
-                         f"Ver as {len(r)} receitas"))
+                         f"Ver os {len(r)} repasses um a um"))
     pago = emd["pago"]
     if emd.get("falhou"):
-        corpo += f'<h3>Emendas parlamentares</h3><p class="vazio"><b>{NAO_ACHOU}</b>.</p>'
+        corpo += f'<h3>Emendas de deputados e senadores</h3><p class="vazio"><b>{NAO_ACHOU}</b>.</p>'
     elif pago:
-        tipos = [(t, v, "") for t, v in emd["tipos"]]
-        corpo += (f'<h3>Emendas parlamentares</h3><p class="destaque"><b>{brl_curto(pago)}</b> pagos em {emd["n"]} '
-                  f'emendas com gasto no estado ({brl_curto(emd["estado"])} no estado como um todo e o resto em '
-                  f'municípios), {emd["de"]}–{emd["ate"]}.</p>{_execucao(emd)}{_barras(tipos, pago)}')
+        tipos = [(EMENDAS_LEIGO.get(t, t), v, f"<small>{e(t)}</small>" if t in EMENDAS_LEIGO else "") for t, v in emd["tipos"]]
+        corpo += (f'<h3>Emendas de deputados e senadores</h3><p class="destaque"><b>{brl_curto(pago)}</b> pagos em '
+                  f'{emd["n"]} emendas de {emd["de"]} a {emd["ate"]}: {brl_curto(emd["estado"])} para o estado e o '
+                  f'resto para os municípios.</p>{_execucao(emd)}{_barras(tipos, pago)}')
     else:
-        corpo += '<h3>Emendas parlamentares</h3><p class="vazio"><b>Não informado</b>.</p>'
+        corpo += '<h3>Emendas de deputados e senadores</h3><p class="vazio"><b>Não informado</b>.</p>'
     return corpo
 
 
@@ -848,7 +873,7 @@ def _parada(d):
     nome = e(d.get("autor_nome") or d["autor"].title())
     autor = f'<a href="{e(d["autor_link"])}">{nome}</a>' if d.get("autor_link") else nome
     return (f'<li>{carimbo(CARIMBO_PARADA, cor="parada-cera")}<span class="rot">{e(lugar)} · {brl_curto(d["empenhado"])} '
-            f'empenhados em {d["ano"]}, nada pago<small>Autor: {autor} · {e(d.get("funcao") or "Não informado")}</small>'
+            f'reservados em {d["ano"]}, nada pago<small>Autor: {autor} · {e(d.get("funcao") or "Não informado")}</small>'
             f'<small><a href="{transparencia._link("/emendas/consulta", codigoEmenda=d["codigo"])}" target="_blank" '
             f'rel="noopener">Ver a emenda</a></small></span></li>')
 
@@ -862,9 +887,8 @@ def _lista_conferir(itens, fazer):
 
 
 def secao_paradas(itens, meta):
-    intro = (f'<p class="fonte">Emendas empenhadas (dinheiro reservado) em {ANOS_PARADA} anos ou mais antes de hoje '
-             f'sem nenhum pagamento até agora. Pode ser obra atrasada, projeto com problema ou empenho que vai ser '
-             f'cancelado: o carimbo pede conferência, não prova irregularidade.</p>')
+    intro = (f'<p class="fonte">Dinheiro reservado há {ANOS_PARADA} anos ou mais e nada pago até hoje. Pode ser obra '
+             f'atrasada ou projeto travado. Não prova irregularidade, mas vale perguntar ao autor o que aconteceu.</p>')
     if meta.get("falhou_emendas"):
         return intro + f'<p class="vazio"><b>{NAO_ACHOU}</b>.</p>'
     if not itens:
@@ -876,7 +900,7 @@ def _carimbada(d):
     lugar = (d["municipio"] or UFS.get(local(d["local"])[0], ("", ""))[1]).title()
     noticias = ("não consultadas" if d.get("noticias") is None else
                 f'{d["noticias"]} encontrada{"s" if d["noticias"] != 1 else ""}' if d["noticias"] else "nenhuma encontrada")
-    valor = (f'{brl_curto(d["pago"])} pagos' if d["pago"] else f'{brl_curto(d.get("empenhado"))} empenhados')
+    valor = (f'{brl_curto(d["pago"])} pagos' if d["pago"] else f'{brl_curto(d.get("empenhado"))} reservados')
     nome = e(d.get("autor_nome") or d["autor"].title())
     autor = f'<a href="{e(d["autor_link"])}">{nome}</a>' if d.get("autor_link") else nome
     return (f'<li>{carimbo()}<span class="rot">{e(lugar)}, {d["ano"]} · {valor}'
@@ -888,11 +912,10 @@ def _carimbada(d):
 
 def secao_carimbos(cars, meta):
     """Emendas de defesa civil sem reconhecimento federal de emergencia no local (S2iD) no ano ou no anterior."""
-    intro = (f'<p class="fonte">Emendas de defesa civil (resposta a desastres) para um lugar sem reconhecimento federal '
-             f'de situação de emergência ou calamidade no ano da emenda ou no anterior, segundo o '
-             f'<a href="{LINK_S2ID}" target="_blank" rel="noopener">S2iD, do Ministério da Integração</a>. O carimbo '
-             f'pede conferência, não prova irregularidade: a defesa civil também previne desastres. As notícias só '
-             f'ajudam a conferir e não decidem o carimbo.</p>')
+    intro = (f'<p class="fonte">Dinheiro de defesa civil (desastres) para um lugar que não teve emergência reconhecida '
+             f'pelo governo federal naquele ano nem no anterior, segundo o <a href="{LINK_S2ID}" target="_blank" '
+             f'rel="noopener">S2iD</a>. Não prova irregularidade, porque a defesa civil também previne desastres, '
+             f'mas vale conferir. As notícias só ajudam na conferência.</p>')
     if meta.get("falhou_emendas") or not meta.get("s2id"):
         return intro + f'<p class="vazio"><b>{NAO_ACHOU}</b>: sem essa base nenhuma emenda é carimbada.</p>'
     if not cars:
@@ -911,7 +934,7 @@ def _autor(a):
              if a["n"] else '<small>nenhuma emenda paga aqui</small>')
     pct = execucao(a["pago"], a.get("empenhado"))
     if pct is not None:
-        valor += f'<small class="exec">{pct}% do empenhado pago</small>'
+        valor += f'<small class="exec">{pct}% do prometido já pago</small>'
     n, par = a.get("carimbos"), a.get("paradas")
     marca = (f'<small>{carimbo(f"{n} sem reconhecimento oficial", pequeno=True)}</small>' if n else "") + \
             (f'<small>{carimbo(f"{par} parada" + ("s" if par > 1 else ""), pequeno=True, cor="parada-cera")}</small>'
@@ -940,18 +963,18 @@ def secao_autores(autores, uf, falhou):
 def secao_estaduais(assembleia, uf):
     """Deputados estaduais: lista sob demanda (UF.json) + link da Assembleia para as emendas estaduais."""
     if assembleia and assembleia.get("ok"):
-        link = (f'<p class="fonte">Emendas estaduais não têm base nacional aberta: confira no site da '
-                f'<a href="{e(assembleia["site"])}" target="_blank" rel="noopener">{e(assembleia["nome"])}</a>.</p>')
+        link = (f'<p class="fonte">As emendas dos deputados estaduais não estão numa base nacional aberta. Confira no '
+                f'site da <a href="{e(assembleia["site"])}" target="_blank" rel="noopener">{e(assembleia["nome"])}</a>.</p>')
     else:
         link = f'<p class="fonte">Emendas estaduais: <b>{NAO_ACHOU}</b>.</p>'
     return (f'<details class="sob-demanda" data-json="{e(uf)}.json" data-parte="estaduais">'
-            f'<summary>Deputados estaduais em exercício</summary><div class="conteudo" aria-live="polite"></div>'
+            f'<summary>Deputados estaduais</summary><div class="conteudo" aria-live="polite"></div>'
             f'</details>{link}')
 
 
 def secao_municipios(uf):
     return (f'<details class="sob-demanda" data-json="{e(uf)}.json" data-parte="municipios">'
-            f'<summary>Municípios: emendas e verbas da União</summary><div class="conteudo" aria-live="polite"></div>'
+            f'<summary>Cidade por cidade: emendas e dinheiro federal</summary><div class="conteudo" aria-live="polite"></div>'
             f'</details>')
 
 
@@ -960,9 +983,9 @@ def kpis(p):
     desp = f.get("despesa") if isinstance(f.get("despesa"), list) else None
     rec = f.get("receita") if isinstance(f.get("receita"), list) else None
     val = lambda l, i: brl_curto(sum(x[i] for x in l)) if l else ("Não informado" if l == [] else NAO_ACHOU)
-    return (f'<div class="kpis"><div class="kpi card"><b>{val(desp, 1)}</b><span>gasto do estado'
+    return (f'<div class="kpis"><div class="kpi card"><b>{val(desp, 1)}</b><span>gastos pelo estado'
             f'{" em " + str(f["ano_despesa"]) if desp else ""}</span></div>'
-            f'<div class="kpi card"><b>{val(rec, 1)}</b><span>recebido da União'
+            f'<div class="kpi card"><b>{val(rec, 1)}</b><span>recebidos do governo federal'
             f'{" em " + str(f["ano_receita"]) if rec else ""}</span></div>'
             f'<div class="kpi card"><b>{NAO_ACHOU if emd.get("falhou") else brl_curto(emd["pago"])}</b>'
             f'<span>em emendas pagas, {emd["de"]}–{emd["ate"]}</span></div></div>')
@@ -986,8 +1009,8 @@ def aviso_periodo(m, f=None):
         partes.append(f'verbas da União aos municípios de {m["ano_estadual"]}')
     if m.get("eleicao_estadual"):
         partes.append(f'deputados estaduais eleitos em {m["eleicao_estadual"]}')
-    return (f'<p class="aviso periodo"><b>Período dos dados:</b> {"; ".join(partes)}. Só os últimos '
-            f'{ANOS_EMENDAS} anos; o balanço é o último entregue ao Tesouro.</p>')
+    return (f'<p class="aviso periodo"><b>Período dos dados:</b> {"; ".join(partes)}. O balanço é o último que o '
+            f'estado entregou ao Tesouro.</p>')
 
 
 def pagina_uf(p):
@@ -997,24 +1020,24 @@ def pagina_uf(p):
     faltou = (f'<p class="fonte">Emendas de {", ".join(map(str, m["faltou"]))}: <b>{NAO_ACHOU}</b> nesta '
               f'atualização; os totais desses anos podem estar incompletos.</p>') if m.get("faltou") and not emd["falhou"] else ""
     corpo = f"""<h1>{e(p["nome"])}</h1>
-<p class="lead">Gastos do governo estadual, dinheiro que veio da União e quem mandou emendas para o estado.</p>
+<p class="lead">Quanto o estado gastou, quanto veio do governo federal e quais parlamentares mandaram emendas para cá. Confira e cobre quem você elegeu. <a href="../index.html#meus={e(p["uf"])}">Ver meus representantes</a>.</p>
 {aviso_periodo(m, p["financas"])}
 {kpis(p)}
 <section class="card"><h2>Para onde vai o dinheiro do estado</h2>
 {secao_despesa(p["financas"])}
-<p class="fonte">Balanço anual (DCA) entregue pelo estado ao <a href="{LINK_SICONFI}" target="_blank" rel="noopener">SICONFI, do Tesouro Nacional</a>. Despesa liquidada por área (função).</p></section>
-<section class="card"><h2>O que veio da União</h2>
+<p class="fonte">Fonte: balanço anual do estado no <a href="{LINK_SICONFI}" target="_blank" rel="noopener">Tesouro Nacional (SICONFI)</a>.</p></section>
+<section class="card"><h2>O que veio do governo federal</h2>
 {secao_receita(p["financas"], emd)}{faltou}
-<p class="fonte">Receitas da União declaradas pelo estado no SICONFI. Emendas: <a href="{LINK_EMENDAS}" target="_blank" rel="noopener">Portal da Transparência</a>, pelo local do gasto (inclui órgãos federais, prefeituras e entidades no estado, não só o governo estadual).</p></section>
-<section class="card"><h2>Parlamentares autores de emendas</h2>
-<p class="fonte">Deputados federais e senadores do estado em exercício, pelo valor pago em emendas de sua autoria com gasto em {e(p["nome"])}. Ser autor de emenda é parte do mandato e não é, por si, irregular.</p>
+<p class="fonte">Fontes: balanço do estado no Tesouro e emendas no <a href="{LINK_EMENDAS}" target="_blank" rel="noopener">Portal da Transparência</a>, pelo lugar onde o dinheiro foi gasto.</p></section>
+<section class="card"><h2>Quem mandou emendas para {e(p["nome"])}</h2>
+<p class="fonte">Deputados federais e senadores do estado, por quanto já foi pago das emendas de cada um aqui. Mandar emenda é parte do trabalho deles. O que vale cobrar é se o dinheiro chegou e virou obra ou serviço.</p>
 {secao_autores(p["autores"], p["uf"], emd["falhou"])}</section>
 <section class="card" id="carimbos"><h2>Emendas para conferir</h2>
 <h3>Emergência sem reconhecimento oficial</h3>
 {secao_carimbos(p.get("carimbos") or [], m)}
 <h3>Paradas</h3>
 {secao_paradas(p.get("paradas") or [], m)}</section>
-<section class="card"><h2>Municípios e Assembleia</h2>
+<section class="card"><h2>Cidades e deputados estaduais</h2>
 {secao_municipios(p["uf"])}
 {secao_estaduais(p.get("assembleia"), p["uf"])}</section>"""
     return corpo
@@ -1026,10 +1049,10 @@ def pagina_indice(paginas):
         rec = p["financas"].get("receita")
         valor = brl_curto(sum(x[1] for x in rec)) if isinstance(rec, list) and rec else "Não informado"
         itens.append(f'<li><a class="card uf" href="{e(uf)}.html"><b>{e(p["nome"])}</b>'
-                     f'<small>{valor} da União · {brl_curto(p["emendas"]["pago"])} em emendas</small></a></li>')
+                     f'<small>{valor} do governo federal · {brl_curto(p["emendas"]["pago"])} em emendas</small></a></li>')
     m = next(iter(paginas.values()))["meta"] if paginas else None
-    return (f'<h1>Gastos por estado</h1><p class="lead">Escolha um estado para ver o gasto do governo estadual, as '
-            f'verbas recebidas da União e os parlamentares autores de emendas.</p>{aviso_periodo(m) if m else ""}'
+    return (f'<h1>Gastos por estado</h1><p class="lead">Escolha um estado e descubra para onde vai o dinheiro, quanto '
+            f'veio do governo federal e quem mandou emendas.</p>{aviso_periodo(m) if m else ""}'
             f'<ul class="ufs">{"".join(itens)}</ul>')
 
 
