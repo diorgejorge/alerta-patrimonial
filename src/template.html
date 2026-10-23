@@ -20,7 +20,7 @@ small{color:var(--mut)}.vazio{padding:2em;color:var(--mut)}
 a{color:var(--info)}.fonte{color:var(--mut);max-width:75ch;margin:1em 0}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:1em 0}
 .kpi,.card{background:var(--card);border:1px solid var(--line);border-radius:var(--raio);padding:.9em 1.1em;box-shadow:var(--elev)}
-.kpi b{display:block;font-family:var(--fonte-marca);font-size:1.6rem;font-weight:800;line-height:1.2;color:var(--titulo)}.kpi span{color:var(--mut);font-size:.85rem}
+.kpi b{display:block;font-family:var(--fonte-marca);font-size:1.6rem;font-weight:800;line-height:1.2;color:var(--destaque,var(--titulo))}.kpi span{color:var(--mut);font-size:.85rem}
 .graf{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px;margin:1em 0;align-items:start}
 .card h2{font-size:1rem;margin:0}.card p{margin:.1em 0 .6em;color:var(--mut);font-size:.85rem}
 .leg{display:flex;gap:14px;flex-wrap:wrap;color:var(--mut);font-size:.85rem;margin:.6em 0 0}
@@ -61,9 +61,9 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-space:nowrap}
 @media (min-width:600px){#tabela td:first-child{min-width:16ch}#tabela td:nth-child(2){min-width:22ch}}
 .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
-.tag.selo{background:var(--ouro);color:var(--tinta);border:1px solid var(--ouro);font-weight:700}
+.tag:is(.exemplar,.selo){--c:#c98a0c;background:color-mix(in srgb,var(--c) 22%,transparent);border-color:var(--c);font-weight:700}.tag.selo{--c:#c4682e}.tag:is(.exemplar,.selo) .ico{color:var(--c)}
 .tag .cor{display:inline-block;width:.7em;height:.7em;border-radius:50%;margin-right:.4em;box-shadow:0 0 0 1.5px #fff}
-.tag.renda{background:var(--card);border-color:var(--info);color:var(--info);font-weight:600}
+.tag.renda{background:color-mix(in srgb,var(--info) 14%,transparent);border-color:var(--info);color:var(--info);font-weight:600}
 button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 /* card compacto (#52): nome e nivel, resumo de uma linha, crescimento; o resto abre em "Ver detalhes" */
 .tag.fil{display:inline;min-height:0;padding:0;border:0;background:none;color:inherit;font-size:inherit;text-align:left}
@@ -75,7 +75,7 @@ button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 .alerta .topo .chip{font-size:.75rem;line-height:1.5;padding:1px 9px}
 .alerta .resumo{margin:0;font-size:.875rem;line-height:1.4;color:var(--mut)}.alerta .resumo .sep{margin:0 .15em}
 .alerta .valor{margin:2px 0 0;display:flex;flex-direction:column;gap:2px}
-.alerta .valor b{font-family:var(--fonte-marca);font-size:1.75rem;font-weight:800;line-height:1.1;color:var(--titulo);font-variant-numeric:tabular-nums}
+.alerta .valor b{font-family:var(--fonte-marca);font-size:1.75rem;font-weight:800;line-height:1.1;color:var(--destaque,var(--titulo));font-variant-numeric:tabular-nums}
 .alerta .valor span{font-size:.8125rem;color:var(--mut)}
 .alertas{align-items:start}
 .fatos{list-style:none;margin:0;padding:12px 0 0;border-top:1px solid var(--line);display:grid;gap:8px;font-size:.875rem;line-height:1.5}
@@ -160,8 +160,8 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <h2 id="legenda-tit">Como ler cada card <small>(toque numa marcação para filtrar)</small></h2>
 <ul class="leg-lista" id="leg-niveis"></ul>
 <ul class="leg-lista">
-<li><button type="button" class="selo-cera ouro" data-f="flag" data-v="exemplar"><span class="cera" aria-hidden="true"><span><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg></span></span><span class="rot">Exemplar</span></button> <span class="expl">Ficou mais rico só o que o salário explica, gasta a verba do gabinete abaixo da média e não tem punição registrada.</span></li>
-<li><button type="button" class="selo-cera caramelo" data-f="flag" data-v="selo"><span class="cera" aria-hidden="true"><span><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.2" ry="3.4"/><circle cx="5.8" cy="10.6" r="1.9"/><circle cx="9.4" cy="6.6" r="1.9"/><circle cx="14.6" cy="6.6" r="1.9"/><circle cx="18.2" cy="10.6" r="1.9"/></svg></span></span><span class="rot">Mão na massa</span></button> <span class="expl">Está entre os 10% que mais aprovaram leis na sua casa (Câmara ou Senado) nos últimos 4 anos.</span></li>
+<li><button type="button" class="tag exemplar" data-f="flag" data-v="exemplar"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg> Exemplar</button> <span class="expl">Ficou mais rico só o que o salário explica, gasta a verba do gabinete abaixo da média e não tem punição registrada.</span></li>
+<li><button type="button" class="tag selo" data-f="flag" data-v="selo"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.2" ry="3.4"/><circle cx="5.8" cy="10.6" r="1.9"/><circle cx="9.4" cy="6.6" r="1.9"/><circle cx="14.6" cy="6.6" r="1.9"/><circle cx="18.2" cy="10.6" r="1.9"/></svg> Mão na massa</button> <span class="expl">Está entre os 10% que mais aprovaram leis na sua casa (Câmara ou Senado) nos últimos 4 anos.</span></li>
 <li><button type="button" class="tag renda" data-f="flag" data-v="renda"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M11 21v-3h2v3"/></svg> Empresas</button> <span class="expl">É sócio de empresa: o salário não é a única renda, então o alerta fica um grau mais leve.</span></li>
 <li data-processos hidden><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo?</button> <span class="expl">Nome numa lista revisada por leitores; pode ser outra pessoa com o mesmo nome, confira.</span></li>
 </ul>
@@ -364,7 +364,9 @@ const PR=a=>{const p=(a.processos||[]).filter(x=>/^https:\/\//.test(x.link||""))
   return`<a class="tag reu" href="${esc(p[0].link)}" target="_blank" rel="noopener" title="${esc(p.map(x=>`${x.tribunal} ${x.numero}`).join("; "))}. ${REU_OBS}.">Responde a processo?${p.length>1?` (${p.length})`:""}</a>`;};
 // tags de uma pessoa (cards e tabela): marcacoes + cargos, partidos e UF (uniao dos periodos) em cor neutra; todas filtram
 // selo de cera clicavel (filtra pela marcacao): cor, icone e rotulo
-const SELO=(cor,v,title,ic,rot)=>`<button type="button" class="selo-cera ${cor}" data-f="flag" data-v="${v}" title="${esc(title)}"><span class="cera" aria-hidden="true"><span>${ic}</span></span><span class="rot">${rot}</span></button>`;
+// selo de cera: so nas abas proprias (Exemplares, Projetos); na principal a marcacao e uma tag colorida que filtra
+const SELO=(cor,title,ic,rot)=>`<p class="tags"><span class="selo-cera ${cor}" title="${esc(title)}"><span class="cera" aria-hidden="true"><span>${ic}</span></span><span class="rot">${rot}</span></span></p>`;
+const MARCA=(v,title,ic,rot)=>BT(v,`data-f="flag" data-v="${v}"`,title,`${ic} ${rot}`);
 const BT=(cls,attrs,title,txt)=>`<button type="button" class="tag ${cls}" ${attrs} title="${esc(title)}">${txt}</button>`;
 const DIM=(dim,v,rot,txt)=>BT("",`data-dim="${dim}" data-v="${esc(v)}"`,`Filtrar pelo ${rot} ${v}`,txt);
 const CPU=p=>(p.cargos.length?p.cargos.map(c=>DIM("cargo",c,"cargo",esc(c))).join(""):`<span class="tag">Não informado</span>`)
@@ -405,8 +407,8 @@ const CPU_RES=p=>[p.cargos.length?p.cargos.map(c=>FIL("cargo",c,"cargo",esc(CAP(
 const RES1=c=>`<p class="resumo">${CPU_RES({cargos:[c.cargo].filter(Boolean),partidos:[c.partido].filter(Boolean),ufs:[c.uf].filter(Boolean)})}</p>`;
 // marcacoes que valem a pena na face do card; zeros e "Não informado" ficam nos detalhes
 const MARCAS=p=>{const ne=p.qtd_empresas||0,rd=p.per.find(a=>a.nivel_calculado&&a.nivel_calculado!==a.nivel);
-  const l=[p.exemplar&&SELO("ouro","exemplar","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções. Clique para ver só os exemplares",ICO.estrela,"Exemplar"),
-    p.selo&&SELO("caramelo","selo","Mão na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",ICO.pata,"Mão na massa"),
+  const l=[p.exemplar&&MARCA("exemplar","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções. Clique para ver só os exemplares",ICO.estrela,"Exemplar"),
+    p.selo&&MARCA("selo","Mão na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",ICO.pata,"Mão na massa"),
     PROC_ON&&PR(p),
     (ne||p.outras_rendas)&&BT("renda","data-f=\"flag\" data-v=\"renda\"",`Declarou participação em empresas: o salário não é a única fonte de renda${rd?`; destaque reduzido de ${NV[rd.nivel_calculado]} para ${NV[rd.nivel]}${p.per.length>1?` em ${rd.ano_ini}–${rd.ano_fim}`:""}`:""}. Clique para ver só quem tem empresas`,
       `${ICO.predio} ${ne?`${ne.toLocaleString("pt-BR")} ${ne===1?"empresa":"empresas"}`:"Tem empresas"}`)].filter(Boolean);
@@ -446,6 +448,7 @@ function exemplares(){
     const p={cargos:u(g,"cargo"),partidos:u(g,"partido"),ufs:u(g,"uf")};
     return`<li class="card alerta exemplar"><div class="topo"><span><b><span class="estrela" title="Parlamentar exemplar">${ICO.estrela}</span> ${esc(x.nome)}</b>${mul?` <span class="multi">${g.length} períodos</span>`:""}<br><small>Patrimônio de ${Math.min(...g.map(y=>y.ano_ini))}–${Math.max(...g.map(y=>y.ano_fim))}</small></span></div>
 <p class="resumo">${CPU_RES(p)}</p>
+${SELO("ouro","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções",ICO.estrela,"Exemplar")}
 <dl><div><dt>Cota parlamentar (últimos 4 anos)</dt><dd>${RS(x.cota)}</dd></div><div><dt>Média do cargo</dt><dd>${RS(x.cota_media)}</dd></div>${g.map(y=>`<div><dt>Crescimento do patrimônio (${y.ano_ini}–${y.ano_fim})</dt><dd>${R(y.cresc)}</dd></div><div><dt>Poderia juntar com o salário${mul?` (${y.ano_ini}–${y.ano_fim})`:""}</dt><dd>${R(y.cap)}</dd></div>`).join("")}</dl>
 <p class="links">${lk?`<a class="lk" href="${esc(lk)}" target="_blank" rel="noopener">Site oficial</a>`:"Site oficial: Não informado"}</p></li>`;}).join("");
   $("exemplares").hidden=false;
@@ -463,7 +466,7 @@ ${RES1(c)}
 function projetos(){
   const l=D.projetos||[];if(!l.length)return;
   $("projetos-lista").innerHTML=l.map((c,i)=>`<li class="card alerta"><div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
-${RES1(c)}${c.selo?`<p class="tags"><span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados">${ICO.pata} Mão na massa</span></p>`:""}
+${RES1(c)}${c.selo?SELO("caramelo","Entre os 10% da sua casa com mais projetos aprovados",ICO.pata,"Mão na massa"):""}
 <dl><div><dt>Projetos apresentados</dt><dd>${c.apresentados.toLocaleString("pt-BR")}</dd></div><div><dt>Aprovados (viraram norma jurídica)</dt><dd>${c.aprovados.toLocaleString("pt-BR")}</dd></div></dl>
 <p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Ver a lista no site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
   $("projetos").hidden=false;

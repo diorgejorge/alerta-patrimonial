@@ -55,6 +55,11 @@ def test_icones_flat_sem_emoji(html):
     assert not re.search("[\U0001F300-\U0001FAFF\u2600-\u27BF]", html)  # emojis trocados por SVG (#52)
 
 
+def test_selo_de_cera_so_nas_abas_proprias(html):
+    destaques = re.search(r'<section id="destaques".*?</section>', html, re.S).group(0)
+    assert "selo-cera" not in destaques  # na principal, Exemplar e Mao na massa sao tags coloridas
+
+
 def test_selo_js_publicado_junto(site, html):
     assert '<script src="selo.js" defer>' in html and (site / "selo.js").exists()
 
@@ -143,7 +148,7 @@ def test_card_dois_periodos(abrir):
     assert "PSDB → PL" in c.locator(".resumo").text_content()
     assert "2 períodos" in c.locator("button.ver").get_attribute("title")
     assert c.locator(".det .periodo").count() == 2
-    assert c.locator(".selo-cera.caramelo").count() == 1  # Mao na massa vira selo de cera
+    assert c.locator(".tag.selo").count() == 1 and c.locator(".selo-cera").count() == 0  # selo de cera so na aba propria
     face = c.locator(".tags").text_content()
     assert "Mão na massa" in face and "3 empresas" in face
     assert "R$ 3.000.000" in c.locator(".valor b").text_content()  # soma dos periodos
@@ -221,6 +226,15 @@ def test_resumo_do_card_filtra(abrir):
     pg = abrir()
     pg.locator("#cards .resumo button[data-dim=uf]").first.click()
     assert "filtro: estado" in pg.inner_text("#contagem")
+
+
+def test_abas_proprias_mostram_selo_de_cera(abrir):
+    pg = abrir()
+    com_selo = pg.evaluate("(D.projetos||[]).filter(c=>c.selo).length")
+    assert pg.locator("#projetos-lista .selo-cera.caramelo").count() == com_selo
+    if pg.evaluate("(D.exemplares||[]).length"):
+        assert pg.locator("#exemplares-lista .selo-cera.ouro").count() == pg.locator("#exemplares-lista li").count()
+    assert pg.locator("#cards .selo-cera").count() == 0
 
 
 def test_todas_as_pessoas_carrega_ao_abrir_a_aba(abrir):
