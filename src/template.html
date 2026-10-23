@@ -295,7 +295,7 @@ const CR=a=>`<p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><sma
 const DL=a=>`<dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>`;
 // um periodo dentro do card (so para quem tem mais de um): anos, cargo (e partido, se mudou), numeros e TSE;
 // o chip de nivel so aparece no periodo de maior crescimento (classe maior)
-const PER=(a,p)=>`<li class="periodo${a===p.maior?" maior":""}">${a===p.maior?`<span class="chip nv-${a.nivel}">${NV[a.nivel]}</span> <span class="maior-rotulo">Maior crescimento</span> `:""}<span class="anos">${a.ano_ini}–${a.ano_fim}</span> <span class="cargo">${esc(a.cargo||"Não informado")}${p.partidos.length>1&&a.partido?` · ${esc(a.partido)}`:""}</span>
+const PER=(a,p)=>`<li class="periodo"><span class="anos">${a.ano_ini}–${a.ano_fim}</span> <span class="cargo">${esc(a.cargo||"Não informado")}${p.partidos.length>1&&a.partido?` · ${esc(a.partido)}`:""}</span>
 ${CR(a)}${DL(a)}${TSE(a)?`<p class="links">${TSE(a)}</p>`:""}</li>`;
 // contadores da pessoa (card e tabela): empresas declaradas, processos da lista revisada e projetos aprovados (so deputado federal e senador)
 const CONT=(p,tag="p",cls="contadores")=>{
@@ -310,7 +310,7 @@ const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</s
 const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}"><div class="topo"><span><b>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> `:""}${esc(p.nome_urna||p.nome)}</b>${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${p.ano_ini}–${p.ano_fim}${p.mencoes?` · ${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${p.nivel}"${p.per.length>1?` title="Nível do período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})"`:""}>${NV[p.nivel]}</span></div>
 <p class="tags">${TAGS(p)}</p>
 ${CONT(p)}
-${p.per.length>1?`<p class="cresc"><small>Crescimento de <span class="total-periodo">${p.ano_ini} a ${p.ano_fim}</span> (soma dos ${p.per.length} períodos)</small><b>${R(p.cresc)}</b><small>${R(p.pat_ini)} → ${R(p.pat_fim)}</small></p>${COMPRA(p.cresc)}<ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:CR(p.per[0])+COMPRA(p.cresc)+DL(p.per[0])}
+${p.per.length>1?`<p class="cresc"><small>Crescimento de <span class="total-periodo">${p.ano_ini} a ${p.ano_fim}</span> (soma dos ${p.per.length} períodos)</small><b>${R(p.cresc)}</b><small>${R(p.pat_ini)} → ${R(p.pat_fim)}</small><small>Maior crescimento: <b class="maior-ano">${p.maior.ano_ini}–${p.maior.ano_fim}</b></small></p>${COMPRA(p.cresc)}<ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:CR(p.per[0])+COMPRA(p.cresc)+DL(p.per[0])}
 <p class="links">${LK(p)}</p></li>`;
 // parlamentares exemplares: um card por pessoa (nome + UF), periodos agrupados
 function exemplares(){

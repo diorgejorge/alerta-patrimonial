@@ -146,14 +146,8 @@ ul.nt li{padding:.6em .9em;border-bottom:1px solid var(--line)}ul.nt li:last-chi
 .periodos .periodo dd{margin:0;text-align:left;white-space:normal;font-weight:600;font-variant-numeric:tabular-nums}
 .periodos .periodo .cresc b{font-size:1.1rem}
 @container (min-width:440px){.periodos .periodo dl{grid-template-columns:repeat(3,minmax(0,1fr))}}
-/* periodo de maior crescimento (o unico com chip): fundo --realce leve e barra caramelo, conteudo alinhado aos demais */
-.periodo.maior{margin-inline:-8px;padding-inline:4px 8px;border-left:4px solid var(--caramelo);border-radius:0 8px 8px 0;background:var(--realce)}
-.periodo.maior:last-child{padding-bottom:.55em}
-.maior-rotulo{display:inline-block;padding:0 8px;border:1px solid var(--caramelo);border-radius:999px;background:var(--card);
-  color:var(--fg);font-size:.75rem;font-weight:700;line-height:1.6;white-space:nowrap}  /* --fg no --card: 13:1 / 13:1 */
-/* demais periodos mais discretos: rotulos em --mut, numeros seguem em --fg (AA) */
-.periodos:has(.maior) .periodo:not(.maior) :is(.anos,.cargo){color:var(--mut)}
-.periodos:has(.maior) .periodo:not(.maior) dd{font-weight:500}
+/* periodo de maior crescimento: so uma linha no resumo do card, sem destacar o bloco do periodo */
+.alerta .cresc .maior-ano{font-size:inherit;line-height:inherit;color:var(--fg)}
 
 /* "3 periodos": pilula discreta no topo do card (creme com borda caramelo; vira botao/select de 44 px se for clicavel) */
 .multi{display:inline-flex;align-items:center;gap:4px;flex:none;padding:1px 10px;border:1.5px solid var(--caramelo);border-radius:999px;
@@ -250,7 +244,7 @@ html button.tag.reu:hover{background:var(--realce);border-color:var(--atencao)}
   .marca{background:none;color:#000;box-shadow:none;padding:0}.marca h1{color:#000;text-shadow:none}.marca .lema{color:#000}
   a{color:#000}a[href^="http"]::after{content:" (" attr(href) ")";font-size:.8em;word-break:break-all}
   h2{break-after:avoid}tr,li,.card{break-inside:avoid}
-  .periodo{border-color:#999}.periodo.maior{background:none;border-left-color:#000}
-  .maior-rotulo{background:none;border-color:#000;color:#000}.multi,.contador{background:none;border-color:#999;color:#000}.contador b{color:#000}
+  .periodo{border-color:#999}.maior-ano{color:#000}
+  .multi,.contador{background:none;border-color:#999;color:#000}.contador b{color:#000}
   html .tag.reu{background:none;color:#000;border-color:#000}html .alerta.exemplar{border-color:#000;box-shadow:none}html .estrela{color:#000}
 }
