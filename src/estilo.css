@@ -146,6 +146,14 @@ ul.nt li{padding:.6em .9em;border-bottom:1px solid var(--line)}ul.nt li:last-chi
 .periodos .periodo dd{margin:0;text-align:left;white-space:normal;font-weight:600;font-variant-numeric:tabular-nums}
 .periodos .periodo .cresc b{font-size:1.1rem}
 @container (min-width:440px){.periodos .periodo dl{grid-template-columns:repeat(3,minmax(0,1fr))}}
+/* periodo de maior crescimento (o unico com chip): fundo --realce leve e barra caramelo, conteudo alinhado aos demais */
+.periodo.maior{margin-inline:-8px;padding-inline:4px 8px;border-left:4px solid var(--caramelo);border-radius:0 8px 8px 0;background:var(--realce)}
+.periodo.maior:last-child{padding-bottom:.55em}
+.maior-rotulo{display:inline-block;padding:0 8px;border:1px solid var(--caramelo);border-radius:999px;background:var(--card);
+  color:var(--fg);font-size:.75rem;font-weight:700;line-height:1.6;white-space:nowrap}  /* --fg no --card: 13:1 / 13:1 */
+/* demais periodos mais discretos: rotulos em --mut, numeros seguem em --fg (AA) */
+.periodos:has(.maior) .periodo:not(.maior) :is(.anos,.cargo){color:var(--mut)}
+.periodos:has(.maior) .periodo:not(.maior) dd{font-weight:500}
 
 /* "3 periodos": pilula discreta no topo do card (creme com borda caramelo; vira botao/select de 44 px se for clicavel) */
 .multi{display:inline-flex;align-items:center;gap:4px;flex:none;padding:1px 10px;border:1.5px solid var(--caramelo);border-radius:999px;
@@ -179,8 +187,38 @@ html .estrela{color:var(--exemplar)}
 .contadores.compacto .contador b,td .contador b{font-size:.9rem}
 @media (max-width:599.98px){table.resp td .contadores{justify-content:flex-end}}
 
-/* botoes de filtro da legenda: alvo de 44 px */
-.legenda-tags button.tag{min-height:44px}
+/* legenda em tabelinha (tag | o que significa): card leve, linhas finas, cabecalho discreto.
+   Sem overflow:hidden para nao cortar o contorno de foco dos botoes; cantos do cabecalho arredondados a mao. */
+.legenda-tabela{width:100%;border-collapse:separate;border-spacing:0;margin:.4em 0 1em;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;box-shadow:3px 3px 0 var(--sombra);font-size:.875rem}
+.legenda-tabela caption{caption-side:top;text-align:left;padding:0 0 .4em;font-family:var(--fonte-marca);font-weight:800;
+  font-size:1rem;color:var(--titulo)}
+.legenda-tabela caption small{display:block;font:400 .8125rem/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--mut)}
+.legenda-tabela thead th{text-align:left;padding:.45em .8em;background:var(--realce);color:var(--mut);font-size:.75rem;font-weight:600;
+  letter-spacing:.04em;text-transform:uppercase;border-bottom:1px solid var(--line)}
+.legenda-tabela thead th:first-child{border-top-left-radius:13px}.legenda-tabela thead th:last-child{border-top-right-radius:13px}
+.legenda-tabela tbody :is(th,td){padding:.35em .8em;text-align:left;vertical-align:middle;border-top:1px solid var(--line)}
+.legenda-tabela tbody tr:first-child>*{border-top:0}
+.legenda-tabela tbody th[scope=row]{width:1%;white-space:nowrap;font-weight:400}  /* coluna das tags do tamanho do conteudo */
+.legenda-tabela tbody th .tag{margin:3px 4px 3px 0;vertical-align:middle}
+.legenda-tabela td{color:var(--fg)}.legenda-tabela td :is(small,.mut){color:var(--mut)}
+.legenda-tabela tr.grupo th{background:var(--realce);font-family:var(--fonte-marca);font-weight:800;font-size:.875rem;color:var(--titulo);
+  white-space:normal;width:auto}
+/* botoes de filtro: 44 px, estado ligado com contorno (forma, nao so cor) */
+.legenda-tabela button.tag{min-height:44px}
+.legenda-tabela button.tag[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px;font-weight:700}
+@media (max-width:599.98px){  /* celular: cada linha empilha (tags em cima, explicacao embaixo), sem rolagem lateral */
+  .legenda-tabela,.legenda-tabela tbody,.legenda-tabela tr,.legenda-tabela tbody :is(th,td){display:block;width:auto}
+  .legenda-tabela thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .legenda-tabela tbody tr{padding:.5em .8em;border-top:1px solid var(--line)}.legenda-tabela tbody tr:first-child{border-top:0}
+  .legenda-tabela tbody :is(th,td){padding:0;border:0}
+  .legenda-tabela caption{display:block}  /* table-caption dentro de tabela em bloco virava coluna de 11 px */
+  .legenda-tabela tbody th[scope=row]{display:flex;flex-wrap:wrap;gap:6px;white-space:normal;width:auto}
+  .legenda-tabela tbody th .tag{margin:0}
+  .legenda-tabela td{margin-top:.3em}
+  .legenda-tabela tr.grupo{padding:0}.legenda-tabela tr.grupo th{display:block;padding:.45em .8em}
+  .legenda-tabela tbody tr.grupo:first-child th{border-radius:13px 13px 0 0}
+}
 /* filtro sem nada para filtrar: esmaecido mas legivel (--mut e AA), sem hover */
 html .tag:is([disabled],[aria-disabled="true"]){background:transparent;color:var(--mut);border-color:var(--line);font-weight:400;cursor:not-allowed;box-shadow:none}
 html .tag:is([disabled],[aria-disabled="true"]):hover{border-color:var(--line);background:transparent}
@@ -207,10 +245,12 @@ html button.tag.reu:hover{background:var(--realce);border-color:var(--atencao)}
   .abas [role=tablist],.voltar,.pular,.nao-imprimir,details.alt summary{display:none}
   .abas [role=tabpanel]{display:block!important}
   details.alt{display:block}details.alt>*{display:block}
-  .card,.tab,ul.nt{border-color:#999;box-shadow:none}
+  .card,.tab,ul.nt,.legenda-tabela{border-color:#999;box-shadow:none}
+  .legenda-tabela thead th,.legenda-tabela tr.grupo th{background:none;color:#000}
   .marca{background:none;color:#000;box-shadow:none;padding:0}.marca h1{color:#000;text-shadow:none}.marca .lema{color:#000}
   a{color:#000}a[href^="http"]::after{content:" (" attr(href) ")";font-size:.8em;word-break:break-all}
   h2{break-after:avoid}tr,li,.card{break-inside:avoid}
-  .periodo{border-color:#999}.multi,.contador{background:none;border-color:#999;color:#000}.contador b{color:#000}
+  .periodo{border-color:#999}.periodo.maior{background:none;border-left-color:#000}
+  .maior-rotulo{background:none;border-color:#000;color:#000}.multi,.contador{background:none;border-color:#999;color:#000}.contador b{color:#000}
   html .tag.reu{background:none;color:#000;border-color:#000}html .alerta.exemplar{border-color:#000;box-shadow:none}html .estrela{color:#000}
 }

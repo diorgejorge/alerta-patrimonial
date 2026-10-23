@@ -58,7 +58,7 @@ th small{font-weight:400}td.n small{color:var(--mut)}
 /* tabelas no PC: palavras inteiras (sem quebrar letra a letra), nome com largura minima e tags sem quebrar por dentro */
 table.resp td,table.resp th{overflow-wrap:normal;word-break:normal}.tag{white-space:nowrap}
 @media (min-width:600px){#tabela td:first-child{min-width:16ch}#tabela td:nth-child(2){min-width:22ch}}
-.legenda-tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:.2em 0 .8em;font-size:.875rem}.legenda-tags button[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px}.legenda-tags .rotulo{color:var(--mut)}
+#legenda button[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px}
 .tag{font:inherit;font-size:.8rem;line-height:1.3;padding:.3em .7em;border:1px solid var(--line);border-radius:999px;background:var(--realce);color:var(--fg);min-height:32px;display:inline-flex;align-items:center}
 .tag.selo{background:var(--ouro);color:var(--tinta);border:2px solid var(--tinta);font-weight:700}
 .tag.q0{background:#f6eee4;color:#3b2a20;border-color:#e3d3bf}.tag.q1{background:#eec5a8;color:#3b1d10;border-color:#dfae8c}
@@ -109,7 +109,19 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 <p class="contagem" id="contagem" aria-live="polite"></p>
 <section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
 <h2>Todos os destaques</h2>
-<div class="legenda-tags" id="legenda" aria-label="Legenda das tags; clique para filtrar"><span class="rotulo">Concentração de destaques no estado:</span><button type="button" class="tag q0" data-f="conc" data-v="q0">poucos</button><button type="button" class="tag q1" data-f="conc" data-v="q1">alguns</button><button type="button" class="tag q2" data-f="conc" data-v="q2">muitos</button><button type="button" class="tag q3" data-f="conc" data-v="q3">os que mais concentram</button><span class="rotulo">·</span><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha: cor do partido</span><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button><button type="button" class="tag selo" data-f="flag" data-v="selo"><span aria-hidden="true">🐾</span> Mão na massa</button><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo?</button></div>
+<table class="legenda-tabela" id="legenda">
+<caption>Legenda das tags <small>(clique numa tag para filtrar)</small></caption>
+<thead><tr><th scope="col">Tag</th><th scope="col">O que significa</th></tr></thead>
+<tbody>
+<tr class="grupo"><th colspan="2" scope="colgroup">Cargo, partido e estado</th></tr>
+<tr><th scope="row"><button type="button" class="tag q0" data-f="conc" data-v="q0">poucos</button> <button type="button" class="tag q1" data-f="conc" data-v="q1">alguns</button> <button type="button" class="tag q2" data-f="conc" data-v="q2">muitos</button> <button type="button" class="tag q3" data-f="conc" data-v="q3">os que mais concentram</button></th><td>Concentração de destaques no estado (do bege ao vermelho-escuro)</td></tr>
+<tr><th scope="row"><span class="tag"><i class="cor" style="background:#8a8f94" aria-hidden="true"></i>bolinha</span></th><td>Cor aproximada do partido</td></tr>
+<tr class="grupo"><th colspan="2" scope="colgroup">Marcações</th></tr>
+<tr><th scope="row"><button type="button" class="tag" data-f="flag" data-v="exemplar"><span class="estrela" aria-hidden="true">★</span> parlamentar exemplar</button></th><td>Patrimônio compatível com o salário, cota abaixo da média e sem sanções</td></tr>
+<tr><th scope="row"><button type="button" class="tag selo" data-f="flag" data-v="selo"><span aria-hidden="true">🐾</span> Mão na massa</button></th><td>Entre os 10% da sua casa com mais projetos aprovados em 4 anos</td></tr>
+<tr><th scope="row"><button type="button" class="tag renda" data-f="flag" data-v="renda">Tem empresas declaradas</button></th><td>Declarou ao TSE participação em empresas; o destaque desce um grau</td></tr>
+<tr><th scope="row"><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo?</button></th><td>Nome em lista revisada por leitores; pode ser homônimo, confira o processo</td></tr>
+</tbody></table>
 <ul class="alertas" id="cards"></ul>
 <div id="vz" class="vazio" hidden>O Caramelo não farejou nenhum destaque com este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
@@ -159,9 +171,11 @@ function agrupaPessoas(l){
   return[...m.values()].map(per=>{
     per=[...per].sort((x,y)=>(x.ano_ini||0)-(y.ano_ini||0)||(x.ano_fim||0)-(y.ano_fim||0));
     const u=c=>[...new Set(per.map(a=>a[c]).filter(Boolean))],ult=per[per.length-1],cs=per.map(a=>a.cresc).filter(v=>v!=null);
+    // periodo de maior crescimento: e nele que fica o alerta (nivel do card); o crescimento do card e a soma dos periodos
+    const maior=per.reduce((x,a)=>(a.cresc??-Infinity)>(x.cresc??-Infinity)?a:x,per[0]);
     const procs=[...new Map(per.flatMap(a=>a.processos||[]).map(x=>[`${x.tribunal}|${x.numero}`,x])).values()],qe=per.map(a=>a.qtd_empresas).filter(v=>v!=null);
     return{per,nome:ult.nome,nome_urna:ult.nome_urna||per.find(a=>a.nome_urna)?.nome_urna,cargos:u("cargo"),partidos:u("partido"),ufs:u("uf"),
-      nivel:per.reduce((x,a)=>ORD[a.nivel]<ORD[x]?a.nivel:x,per[0].nivel),cresc:cs.length?Math.max(...cs):null,
+      maior,nivel:maior.nivel,cresc:cs.length?cs.reduce((s,v)=>s+v,0):null,pat_ini:per[0].pat_ini,pat_fim:ult.pat_fim,
       ano_ini:Math.min(...per.map(a=>a.ano_ini)),ano_fim:Math.max(...per.map(a=>a.ano_fim)),
       exemplar:per.some(a=>a.exemplar),selo:per.some(a=>a.selo),outras_rendas:per.some(a=>a.outras_rendas),processos:procs,
       novo:per.some(a=>a.novo),mencoes:Math.max(0,...per.map(a=>a.mencoes||0)),
@@ -175,16 +189,16 @@ const PES=D?agrupaPessoas(D.alertas||[]):[];
 // periodos da pessoa que atendem aos filtros de busca, nivel e dimensao (ign: o grafico ignora o proprio filtro)
 function casa(p,ign){
   const q=$("q").value.toLowerCase(),nv=$("nv").value;
-  return p.per.filter(a=>(!nv||a.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)&&(ign==="uf"||!F.regiao||REG[a.uf]===F.regiao)&&(!F.cargo||a.cargo===F.cargo)&&(!F.conc||QT("uf",a.uf)===F.conc)
+  return p.per.filter(a=>(!nv||p.nivel===nv)&&(ign==="partido"||!F.partido||a.partido===F.partido)&&(ign==="uf"||!F.uf||a.uf===F.uf)&&(ign==="uf"||!F.regiao||REG[a.uf]===F.regiao)&&(!F.cargo||a.cargo===F.cargo)&&(!F.conc||QT("uf",a.uf)===F.conc)
     &&(`${a.nome} ${a.nome_urna??""} ${a.cargo} ${a.uf} ${a.partido}`.toLowerCase().includes(q)));
 }
 // a pessoa entra no filtro se algum periodo dela atender; as marcacoes valem para a pessoa (uniao dos periodos)
 const filtra=ign=>PES.filter(p=>(!F.flag||!!FLAG[F.flag][1](p))&&casa(p,ign).length>0);
-// graficos: cada pessoa conta uma vez por barra, com o nivel mais alto e o maior crescimento entre os periodos daquela barra
+// graficos: cada pessoa conta uma vez por barra, com o nivel do periodo de maior crescimento e a soma dos crescimentos daquela barra
 function agrupa(rows,dim,max){
   const g={};
   for(const p of rows){const v={};
-    for(const a of casa(p,dim)){const k=a[dim]||"Não informado",o=v[k]??={nivel:a.nivel,cresc:a.cresc||0};if(ORD[a.nivel]<ORD[o.nivel])o.nivel=a.nivel;o.cresc=Math.max(o.cresc,a.cresc||0);}
+    for(const a of casa(p,dim)){const k=a[dim]||"Não informado",o=v[k]??={nivel:a.nivel,m:-Infinity,cresc:0};if((a.cresc??-Infinity)>o.m){o.m=a.cresc??-Infinity;o.nivel=a.nivel;}o.cresc+=a.cresc||0;}
     for(const [k,x] of Object.entries(v)){const o=g[k]??={k,n:0,cresc:0,forte:0,atencao:0,informativo:0};o.n++;o[x.nivel]++;o.cresc+=x.cresc;}}
   let l=Object.values(g).sort((x,y)=>y.n-x.n||y.cresc-x.cresc);
   if(max&&l.length>max){const r=l.slice(max),o={k:"Outros",outros:true,n:0,cresc:0,forte:0,atencao:0,informativo:0};
@@ -233,11 +247,11 @@ function tabela(id,titulo,l){
   const th=el("thead");th.append(h);t.append(th,tb);$(id).replaceChildren(t);
 }
 function painel(rows){
-  // rows = pessoas; o crescimento somado usa o maior periodo de cada pessoa (periodos podem se sobrepor)
+  // rows = pessoas; o crescimento de cada pessoa e a soma dos seus periodos
   const cr=rows.reduce((s,p)=>s+(p.cresc||0),0),n=nv=>rows.filter(p=>p.nivel===nv).length.toLocaleString("pt-BR");
   const k=$("kpis");k.replaceChildren();
   for(const [v,r] of [[rows.length.toLocaleString("pt-BR"),"Pessoas em destaque"],[n("forte"),"Muito acima do esperado"],[n("atencao"),"Acima do esperado"],
-    [RC(cr),"Crescimento patrimonial somado (maior período de cada pessoa)"]]){
+    [RC(cr),"Crescimento patrimonial somado"]]){
     const d=el("div","kpi");d.append(el("b",null,v),el("span",null,r));k.append(d);}
   tabela("tp","Partido",grafico("gp","partido",0));tabela("tu","UF",grafico("gu","uf",0));
   const c=$("chips");c.replaceChildren();
@@ -279,8 +293,9 @@ const TAGS=p=>{const rd=p.per.find(a=>a.nivel_calculado&&a.nivel_calculado!==a.n
 const PAG=24;let ROWS=[],VIS=0;
 const CR=a=>`<p class="cresc"><small>Crescimento</small><b>${R(a.cresc)}</b><small>${R(a.pat_ini)} → ${R(a.pat_fim)}</small></p>`;
 const DL=a=>`<dl><div><dt>Poderia juntar com o salário</dt><dd>${R(a.cap)}</dd></div><div><dt>Quantas vezes o possível</dt><dd>${VZ(a.razao)}</dd></div><div><dt>Comparado aos colegas</dt><dd>${PC(a.percentil).replace(/<br>/," ")}</dd></div></dl>`;
-// um periodo dentro do card (so para quem tem mais de um): nivel, anos, cargo (e partido, se mudou), numeros e TSE
-const PER=(a,p)=>`<li class="periodo"><span class="chip nv-${a.nivel}">${NV[a.nivel]}</span> <span class="anos">${a.ano_ini}–${a.ano_fim}</span> <span class="cargo">${esc(a.cargo||"Não informado")}${p.partidos.length>1&&a.partido?` · ${esc(a.partido)}`:""}</span>
+// um periodo dentro do card (so para quem tem mais de um): anos, cargo (e partido, se mudou), numeros e TSE;
+// o chip de nivel so aparece no periodo de maior crescimento (classe maior)
+const PER=(a,p)=>`<li class="periodo${a===p.maior?" maior":""}">${a===p.maior?`<span class="chip nv-${a.nivel}">${NV[a.nivel]}</span> <span class="maior-rotulo">Maior crescimento</span> `:""}<span class="anos">${a.ano_ini}–${a.ano_fim}</span> <span class="cargo">${esc(a.cargo||"Não informado")}${p.partidos.length>1&&a.partido?` · ${esc(a.partido)}`:""}</span>
 ${CR(a)}${DL(a)}${TSE(a)?`<p class="links">${TSE(a)}</p>`:""}</li>`;
 // contadores da pessoa (card e tabela): empresas declaradas, processos da lista revisada e projetos aprovados (so deputado federal e senador)
 const CONT=(p,tag="p",cls="contadores")=>{
@@ -292,10 +307,10 @@ const CONT=(p,tag="p",cls="contadores")=>{
     +(p.parlamentar?s(j&&!j.aprovados,j?"Projetos de lei, de lei complementar e PECs como autor ou coautor; aprovados = viraram norma jurídica":"",ic("🐾")+(j?`<b>${n(j.aprovados)}</b> ${j.aprovados===1?"projeto aprovado":"projetos aprovados"} de ${n(j.apresentados)} ${j.apresentados===1?"apresentado":"apresentados"}${j.de?` (${j.de}–${j.ate})`:""}${/^https:\/\//.test(j.link||"")?` · <a href="${esc(j.link)}" target="_blank" rel="noopener" aria-label="Ver os projetos no site oficial">ver</a>`:""}`:"Projetos: Não informado")):"")
     +`</${tag}>`;};
 const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
-const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}"><div class="topo"><span><b>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> `:""}${esc(p.nome_urna||p.nome)}</b>${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${p.ano_ini}–${p.ano_fim}${p.mencoes?` · ${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${p.nivel}"${p.per.length>1?' title="O nível mais alto entre os períodos"':""}>${NV[p.nivel]}</span></div>
+const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}"><div class="topo"><span><b>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">★</span> `:""}${esc(p.nome_urna||p.nome)}</b>${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${p.ano_ini}–${p.ano_fim}${p.mencoes?` · ${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias`:""}</small></span><span class="chip nv-${p.nivel}"${p.per.length>1?` title="Nível do período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})"`:""}>${NV[p.nivel]}</span></div>
 <p class="tags">${TAGS(p)}</p>
 ${CONT(p)}
-${p.per.length>1?`${COMPRA(p.cresc)}<ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:CR(p.per[0])+COMPRA(p.cresc)+DL(p.per[0])}
+${p.per.length>1?`<p class="cresc"><small>Crescimento de <span class="total-periodo">${p.ano_ini} a ${p.ano_fim}</span> (soma dos ${p.per.length} períodos)</small><b>${R(p.cresc)}</b><small>${R(p.pat_ini)} → ${R(p.pat_fim)}</small></p>${COMPRA(p.cresc)}<ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:CR(p.per[0])+COMPRA(p.cresc)+DL(p.per[0])}
 <p class="links">${LK(p)}</p></li>`;
 // parlamentares exemplares: um card por pessoa (nome + UF), periodos agrupados
 function exemplares(){
@@ -338,7 +353,7 @@ function tabelaToda(){
   if(!$("tabela").open)return;
   // uma linha por pessoa; com varios periodos, cada celula traz uma linha por periodo, na mesma ordem da coluna Periodo
   const L=(p,f)=>p.per.map(f).join("<br>");
-  document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?'<span class="estrela" title="Parlamentar exemplar">★</span> ':""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Patrimônio no início"><span>${L(p,a=>R(a.pat_ini))}</span></td><td class="n" data-label="Patrimônio no fim"><span>${L(p,a=>R(a.pat_fim))}</span></td><td class="n" data-label="Crescimento"><span>${L(p,a=>R(a.cresc))}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${L(p,a=>R(a.cap))}</span></td><td class="n" data-label="Quantas vezes o possível"><span>${L(p,a=>VZ(a.razao))}</span></td><td class="n" data-label="Comparado aos colegas"><span>${p.per.length>1?L(p,a=>PC(a.percentil).replace(/<br>/," ")):PC(p.per[0].percentil)}</span></td><td class="nivel ${p.nivel}" data-label="Nível"><span>${p.per.length>1?L(p,a=>`<span class="nivel ${a.nivel}">${NV[a.nivel]}</span>`):NV[p.nivel]}</span></td></tr>`).join("");
+  document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?'<span class="estrela" title="Parlamentar exemplar">★</span> ':""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Patrimônio no início"><span>${L(p,a=>R(a.pat_ini))}</span></td><td class="n" data-label="Patrimônio no fim"><span>${L(p,a=>R(a.pat_fim))}</span></td><td class="n" data-label="Crescimento"><span>${p.per.length>1?`<b>${R(p.cresc)}</b><br><small>${L(p,a=>`${a.ano_ini}–${a.ano_fim}: ${R(a.cresc)}`)}</small>`:R(p.cresc)}</span></td><td class="n" data-label="Poderia juntar com o salário"><span>${L(p,a=>R(a.cap))}</span></td><td class="n" data-label="Quantas vezes o possível"><span>${L(p,a=>VZ(a.razao))}</span></td><td class="n" data-label="Comparado aos colegas"><span>${p.per.length>1?L(p,a=>PC(a.percentil).replace(/<br>/," ")):PC(p.per[0].percentil)}</span></td><td class="nivel ${p.nivel}" data-label="Nível"><span>${NV[p.nivel]}${p.per.length>1?`<br><small>maior crescimento: ${p.maior.ano_ini}–${p.maior.ano_fim}</small>`:""}</span></td></tr>`).join("");
 }
 function draw(){
   const rows=filtra();painel(rows);
@@ -366,7 +381,7 @@ function leitura(){
 <p><b>Cor das tags</b>: cargo, partido e estado ficam mais escuros (do bege ao vermelho-escuro) quanto mais pessoas em destaque concentram no painel. A bolinha ao lado do partido usa uma cor aproximada da identidade visual do partido.</p>
 <p><b>Ordem</b>: primeiro quem tem mais menções na imprensa nos últimos 30 dias (Google Notícias no Brasil e Google News em inglês, só notícias que citam a pessoa pelo nome); depois, o maior crescimento do patrimônio.</p>
 <p><b>"Responde a processo?"</b>: o nome da pessoa aparece como réu em processo público de uma lista informada e revisada por leitores antes de entrar no site (tribunal, número e link da consulta). A lista casa pelo nome e pelo estado, então <b>pode ser homônimo: confira o processo</b> antes de qualquer conclusão. Para procurar outros processos pelo nome, use o link "Conferir processos" de cada card. Ser réu não significa condenação.</p>
-<p><b>Uma pessoa, um card</b>: quem tem mais de um período analisado aparece uma vez só, com o selo "N períodos" e os períodos dentro do card (cargo, anos, nível e números de cada um). O nível no topo é o mais alto entre os períodos, as tags juntam todos os períodos e "Daria para comprar" usa o maior crescimento. Filtros, gráficos e contagens contam pessoas: uma pessoa entra no filtro se algum período dela atender.</p>
+<p><b>Uma pessoa, um card</b>: quem tem mais de um período analisado aparece uma vez só, com o selo "N períodos" e os períodos dentro do card (cargo, anos e números de cada um). Quando a pessoa tem mais de um período, o card soma o crescimento de todos (por exemplo, de 2018 a 2026) e o alerta aponta o período em que ela mais cresceu; "Daria para comprar" usa a soma e as tags juntam todos os períodos. Filtros, gráficos e contagens contam pessoas: uma pessoa entra no filtro se algum período dela atender.</p>
 <p><b>"Tem empresas declaradas"</b>: a pessoa declarou ao TSE participação em empresas (quotas, ações, capital social) no início ou no fim do período. Como o salário não é a única fonte de renda, o destaque desce um grau (de "${NV.forte}" para "${NV.atencao}" e de "${NV.atencao}" para "${NV.informativo}").</p>
 <p><b>"Não informado"</b> na coluna do salário: não há salário de referência (a pessoa não foi eleita no período ou o cargo não está na tabela). Nesse caso só vale a comparação com os colegas.</p>
 <p>Herança, venda de bens, atividade própria e renda do cônjuge não entram na conta, por isso cada destaque é um ponto de partida para pesquisar, não uma conclusão.</p>`+(BENS&&BENS.bens&&BENS.bens.length?`
@@ -390,7 +405,8 @@ function legenda(){
   const tt={exemplar:"Clique para ver só os parlamentares exemplares",selo:"Clique para ver só quem tem o selo Mão na massa",renda:"Clique para ver só quem tem empresas declaradas",reu:`${REU_OBS}. Clique para ver só quem está na lista`};
   for(const b of $("legenda").querySelectorAll('button[data-f="flag"]')){const f=FLAG[b.dataset.v];if(!f)continue;
     const n=PES.filter(f[1]).length;
-    if(n)b.removeAttribute("aria-disabled");else b.setAttribute("aria-disabled","true");b.title=n?tt[b.dataset.v]:f[2];}
+    if(n)b.removeAttribute("aria-disabled");else b.setAttribute("aria-disabled","true");b.title=n?tt[b.dataset.v]:f[2];
+    const td=b.closest("tr")?.querySelector("td");if(!n&&td)td.append(" ",el("small",null,"(ninguém nesta atualização)"));}
 }
 // blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
