@@ -1,0 +1,38 @@
+name: Dossie por estado
+# #53: roda depois do "Atualizar alertas" (que grava data/estados_base.json), para nao segurar o painel.
+# Pode demorar: o SICONFI aceita ~1 consulta/s e os municipios entram em partes (cache continua de onde parou).
+on:
+  workflow_run:
+    workflows: ["Atualizar alertas"]
+    types: [completed]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: estados
+  cancel-in-progress: false
+jobs:
+  rodar:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v5
+        with: { ref: main }
+      - uses: actions/setup-python@v6
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -r requirements.txt
+      - uses: actions/cache@v4  # data/cache/estados.cache: municipios e anos de emendas ja lidos (cifrado)
+        with:
+          path: data/cache/estados.cache
+          key: estados-${{ github.run_id }}
+          restore-keys: estados-
+      - run: python -u src/estados.py
+        env:
+          TRANSPARENCIA_TOKEN: ${{ secrets.TRANSPARENCIA_TOKEN }}
+          ID_SEGREDO: ${{ secrets.ID_SEGREDO }}
+      - name: Salvar resultados
+        run: |
+          git config user.name "alerta-bot"; git config user.email "bot@users.noreply.github.com"
+          git add docs/estado
+          git diff --cached --quiet || (git commit -m "Atualiza dossiê por estado" && git pull --rebase -X theirs && git push)

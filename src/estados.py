@@ -564,9 +564,10 @@ def abre(url, timeout=20):
     return False
 
 
-def coletar(buscar, api, parl, serie=None, paginas=None, link=None, cache=None, hoje=None, checar=None,
+def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=None, checar=None,
             baixar_=baixar, buscar_txt=None):
-    """Dados de todas as UFs para gerar(). Cada fonte que falha vira NAO_ACHOU na sua secao, sem derrubar o resto."""
+    """Dados de todas as UFs para gerar(). Cada fonte que falha vira NAO_ACHOU na sua secao, sem derrubar o resto.
+    parl/estaduais/ano_est: da base gravada pelo pipeline (base())."""
     hoje = hoje or dt.date.today()
     ano = ano_dca(hoje)
     fin = {uf: financas(buscar, cod, ano, cache) for uf, (cod, _) in UFS.items()}
@@ -574,7 +575,6 @@ def coletar(buscar, api, parl, serie=None, paginas=None, link=None, cache=None, 
     lista, faltou = emendas(api, anos, cache, hoje) if api else ([], anos)
     entes = entes_municipais(buscar) or []
     mun = municipios(buscar, entes, ano, cache) if entes else {}
-    estaduais, ano_est = deputados_estaduais(serie, paginas, link, hoje)
     if hasattr(buscar, "req"):
         print(f"SICONFI: {buscar.req} consultas, {buscar.falhas} sem resposta.")
     rec = reconhecimentos(buscar, baixar_)
@@ -584,9 +584,42 @@ def coletar(buscar, api, parl, serie=None, paginas=None, link=None, cache=None, 
     assembleias = carregar_assembleias()
     for a in assembleias.values():  # link que nao abre no Actions vira "Fonte nao encontrada"
         a["ok"] = bool(a["site"]) and (checar(a["site"]) if checar else True)
-    return montar(fin, agregar(lista), parl, entes, mun, estaduais, assembleias,
-                  dict(anos=anos, faltou=faltou, ano_estadual=ano, eleicao_estadual=ano_est,
+    return montar(fin, agregar(lista), parl, entes, mun, estaduais or {}, assembleias,
+                  dict(anos=anos, faltou=faltou, hoje=hoje.isoformat(), ano_estadual=ano, eleicao_estadual=ano_est,
                        falhou_emendas=len(faltou) == len(anos), s2id=rec is not None), cars, paradas(lista, hoje))
+
+
+BASE = ROOT / "data" / "estados_base.json"
+
+
+def base(parl, serie=None, paginas=None, link=None, hoje=None):
+    """O que o dossie por estado precisa do pipeline principal, gravado em data/estados_base.json para o workflow
+    proprio (estados.yml) rodar depois, sem segurar o painel: parlamentares em exercicio e deputados estaduais.
+    So dados publicos (nome, cargo, partido, UF, links); CPF e chave ficam de fora."""
+    estaduais, ano_est = deputados_estaduais(serie, paginas, link, hoje)
+    pub = [dict(nome=p["nome"], cargo=p["cargo"], partido=p["partido"], uf=p["uf"], dossie=p.get("dossie"),
+                perfil=p.get("perfil"), _nomes=sorted(p.get("_nomes") or ())) for p in parl]
+    return dict(parlamentares=pub, estaduais=estaduais, eleicao_estadual=ano_est)
+
+
+def main(raiz=ROOT):
+    """Workflow "Dossie por estado": le a base do pipeline, consulta SICONFI, Portal e S2iD e grava docs/estado."""
+    import os
+    from cache import Cache
+    from ids import varrer
+    arq = Path(raiz) / "data" / BASE.name
+    try:
+        b = json.loads(arq.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as ex:
+        sys.exit(f"Sem {arq.name} ({ex!r}): rode antes o workflow Atualizar alertas.")
+    seg = os.getenv("ID_SEGREDO")
+    cache = Cache(Path(raiz) / "data" / "cache" / "estados.cache", 90 * 86400, seg) if seg else None
+    pag, extra = coletar(Buscador(), cliente_portal(os.getenv("TRANSPARENCIA_TOKEN")), b["parlamentares"],
+                         b["estaduais"], b["eleicao_estadual"], cache, checar=abre, buscar_txt=texto)
+    docs = Path(raiz) / "docs"
+    print(f"Dossie por estado: {gerar(docs, pag, extra, dt.datetime.now().strftime('%Y-%m-%d %H:%M'))} paginas.")
+    if varrer(docs / "estado"):
+        print("[aviso] CPF/CNPJ removido de paginas do dossie por estado", file=sys.stderr)
 
 
 def _contar(lista, campo):
@@ -845,6 +878,28 @@ def kpis(p):
             f'<span>em emendas pagas, {emd["de"]}–{emd["ate"]}</span></div></div>')
 
 
+def _data(iso):
+    try:
+        return dt.date.fromisoformat(iso).strftime("%d/%m/%Y")
+    except (TypeError, ValueError):
+        return "Não informado"
+
+
+def aviso_periodo(m, f=None):
+    """Aviso no topo: de quando sao os dados (ultimos 4 anos)."""
+    partes = [f'emendas de {m["anos"][0]} a {m["anos"][-1]} (até {_data(m.get("hoje"))})']
+    anos_dca = sorted({a for a in ((f or {}).get("ano_despesa"), (f or {}).get("ano_receita")) if a})
+    if f is not None:
+        partes.append(f'balanço do estado de {" e ".join(map(str, anos_dca))}' if anos_dca
+                      else "balanço do estado: Não informado")
+    if m.get("ano_estadual"):
+        partes.append(f'verbas da União aos municípios de {m["ano_estadual"]}')
+    if m.get("eleicao_estadual"):
+        partes.append(f'deputados estaduais eleitos em {m["eleicao_estadual"]}')
+    return (f'<p class="aviso periodo"><b>Período dos dados:</b> {"; ".join(partes)}. Só os últimos '
+            f'{ANOS_EMENDAS} anos; o balanço é o último entregue ao Tesouro.</p>')
+
+
 def pagina_uf(p):
     m = p["meta"]
     emd = dict(p["emendas"], de=m["anos"][0], ate=m["anos"][-1], falhou=m.get("falhou_emendas"))
@@ -853,6 +908,7 @@ def pagina_uf(p):
               f'atualização; os totais desses anos podem estar incompletos.</p>') if m.get("faltou") and not emd["falhou"] else ""
     corpo = f"""<h1>{e(p["nome"])}</h1>
 <p class="lead">Gastos do governo estadual, dinheiro que veio da União e quem mandou emendas para o estado.</p>
+{aviso_periodo(m, p["financas"])}
 {kpis(p)}
 <section class="card"><h2>Para onde vai o dinheiro do estado</h2>
 {secao_despesa(p["financas"])}
@@ -881,8 +937,10 @@ def pagina_indice(paginas):
         valor = brl_curto(sum(x[1] for x in rec)) if isinstance(rec, list) and rec else "Não informado"
         itens.append(f'<li><a class="card uf" href="{e(uf)}.html"><b>{e(p["nome"])}</b>'
                      f'<small>{valor} da União · {brl_curto(p["emendas"]["pago"])} em emendas</small></a></li>')
+    m = next(iter(paginas.values()))["meta"] if paginas else None
     return (f'<h1>Gastos por estado</h1><p class="lead">Escolha um estado para ver o gasto do governo estadual, as '
-            f'verbas recebidas da União e os parlamentares autores de emendas.</p><ul class="ufs">{"".join(itens)}</ul>')
+            f'verbas recebidas da União e os parlamentares autores de emendas.</p>{aviso_periodo(m) if m else ""}'
+            f'<ul class="ufs">{"".join(itens)}</ul>')
 
 
 def gerar(docs, paginas, extras, gerado):
@@ -952,4 +1010,9 @@ def demo(parl=(), serie=None, paginas=None):
     cars = noticias_apoio(carimbos(lista, rec, entes), None)
     return montar(fin, agregar(lista), parl, entes, mun, estaduais, assembleias,
                   dict(anos=[2023, 2024, 2025, 2026], faltou=[], ano_estadual=2025, eleicao_estadual=ano_est,
+                       hoje=hoje.isoformat(),
                        falhou_emendas=False, s2id=True), cars, paradas(lista, hoje))
+
+
+if __name__ == "__main__":
+    main()

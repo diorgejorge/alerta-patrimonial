@@ -454,8 +454,7 @@ def main():
     caches = dict(tse=Cache(CACHE / "tse_lido.cache", 400 * 86400, seg_cache, cifrar=True),
                   portal=Cache(CACHE / "portal.cache", 7 * 86400, seg_cache, cifrar=True),
                   noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache),
-                  pares=Cache(CACHE / "pares.cache", 400 * 86400, seg_cache),
-                  estados=Cache(CACHE / "estados.cache", 90 * 86400, seg_cache)) if seg_cache else {}
+                  pares=Cache(CACHE / "pares.cache", 400 * 86400, seg_cache)) if seg_cache else {}
     serie = serie_demo() if args.demo else serie_tse(p["anos"], caches.get("tse"))
     extras = {r.chave: extras_cfg.get(r.chave, extras_cfg.get("nome:" + norm(r.nome), 0.0))
               for r in serie.drop_duplicates("chave").itertuples()}
@@ -670,18 +669,18 @@ def main():
         dados["todos"] = gravar_todos(docs, df[df.monitorado] if so_lista else df, pag, dados["gerado_em"], {k: v for k, v in marcas.items() if v})
     except Exception as ex:  # nunca derruba o painel: sem o arquivo, a secao da lista fica escondida
         print(f"[aviso] lista completa falhou ({ex!r})", file=sys.stderr)
-    # dossie por estado (#53): gasto do estado, verbas da Uniao e autores de emendas; municipios e deputados
-    # estaduais vao num JSON baixado sob demanda. Nunca derruba o painel
+    # dossie por estado (#53): roda no proprio workflow (estados.yml), depois deste; aqui so a base que ele usa
+    # (parlamentares em exercicio e deputados estaduais, sem CPF). No --demo gera as paginas com dados mockados
     try:
         if args.demo:
             uf_pag, uf_extra = estados.demo(parl, serie, pag)
+            print(f"Dossie por estado (demo): {estados.gerar(docs, uf_pag, uf_extra, dados['gerado_em'])} paginas.")
         else:
-            uf_pag, uf_extra = estados.coletar(estados.Buscador(), estados.cliente_portal(os.getenv("TRANSPARENCIA_TOKEN")), parl,
-                                               serie, pag, link_tse, caches.get("estados"), checar=estados.abre,
-                                               buscar_txt=estados.texto)
-        print(f"Dossie por estado: {estados.gerar(docs, uf_pag, uf_extra, dados['gerado_em'])} paginas em docs/estado.")
+            dados_dir.mkdir(parents=True, exist_ok=True)
+            (dados_dir / estados.BASE.name).write_text(json.dumps(estados.base(parl, serie, pag, link_tse),
+                                                                  ensure_ascii=False), encoding="utf-8")
     except Exception as ex:
-        print(f"[aviso] dossie por estado falhou ({ex!r})", file=sys.stderr)
+        print(f"[aviso] base do dossie por estado falhou ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)
     # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
     dados["alertas"].sort(key=lambda a: (-(a.get("mencoes") or 0), -(a.get("cresc") or 0)))

@@ -342,6 +342,7 @@ def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
     assert estados.gerar(tmp_path, pag, extra, "2026-10-23 04:00") == 28
     sp = (tmp_path / "estado" / "SP.html").read_text(encoding="utf-8")
     assert "R$ 1,4 mil" in sp and "Saúde" in sp and "Cota-Parte do FPE" in sp
+    assert "Período dos dados:</b> emendas de 2023 a 2026 (até 23/10/2026); balanço do estado de 2025" in sp
     assert 'href="../pessoa/p0001.html"' in sp and "Assembleia Legislativa de São Paulo" in sp
     assert 'data-json="SP.json"' in sp
     assert sp.count('<span class="rot">Emergência sem reconhecimento oficial</span>') == 1 and "1 sem reconhecimento oficial" in sp
@@ -381,3 +382,36 @@ def test_pipeline_demo_publica_os_estados(tmp_path, monkeypatch):
     pasta = tmp_path / "docs" / "estado"
     assert len(list(pasta.glob("*.html"))) == 28 and len(list(pasta.glob("*.json"))) == 27
     assert "Parlamentares autores de emendas" in (pasta / "MG.html").read_text(encoding="utf-8")
+
+
+def test_base_do_pipeline_sem_cpf():
+    parl = [dict(nome="Fulana", cargo="SENADOR", partido="PX", uf="SP", perfil="https://senado/1", dossie=None,
+                 _cpf="12345678901", _chave="cpf:12345678901", _nomes={"FULANA", "FULANA DE TAL"})]
+    serie = pd.DataFrame([dict(chave="cpf:12345678901", nome="ANA", nome_urna="ANA", cargo="DEPUTADO ESTADUAL",
+                               uf="SP", partido="PZ", eleito=True, ano=2022)])
+    b = estados.base(parl, serie, {}, None, HOJE)
+    texto = json.dumps(b, ensure_ascii=False)
+    assert "12345678901" not in texto and b["eleicao_estadual"] == 2022
+    assert b["parlamentares"][0]["_nomes"] == ["FULANA", "FULANA DE TAL"] and b["estaduais"]["SP"][0]["nome"] == "Ana"
+
+
+def test_main_do_workflow_le_a_base_e_grava_as_paginas(tmp_path, monkeypatch):
+    (tmp_path / "data").mkdir()
+    base = estados.base([dict(nome="Fulana Dep", cargo="DEPUTADO FEDERAL", partido="PX", uf="SP",
+                              dossie="pessoa/p0001.html")])
+    (tmp_path / "data" / "estados_base.json").write_text(json.dumps(base), encoding="utf-8")
+    monkeypatch.delenv("ID_SEGREDO", raising=False)
+    monkeypatch.setattr(estados, "Buscador", lambda: BuscarComCkan(_respostas()))
+    monkeypatch.setattr(estados, "cliente_portal", lambda chave: ApiFalsa({2026: [emenda("FULANA DEP", "CAMPINAS - SP", 9)]}))
+    monkeypatch.setattr(estados, "abre", lambda url: True)
+    monkeypatch.setattr(estados, "texto", lambda url: "")
+    monkeypatch.setattr(estados, "baixar", lambda url, **k: S2ID_CSV)
+    estados.main(tmp_path)
+    sp = (tmp_path / "docs" / "estado" / "SP.html").read_text(encoding="utf-8")
+    assert 'href="../pessoa/p0001.html">Fulana Dep' in sp and "Período dos dados:" in sp
+    assert "Período dos dados:" in (tmp_path / "docs" / "estado" / "index.html").read_text(encoding="utf-8")
+
+
+def test_main_sem_base_avisa(tmp_path):
+    with pytest.raises(SystemExit):
+        estados.main(tmp_path)
