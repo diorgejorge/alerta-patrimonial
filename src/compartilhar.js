@@ -146,7 +146,7 @@
     var txt = bt.getAttribute("data-cobrar-voto"), campo = document.getElementById("cobrar-texto"),
         aba = document.getElementById("aba-cobrar"), aviso = bt.parentNode.querySelector(".voto-aviso");
     if (campo && aba) {
-      campo.value = txt; aba.click(); campo.focus();
+      campo.value = txt; aba.click(); campo.focus(); campo.setSelectionRange(0, 0); campo.scrollTop = 0;
       var av = campo.closest("section").querySelector(".cobrar-aviso");
       if (av) av.textContent = "Texto sobre o voto pronto. Copie e mande por um dos canais acima.";
       return;
