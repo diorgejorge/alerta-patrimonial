@@ -14,7 +14,7 @@ permissions:
   id-token: write
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false  # true deixava uma execucao "skipped" (fluxo cancelado) cancelar a publicacao boa
 jobs:
   publicar:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
