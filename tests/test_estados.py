@@ -272,7 +272,7 @@ def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
     assert "R$ 1,4 mil" in sp and "Saúde" in sp and "Cota-Parte do FPE" in sp
     assert 'href="../pessoa/p0001.html"' in sp and "Assembleia Legislativa de São Paulo" in sp
     assert 'data-json="SP.json"' in sp
-    assert sp.count("⚠ Emergência sem reconhecimento oficial") == 1 and "1 sem reconhecimento oficial" in sp
+    assert sp.count('<span class="txt">Emergência sem reconhecimento oficial</span>') == 1 and "1 sem reconhecimento oficial" in sp
     assert "Santos, 2026" in sp and "nenhuma encontrada" in sp
     assert 'Autor: <a href="../pessoa/p0001.html">Fulana Dep</a>' in sp
     rj = (tmp_path / "estado" / "RJ.html").read_text(encoding="utf-8")
@@ -290,7 +290,7 @@ def test_sem_chave_do_portal_emendas_saem_fonte_nao_encontrada(tmp_path):
     estados.gerar(tmp_path, pag, extra, "agora")
     sp = (tmp_path / "estado" / "SP.html").read_text(encoding="utf-8")
     assert sp.count("Fonte não encontrada") >= 3 and "R$ 1,4 mil" in sp
-    assert "⚠ Emergência" not in sp  # sem emendas nem S2iD, nada e carimbado
+    assert 'class="carimbo' not in sp  # sem emendas nem S2iD, nada e carimbado
 
 
 def test_demo_gera_todas_as_ufs(tmp_path):
@@ -298,7 +298,7 @@ def test_demo_gera_todas_as_ufs(tmp_path):
     assert estados.gerar(tmp_path, pag, extra, "demo") == 28
     assert all(extra[uf]["municipios"] and extra[uf]["estaduais"] for uf in estados.UFS)
     ac = (tmp_path / "estado" / "AC.html").read_text(encoding="utf-8")
-    assert "Fonte não encontrada" in ac and "⚠ Emergência sem reconhecimento oficial" in ac
+    assert "Fonte não encontrada" in ac and '<span class="txt">Emergência sem reconhecimento oficial</span>' in ac
 
 
 def test_pipeline_demo_publica_os_estados(tmp_path, monkeypatch):

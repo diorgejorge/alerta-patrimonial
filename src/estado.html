@@ -7,6 +7,7 @@
 <meta name="description" content="Gastos do governo estadual, verbas recebidas da União e parlamentares autores de emendas, com fontes oficiais.">
 <link rel="icon" type="image/png" href="../icone.png">
 <link rel="stylesheet" href="../estilo.css">
+<script>document.documentElement.classList.add("js")</script>
 <style>
 main{max-width:960px}
 .lead{color:var(--mut);max-width:65ch;margin:0 0 .8em}
@@ -29,8 +30,19 @@ details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;f
 .conteudo input{width:100%;min-height:44px;font:inherit;padding:.4em .8em;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg);margin:.4em 0}
 .conteudo button{margin-top:.6em}
 .ufs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:12px 0}
-.carimbo{display:inline-block;margin:.2em 0;padding:.05em .5em;border:2px solid var(--forte);border-radius:4px;color:var(--forte);
-  font-size:.75rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;transform:rotate(-1.5deg);white-space:normal}
+/* carimbo: selo de cera que "carimba" ao aparecer na tela (sem JS ou com menos movimento: ja aparece pronto) */
+.carimbo{display:inline-flex;align-items:center;gap:.5em;margin:.3em 0;color:var(--forte);font-size:.75rem;font-weight:800;
+  letter-spacing:.04em;text-transform:uppercase}
+.carimbo .txt{border:2px solid currentColor;border-radius:4px;padding:.05em .5em;transform:rotate(-1.5deg)}
+.cera{flex:none;display:grid;place-items:center;width:34px;height:34px;color:var(--bg);font:900 1rem/1 var(--fonte-marca);
+  border-radius:50%;background:var(--forte)}
+.carimbo.p .cera{width:22px;height:22px;font-size:.7rem}
+@keyframes carimbar{0%{transform:scale(2.4) rotate(-25deg);opacity:0}55%{transform:scale(.88) rotate(4deg);opacity:1}
+  75%{transform:scale(1.06) rotate(-2deg);opacity:1}100%{transform:none;opacity:1}}
+@keyframes tinta{0%,45%{opacity:0;transform:scale(1.12) rotate(-1.5deg)}100%{opacity:1;transform:rotate(-1.5deg)}}
+@media (prefers-reduced-motion:no-preference){.js .carimbo .cera,.js .carimbo .txt{opacity:0}
+  .js .carimbo.visto .cera{animation:carimbar .6s cubic-bezier(.2,.9,.3,1.2) both;animation-delay:inherit}
+  .js .carimbo.visto .txt{animation:tinta .7s ease-out both;animation-delay:inherit}}
 ul.carimbadas{list-style:none;margin:0;padding:0}.carimbadas li{padding:.6em 0;border-bottom:1px solid var(--line)}
 .carimbadas li:last-child{border-bottom:0}.carimbadas .rot{display:block}
 a.uf{display:block;text-decoration:none;color:var(--fg);min-height:44px}a.uf b{color:var(--titulo);display:block}a.uf small{color:var(--mut)}
@@ -53,6 +65,16 @@ __CORPO__
     return "R$ " + Math.round(v).toLocaleString("pt-BR");
   }
   function el(tag, txt, cls){ var n = document.createElement(tag); if (txt != null) n.textContent = txt; if (cls) n.className = cls; return n; }
+  // selo de cera: "carimba" quando entra na tela, um de cada vez
+  var olho = "IntersectionObserver" in window ? new IntersectionObserver(function(es){
+    es.forEach(function(x, i){ if (x.isIntersecting) { x.target.style.animationDelay = (i * 90) + "ms"; x.target.classList.add("visto"); olho.unobserve(x.target); } });
+  }, {threshold: .6}) : null;
+  function vigiar(n){ if (olho) olho.observe(n); else n.classList.add("visto"); }
+  function carimbo(txt){
+    var c = el("span", null, "carimbo p"), cera = el("span", "!", "cera"); cera.setAttribute("aria-hidden", "true");
+    c.appendChild(cera); c.appendChild(el("span", txt, "txt")); vigiar(c); return c;
+  }
+  document.querySelectorAll(".carimbo").forEach(vigiar);
   function link(href, txt){ var a = el("a", txt); a.href = href; if (/^https?:/.test(href)) { a.target = "_blank"; a.rel = "noopener"; } return a; }
   function municipios(d, alvo){
     var lista = d.municipios || [];
@@ -72,7 +94,7 @@ __CORPO__
         val.appendChild(document.createTextNode(brl(m[1]) + " em emendas"));
         val.appendChild(el("small", (d.siconfi_municipios ? brl(m[3]) : "Não informado") + " da União em " + (d.ano_uniao || "")));
         val.lastChild.style.display = "block";
-        if (m[5]) rot.appendChild(el("span", "⚠ " + m[5] + " emergencial sem reconhecimento oficial", "carimbo"));
+        if (m[5]) rot.appendChild(carimbo(m[5] + " emergencial sem reconhecimento oficial"));
         li.appendChild(rot); li.appendChild(val); ul.appendChild(li);
       });
       mais.hidden = n <= limite;

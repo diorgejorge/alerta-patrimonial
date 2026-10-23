@@ -617,8 +617,10 @@ def secao_receita(f, emd):
     return corpo
 
 
-def carimbo(texto=CARIMBO):
-    return f'<span class="carimbo">⚠ {e(texto)}</span>'
+def carimbo(texto=CARIMBO, pequeno=False):
+    """Selo de cera (animado em estado.html) com o texto ao lado."""
+    return (f'<span class="carimbo{" p" if pequeno else ""}"><span class="cera" aria-hidden="true">!</span>'
+            f'<span class="txt">{e(texto)}</span></span>')
 
 
 def _carimbada(d):
@@ -663,7 +665,7 @@ def _autor(a):
     valor = (f'{brl_curto(a["pago"])} <small>em {a["n"]} emenda{"s" if a["n"] != 1 else ""}</small>'
              if a["n"] else '<small>nenhuma emenda paga aqui</small>')
     n = a.get("carimbos")
-    marca = f'<small>{carimbo(f"{n} sem reconhecimento oficial")}</small>' if n else ""
+    marca = f'<small>{carimbo(f"{n} sem reconhecimento oficial", pequeno=True)}</small>' if n else ""
     return f'<li><span class="rot">{nome}<small>{e(info)}</small>{marca}</span><span class="val">{valor}</span></li>'
 
 
