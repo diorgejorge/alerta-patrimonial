@@ -37,8 +37,19 @@ def url_feed(pid):
     return f"{site()}feed/{pid}.xml"
 
 
-def brl(v):
-    return "Não informado" if v is None else "R$ " + f"{v:,.0f}".replace(",", ".")
+def variacao(antes, agora):
+    """Variacao em % (regra do usuario: percentual, nunca valor em reais); None sem base para comparar."""
+    if not antes or agora is None:
+        return None
+    return (agora - antes) / abs(antes) * 100
+
+
+def pct(v):
+    return f"{abs(v):,.0f}%".replace(",", ".")
+
+
+def subiu(v):
+    return f"subiu {pct(v)}" if v >= 0 else f"caiu {pct(v)}"
 
 
 ICONE = ('<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor">'
@@ -82,7 +93,7 @@ def foto(linhas, cota_total=None, noticias=None, cota_link=None):
              if isinstance(noticias, list) else None)
     tse = next((a["link_tse"] for a in linhas if str(a.get("link_tse") or "").startswith("https://")), None)
     return dict(nome=cap((ult.get("nome_urna") or ult.get("nome") or "").strip()), uf=str(ult.get("uf") or "").upper(),
-                pat=ult.get("pat_fim"),
+                pat=ult.get("pat_fim"), pat_ini=ult.get("pat_ini"), ano_ini=ult.get("ano_ini"),
                 ano=ult.get("ano_fim"), nivel=nv, cota=None if cota_total is None else round(cota_total),
                 exemplar=any(a.get("exemplar") for a in linhas), selo=any(a.get("selo") for a in linhas),
                 noticias=links, tse=tse, presenca=_presenca(linhas), votos=_votos(linhas),
@@ -122,15 +133,18 @@ def mudancas(antes, agora, pagina, detalhes=None):
     Dado que nao veio nesta execucao (None) nunca vira aviso. `detalhes`: {link: noticia} para o texto."""
     nome = agora["nome"]
     if not antes:
+        v = variacao(agora.get("pat_ini"), agora["pat"])
         return [_item("inicio", f"Começamos a acompanhar {nome}",
-                      f"A partir de hoje você fica sabendo quando algo mudar. Patrimônio declarado ao TSE: {brl(agora['pat'])}"
-                      f"{' em ' + str(agora['ano']) if agora.get('ano') else ''}. Fonte: TSE.", agora.get("tse") or pagina)]
+                      "A partir de hoje você fica sabendo quando algo mudar."
+                      + (f" Patrimônio declarado {subiu(v)} de {agora['ano_ini']} a {agora['ano']}." if v is not None
+                         else "") + " Fonte: TSE.", agora.get("tse") or pagina)]
     itens = []
     if agora["ano"] != antes.get("ano") or agora["pat"] != antes.get("pat"):
-        dif = (agora["pat"] or 0) - (antes.get("pat") or 0)
-        itens.append(_item("patrimonio", f"Nova declaração de bens: {brl(agora['pat'])} em {agora['ano']}",
-                           f"Antes: {brl(antes.get('pat'))} em {antes.get('ano') or 'Não informado'}. Diferença: "
-                           f"{'+' if dif >= 0 else '−'}{brl(abs(dif))}. Fonte: TSE.", agora.get("tse") or pagina))
+        v = variacao(antes.get("pat"), agora["pat"])
+        itens.append(_item("patrimonio", f"Nova declaração de bens em {agora['ano']}"
+                                         + (f": patrimônio {subiu(v)}" if v is not None else ""),
+                           f"Comparado com a declaração de {antes.get('ano') or 'antes'}. Fonte: TSE.",
+                           agora.get("tse") or pagina))
     if agora["nivel"] != antes.get("nivel"):
         rot = lambda n: graficos.ROTULO_NIVEL.get(n, "sem faixa")
         itens.append(_item("nivel", f"Faixa do patrimônio mudou: de “{rot(antes.get('nivel'))}” para "
@@ -138,9 +152,9 @@ def mudancas(antes, agora, pagina, detalhes=None):
                            "Compara quanto o patrimônio cresceu com o que daria para juntar só com o salário. "
                            "Fonte: declarações de bens ao TSE.", agora.get("tse") or pagina))
     if agora["cota"] is not None and antes.get("cota") is not None and abs(agora["cota"] - antes["cota"]) >= COTA_MINIMA:
-        dif = agora["cota"] - antes["cota"]
-        itens.append(_item("cota", f"Cota parlamentar: {'mais' if dif > 0 else 'menos'} {brl(abs(dif))} em gastos",
-                           f"Total em 4 anos: {brl(agora['cota'])}. É dinheiro público para passagens, escritório e "
+        v = variacao(antes["cota"], agora["cota"])
+        itens.append(_item("cota", "Gasto com a cota parlamentar" + (f" {subiu(v)}" if v is not None else " mudou"),
+                           "Em relação ao último aviso. É dinheiro público para passagens, escritório e "
                            "divulgação do mandato. Fonte: Câmara dos Deputados ou Senado Federal.",
                            agora.get("cota_link") or pagina))
     for chave, rotulo in (("exemplar", "a estrela de Parlamentar exemplar"), ("selo", "o selo Mão na massa")):
