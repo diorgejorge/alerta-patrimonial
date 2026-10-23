@@ -60,7 +60,7 @@ def texto(nome, uf, r, cota=None, projetos=None):
     cresceu = r.get("cresc") is not None and r["cresc"] > 0
     if cresceu:
         p = _vi("no site do TSE", r.get("tse")) + " que seu patrimônio declarado aumentou" + (
-            f" {r['aumento']}" if r.get("aumento") and r["aumento"][0] in "+−" else "") + f" de {r['ano_ini']} a {r['ano_fim']}."
+            f" {r['aumento'].lstrip('+')}" if r.get("aumento") and r["aumento"][0] in "+−" else "")  # "aumentou 200%" + f" de {r['ano_ini']} a {r['ano_fim']}."
         if r.get("razao") and r["razao"] >= 1.05:
             p += f" O aumento foi {vezes(r['razao'])} vezes o que daria para guardar somente com o salário do cargo."
         pontos.append(p)

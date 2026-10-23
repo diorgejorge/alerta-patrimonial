@@ -100,7 +100,7 @@ def test_texto_na_voz_do_cidadao_com_link_oficial():
                      projetos=dict(casa="senado", apresentados=10, aprovados=2, de=2023, ate=2026,
                                    link="https://www25.senado.leg.br/p"))
     assert t.startswith("Prezado(a) Maria,") and "da Bahia" in t
-    assert f"Vi no site do TSE ({LINHA['link_tse']}) que seu patrimônio declarado aumentou +200% de 2018 a 2022" in t
+    assert f"Vi no site do TSE ({LINHA['link_tse']}) que seu patrimônio declarado aumentou 200% de 2018 a 2022" in t
     assert "5,0 vezes o que daria para guardar somente com o salário" in t
     assert "R$ 1.000.000" not in t and "R$ 200.000" not in t  # #62: patrimonio sem valores em reais
     assert "Vi nos dados abertos da Câmara dos Deputados (https://www.camara.leg.br/cota)" in t
