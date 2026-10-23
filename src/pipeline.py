@@ -294,7 +294,7 @@ def _lista_pares(serie, regras, extras, p, so_fim=None):
             out.append(dict(chave=chave, nome=b["nome"], cargo=b["cargo"], uf=b["uf"], partido=b["partido"],
                             ano_ini=a["ano"], ano_fim=b["ano"], pat_ini=a["patrimonio"], pat_fim=b["patrimonio"],
                             cresc=b["patrimonio"] - a["patrimonio"], cap=cap, cargo_ini=a["cargo"],
-                            nome_urna=txt(b.get("nome_urna")) or None, link_tse=link_tse(b), link_foto=link_foto(b),
+                            nome_urna=txt(b.get("nome_urna")) or None, link_tse=link_tse(b), link_tse_ini=link_tse(a), link_foto=link_foto(b),
                             empresas=[str(x) for x in b["empresas"]][:MAX_EMPRESAS]
                             if isinstance(b.get("empresas"), (list, tuple)) else [],
                             # quantas empresas diferentes a pessoa declarou no inicio ou no fim do periodo (card)

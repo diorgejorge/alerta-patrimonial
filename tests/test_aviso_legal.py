@@ -80,3 +80,13 @@ def test_textos_de_dados_citam_fonte_com_link():
 
 def test_patrimonio_da_pessoa_cita_tse():
     assert LINK_OFICIAL.search(paginas._patrimonio([], [], "u"))
+
+
+def test_dossie_mostra_patrimonio_inicial_e_final_com_link_do_tse():
+    """O dossie e a unica pagina com o patrimonio em reais: comeco e fim, cada um com a declaracao do TSE do ano."""
+    t = paginas._tabela_periodos([dict(ano_ini=2018, ano_fim=2022, cargo="SENADOR", pat_ini=100_000, pat_fim=300_000,
+                                       link_tse_ini="https://tse/2018", link_tse="https://tse/2022")])
+    assert '<a href="https://tse/2018" target="_blank" rel="noopener">R$ 100.000</a>' in t
+    assert '<a href="https://tse/2022" target="_blank" rel="noopener">R$ 300.000</a>' in t and "+200%" in t
+    sem_link = paginas._tabela_periodos([dict(ano_ini=2018, ano_fim=2022, pat_ini=100_000, pat_fim=300_000)])
+    assert "R$ 100.000" in sem_link and "<a href" not in sem_link.split("R$ 100.000")[0][-30:]

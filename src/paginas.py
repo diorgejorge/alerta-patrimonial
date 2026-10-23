@@ -75,17 +75,29 @@ def ler_vinculos(caminho=ROOT / "config" / "vinculos.csv"):
 
 
 # ---------------------------------------------------------------- pagina da pessoa
+def _valor_tse(v, link):
+    """Patrimonio declarado em reais, com o link da declaracao do TSE daquele ano quando houver (so no dossie, #62)."""
+    txt = graficos.brl(v)
+    return f'<a href="{e(link)}" target="_blank" rel="noopener">{txt}</a>' if str(link or "").startswith("https://") else txt
+
+
+COLUNAS_NUM = {2, 3, 4}
+
+
 def _tabela_periodos(linhas):
-    cab = ["Período", "Cargo", "Aumento do patrimônio", "Entre colegas do mesmo cargo", "Faixa"]  # sem valores em reais do patrimonio (#62): quem quiser confere no TSE
+    # o dossie mostra o patrimonio em reais do comeco e do fim (pedido do usuario); no resto do site, so o percentual
+    cab = ["Período", "Cargo", "Patrimônio no começo", "Patrimônio no fim", "Aumento do patrimônio",
+           "Entre colegas do mesmo cargo", "Faixa"]
     corpo = []
     for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0)):
         cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(cap(a.get("cargo"))),
+               _valor_tse(a.get("pat_ini"), a.get("link_tse_ini")), _valor_tse(a.get("pat_fim"), a.get("link_tse")),
                graficos.aumento_percentual(a.get("pat_fim"), a.get("pat_ini")),
                graficos.regua_colegas(a), chip_nivel(a.get("nivel"))]
-        corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if i == 2 else ""}>{v}</td>'
+        corpo.append("<tr>" + "".join(f'<td data-label="{e(c)}"{NUM if i in COLUNAS_NUM else ""}>{v}</td>'
                                       for i, (c, v) in enumerate(zip(cab, cel))) + "</tr>")
     return ('<div class="tab"><table class="resp"><caption class="sr">Períodos em destaque</caption><thead><tr>'
-            + "".join(f'<th scope="col"{NUM if i == 2 else ""}>{e(c)}</th>' for i, c in enumerate(cab))
+            + "".join(f'<th scope="col"{NUM if i in COLUNAS_NUM else ""}>{e(c)}</th>' for i, c in enumerate(cab))
             + "</tr></thead><tbody>" + "".join(corpo) + "</tbody></table></div>")
 
 
