@@ -180,7 +180,8 @@ def test_legenda_explica_niveis_em_linguagem_simples(abrir):
     pg = abrir()
     assert pg.is_visible("#legenda")
     niveis = pg.locator("#leg-niveis li")
-    assert niveis.count() == 3 and "salário" in niveis.first.inner_text()
+    assert niveis.count() == 4 and "salário" in niveis.first.inner_text()
+    assert "sem cor" in niveis.last.inner_text()  # #62: sem salario publico fica fora das faixas
     for b in pg.locator("#legenda button[data-f=flag]:visible").all():  # sem ninguem com a marcacao: desativado e explicado
         if b.get_attribute("aria-disabled") == "true":
             assert "nesta atualização" in b.locator("xpath=..").inner_text() or b.get_attribute("data-todos")

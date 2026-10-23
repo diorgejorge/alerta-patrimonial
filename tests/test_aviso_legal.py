@@ -24,7 +24,7 @@ def test_rodape_em_todas_as_paginas_com_caminho_relativo(tmp_path):
     raiz, pessoa = (s / "index.html").read_text(encoding="utf-8"), (s / "pessoa" / "p0001.html").read_text(encoding="utf-8")
     assert 'href="aviso-legal.html"' in raiz and 'href="../aviso-legal.html"' in pessoa
     assert 'href="../privacidade.html"' in pessoa
-    assert "respondem por eles" in raiz and "Nenhum destaque afirma irregularidade" in raiz
+    assert "Projeto pessoal e independente" in raiz and "respondem por eles" in raiz and "Nenhum destaque afirma irregularidade" in raiz
     assert raiz.index("rodape-legal") < raiz.index("</body>")
     assert "rodape-legal" not in (s / "parcial.html").read_text(encoding="utf-8")
 

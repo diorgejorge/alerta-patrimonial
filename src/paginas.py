@@ -302,7 +302,8 @@ def rodape_legal(site):
         if RODAPE_LEGAL in h or "</body>" not in h:
             continue
         pre = "../" * (len(pag.relative_to(site).parts) - 1)
-        rodape = (f'<footer class="rodape-legal" {RODAPE_LEGAL}>Dados públicos de fontes oficiais (TSE, '
+        rodape = (f'<footer class="rodape-legal" {RODAPE_LEGAL}>Projeto pessoal e independente de análise de dados '
+                  f'públicos, sem vínculo com governo, partido ou empresa. Dados de fontes oficiais (TSE, '
                   f'Portal da Transparência, Câmara e Senado), que respondem por eles; aqui eles só são organizados. '
                   f'Confira sempre na fonte indicada. Nenhum destaque afirma irregularidade ou crime. '
                   f'<a href="{pre}aviso-legal.html">Aviso legal e correções</a> · '
