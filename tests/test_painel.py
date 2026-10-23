@@ -285,6 +285,50 @@ def test_celular_filtros_recolhidos_e_sem_rolagem_lateral(abrir):
     assert pg.inner_text("#filtros-bt") == "Filtros (1)"
 
 
+def test_celular_legenda_compacta_nao_tampa_os_filtros(abrir):
+    # a legenda continua aberta, mas no celular so as marcacoes numa linha; o significado abre sob demanda
+    pg = abrir(largura=360)
+    assert pg.evaluate("document.documentElement.scrollWidth") <= 360
+    assert pg.is_visible("#leg-niveis li:first-child .chip") and not pg.is_visible("#leg-niveis .expl")
+    assert pg.locator("#legenda").bounding_box()["height"] < 260
+    assert pg.locator("#filtros-bt").bounding_box()["y"] < 900  # filtros na primeira tela
+    pg.click("#leg-mais")
+    assert pg.is_visible("#leg-niveis .expl") and pg.get_attribute("#leg-mais", "aria-expanded") == "true"
+    pg.click("#leg-mais")
+    assert not pg.is_visible("#leg-niveis .expl")
+
+
+def test_computador_legenda_explicada_sem_botao(abrir):
+    pg = abrir()
+    assert pg.is_visible("#leg-niveis .expl") and not pg.is_visible("#leg-mais")
+
+
+def test_como_cobrar_e_dossie_levam_a_lugares_diferentes(abrir):
+    # "Como cobrar" abre direto a aba #cobrar; sem a aba na pagina (dados antigos), o atalho nao aparece
+    pg = abrir()
+    links = card(pg, [{**UM_PERIODO[0], "cobrar": 1}]).locator("a.lk")
+    hrefs = {a.inner_text(): a.get_attribute("href") for a in links.all()}
+    assert hrefs["Dossiê"] == "pessoa/p0001.html" and hrefs["Como cobrar"] == "pessoa/p0001.html#cobrar"
+    pg.evaluate("document.getElementById('teste').remove()")
+    assert "Como cobrar" not in card(pg, UM_PERIODO).inner_text()
+
+
+def test_pagina_da_pessoa_abre_como_cobrar_pela_ancora_no_celular(servidor, site):
+    nav, url = servidor
+    pes = next((site / "pessoa").glob("*.html"))
+    pg = nav.new_page(viewport={"width": 360, "height": 740})
+    pg.goto(url.replace("index.html", f"pessoa/{pes.name}#cobrar"))
+    assert pg.get_attribute("#aba-cobrar", "aria-selected") == "true" and pg.is_visible("#cobrar")
+    assert not pg.is_visible("#resumo")
+    caixa = pg.locator("#aba-cobrar").bounding_box()
+    assert 0 <= caixa["x"] and caixa["x"] + caixa["width"] <= 360 and 0 <= caixa["y"] < 740  # aba visivel na tela
+    pg.close()
+
+
+def test_pipeline_marca_quem_tem_a_aba_como_cobrar(html):
+    assert '"cobrar": 1' in html or '"cobrar":1' in html
+
+
 def test_card_mostra_presenca_e_votos_so_nos_detalhes(abrir):
     # #56, #58: no card so o resumo curto; o detalhe fica no dossie (link #votos)
     votos = [dict(id="a", tema="A", voto="Sim", data="2025-01-01", link="https://x"),

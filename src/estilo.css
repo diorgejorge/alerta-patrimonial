@@ -314,10 +314,10 @@ ul.votos summary small{color:var(--mut)}
 .voto.ausente{border-style:dashed;color:var(--mut)}.voto{min-width:4.5em;text-align:center}
 .pres .grande{font-size:1.5rem;color:var(--ouro)}
 .pres{margin:.6em 0 1em;max-width:60ch}.pres p{margin:.2em 0}
-.barra{position:relative;height:10px;border-radius:999px;background:color-mix(in srgb,var(--mut) 22%,transparent)}
-.barra>span:first-child{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--ouro)}
-.barra .media{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:var(--fg);border-radius:2px}
-@media print{.barra>span{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
+.pres .barra{position:relative;height:10px;border-radius:999px;background:color-mix(in srgb,var(--mut) 22%,transparent)}
+.pres .barra>span:first-child{position:absolute;inset:0 auto 0 0;border-radius:999px;background:var(--ouro)}
+.pres .barra .media{position:absolute;top:-4px;bottom:-4px;width:3px;margin-left:-1px;background:var(--fg);border-radius:2px}
+@media print{.pres .barra>span{print-color-adjust:exact;-webkit-print-color-adjust:exact}}
 .voto-acoes{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.voto-aviso{color:var(--mut);font-size:.875rem}
 
 /* regua dos colegas (#64): 5 partes iguais de colegas do mesmo cargo, do menor ao maior crescimento;

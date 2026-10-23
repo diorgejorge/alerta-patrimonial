@@ -54,6 +54,9 @@ __ACOMPANHAR__
     a.addEventListener('keydown',function(e){var k={ArrowRight:i+1,ArrowLeft:i-1,Home:0,End:abas.length-1}[e.key];
       if(k===undefined)return;e.preventDefault();abrir((k+abas.length)%abas.length,true)})});
   var ini=paineis.findIndex(function(p){return '#'+p.id===location.hash});abrir(ini<0?0:ini);
+  // link direto para uma aba (ex.: #cobrar): no celular a aba fica fora da tela, entao rola ate ela
+  function mostrar(){abas[ini].scrollIntoView({block:'nearest',inline:'center'});lista.scrollIntoView({block:'start'});}
+  if(ini>0){mostrar();window.addEventListener('load',function(){setTimeout(mostrar)});}  // depois do salto nativo da ancora
   window.addEventListener('beforeprint',function(){paineis.forEach(function(p){p.hidden=false})});
 })();
 </script>

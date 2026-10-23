@@ -152,11 +152,19 @@ details.sobre[open]{padding-bottom:.4em}details.sobre .agregador,details.sobre .
 .leg-lista+.leg-lista{margin-top:.5em;padding-top:.5em;border-top:1px solid var(--line)}
 .leg-lista li{font-size:.8125rem;line-height:1.45;color:var(--mut);padding:2px 0}
 .leg-lista li>:first-child{margin-right:6px;vertical-align:middle}.legenda .tag{gap:.35em}
+.leg-mais{display:none}
 .legenda button.tag{min-height:44px}.legenda button.tag[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px;font-weight:700}
 .alerta .tags:empty{display:none}
 details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.leitura[open]>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.4em 1em}
 @media (max-width:599.98px){.filtros-bt{display:inline-flex;align-items:center;min-height:44px;padding:0 1em;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);font:inherit;font-weight:600;cursor:pointer}
   .filtros{display:none;flex:1 1 100%;flex-direction:column;gap:8px}.filtros.aberto{display:flex}
+  /* legenda compacta no celular: marcacoes numa linha que rola de lado; o significado abre sob demanda */
+  .legenda{min-width:0;padding:.6em .8em}.legenda h2{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}.legenda h2 small{flex-basis:100%}
+  .leg-mais{display:inline-flex;align-items:center;min-height:36px;margin-left:auto;padding:0 .8em;border:1px solid var(--line);border-radius:999px;background:none;color:var(--link);font:600 .8125rem/1 system-ui,sans-serif;cursor:pointer}
+  .legenda:not(.explicada) .leg-lista{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .legenda:not(.explicada) .leg-lista::-webkit-scrollbar{display:none}
+  .legenda:not(.explicada) .leg-lista li{flex:none;padding:0}.legenda:not(.explicada) .leg-lista li>:first-child{margin:0}
+  .legenda:not(.explicada) .expl{display:none}.legenda:not(.explicada) .leg-lista+.leg-lista{margin-top:6px;padding-top:6px}
   .marca{gap:14px;padding:16px 18px;align-items:flex-start;border-radius:22px}.marca>div{flex-basis:calc(100% - 90px)}.hero-num{flex:1 1 100%}.hero-num div{flex:1}.hero-num dd{font-size:1.45rem}.marca img{width:76px;height:76px;border-width:3px}.marca h1{font-size:1.6rem}.marca .intro{font-size:.875rem}}
 </style>
 </head>
@@ -190,7 +198,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <div id="chips" class="chips"></div>
 <div class="ajudas">
 <section class="legenda" id="legenda" aria-labelledby="legenda-tit">
-<h2 id="legenda-tit">Como ler cada card <small>(toque numa marcação para filtrar)</small></h2>
+<h2 id="legenda-tit">Como ler cada card <button type="button" class="leg-mais" id="leg-mais" aria-expanded="false" aria-controls="legenda">O que significa?</button> <small>(toque numa marcação para filtrar)</small></h2>
 <ul class="leg-lista" id="leg-niveis"></ul>
 <ul class="leg-lista">
 <li><button type="button" class="tag exemplar" data-f="flag" data-v="exemplar"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg> Exemplar</button> <span class="expl">Ficou mais rico só o que o salário explica, gasta a verba do gabinete abaixo da média e não tem punição registrada.</span></li>
@@ -274,7 +282,7 @@ const TSE=a=>/^https:\/\//.test(a.link_tse||"")?`<a class="lk" href="${esc(a.lin
 const PROC_ON=D?.processos_ativo===true;
 if(PROC_ON)for(const e of document.querySelectorAll("[data-processos]"))e.hidden=false;
 // links da pessoa: TSE (so com um periodo; com varios, cada periodo traz o seu), dossie, noticias e busca de processos
-const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}#cobrar" title="Canais oficiais do gabinete e uma sugestão de texto para copiar">Como cobrar</a>`:"",SHARE(p),REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}"${p.mencoes?` title="${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias"`:""}>Notícias${p.mencoes?` (${p.mencoes})`:""}</a>`:"",
+const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.pagina)&&p.cobrar?`<a class="lk" href="${esc(p.pagina)}#cobrar" title="Canais oficiais do gabinete e uma sugestão de texto para copiar">Como cobrar</a>`:"",SHARE(p),REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}"${p.mencoes?` title="${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias"`:""}>Notícias${p.mencoes?` (${p.mencoes})`:""}</a>`:"",
   PROC_ON&&`<a class="lk" href="${esc(PROC(p))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`].filter(Boolean).join(" · ");
 // compartilhar (#61): o compartilhar.js desenha o card numa imagem com estes dados (mesmos numeros da face do card)
 const SHARE=p=>{if(!REL(p.pagina))return"";const cap=p.per.reduce((s,a)=>a.cap>0&&s!=null?s+a.cap:null,0);
@@ -315,7 +323,7 @@ function agrupaPessoas(l){
       ano_ini:Math.min(...per.map(a=>a.ano_ini)),ano_fim:Math.max(...per.map(a=>a.ano_fim)),
       exemplar:per.some(a=>a.exemplar),selo:per.some(a=>a.selo),outras_rendas:per.some(a=>a.outras_rendas),processos:procs,
       novo:per.some(a=>a.novo),mencoes:Math.max(0,...per.map(a=>a.mencoes||0)),
-      pagina:per.find(a=>REL(a.pagina))?.pagina,dossie:per.find(a=>REL(a.dossie))?.dossie,
+      pagina:per.find(a=>REL(a.pagina))?.pagina,cobrar:per.some(a=>a.cobrar),dossie:per.find(a=>REL(a.dossie))?.dossie,
       // contadores do card: empresas (qtd_empresas do pipeline; sem o campo, nomes distintos), projetos do periodo mais recente
       qtd_empresas:qe.length?Math.max(...qe):new Set(per.flatMap(a=>a.empresas||[])).size,sem_qtd:!qe.length,
       projetos:per.map(a=>a.projetos).filter(Boolean).sort((x,y)=>(y.ate||0)-(x.ate||0))[0]||null,
@@ -703,6 +711,7 @@ function heroNum(){
 }
 function verDestaques(){if(ABA&&ABA!=="destaques")abrirAba("destaques");$("contagem").scrollIntoView({behavior:"smooth",block:"start"});}
 // filtros recolhidos no celular; o botao mostra quantos estao ativos
+$("leg-mais").onclick=()=>{const on=$("legenda").classList.toggle("explicada");$("leg-mais").setAttribute("aria-expanded",on);$("leg-mais").textContent=on?"Esconder":"O que significa?";};
 $("filtros-bt").onclick=()=>$("filtros-bt").setAttribute("aria-expanded",$("filtros").classList.toggle("aberto"));
 // blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;

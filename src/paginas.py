@@ -234,6 +234,7 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=
                                                            cobranca.get(q["idx"][0]), (votos or {}).get(q["idx"][0])), encoding="utf-8")
         for i in q["idx"]:
             alertas[i]["pagina"] = f"pessoa/{pid}.html"
+            alertas[i]["cobrar"] = 1  # a pagina ja tem a aba "Como cobrar": o card mostra o atalho (#60)
         itens.append((max(ORDEM.get(a.get("nivel"), 0) for a in linhas), max(a.get("cresc") or 0 for a in linhas),
                       cartao(pid, linhas, h)))
     itens.sort(key=lambda t: (t[0], t[1]), reverse=True)
