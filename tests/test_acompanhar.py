@@ -116,9 +116,12 @@ def test_site_usa_o_repositorio_do_actions(monkeypatch):
     assert acompanhar.site() == acompanhar.SITE_PADRAO
 
 
-def test_botao_explica_e_tem_endereco_absoluto():
-    h = acompanhar.botao("p0001")
-    assert "Acompanhar" in h and 'value="https://' in h and "leitor de notícias" in h
+def test_botao_abre_direto_no_app_de_rss():
+    h = acompanhar.botao("p0001", "SP")
+    url = acompanhar.url_feed("p0001")
+    assert "Acompanhar" in h and "<input" not in h and "Todos de SP" in h
+    assert 'href="feed:' + url + '"' in h
+    assert "feedly.com/i/subscription/feed%2Fhttps%3A%2F%2F" in h and "inoreader.com/?add_feed=https%3A%2F%2F" in h
 
 
 def test_escrever_apaga_feed_de_quem_saiu(tmp_path):

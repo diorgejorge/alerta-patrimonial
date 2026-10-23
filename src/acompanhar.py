@@ -6,6 +6,7 @@ import hashlib, html, json, os, re
 import xml.etree.ElementTree as ET
 from email.utils import format_datetime
 from pathlib import Path
+from urllib.parse import quote
 import cifra, graficos
 from texto import cap
 
@@ -45,24 +46,27 @@ ICONE = ('<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fil
          '<path d="M1 2a13 13 0 0 1 13 13h-2A11 11 0 0 0 1 4z"/></svg>')
 
 
+APPS = (("Feedly", "https://feedly.com/i/subscription/feed%2F{}"),
+        ("Inoreader", "https://www.inoreader.com/?add_feed={}"))
+
+
+def links_app(url):
+    """Um toque e o feed ja entra no leitor: link de inscricao de cada app e o feed: (app instalado no aparelho)."""
+    q = quote(url, safe="")
+    return [(nome, modelo.format(q)) for nome, modelo in APPS] + [("Outro app", "feed:" + url)]
+
+
 def botao(pid, uf=""):
-    """Botao discreto "Acompanhar" da pagina da pessoa: explica o feed e entrega o endereco para copiar."""
-    url = e(url_feed(pid))
+    """Botao discreto "Acompanhar" da pagina da pessoa: um toque no app de RSS e pronto, sem copiar endereco."""
+    apps = links_app(url_feed(pid))
+    extra = (f' · <a href="{e(site())}feed/uf-{uf}.xml">Todos de {uf}</a>' if RE_UF.fullmatch(uf) else "")
     return (f'<details class="acompanhar"><summary class="botao secundario">{ICONE}Acompanhar</summary>'
             '<div class="card"><p><b>Não perca nada.</b> Seja avisado quando o patrimônio crescer, a cota subir, '
-            "sair um voto ou uma notícia nova.</p>"
-            "<ol><li>Copie o endereço.</li><li>Cole num app leitor de notícias (RSS), como Feedly ou Inoreader.</li>"
-            "</ol>"
-            f'<p class="copiar"><input type="text" readonly value="{url}" aria-label="Endereço do feed" '
-            'onfocus="this.select()"><button type="button" class="botao" data-copiar>Copiar</button></p>'
-            f'<p class="mut"><small><a href="{url}">Abrir o feed</a> · Também há um '
-            f'<a href="{e(site())}feed.xml">feed com todas as pessoas</a>'
-            + (f' e um com <a href="{e(site())}feed/uf-{uf}.xml">os políticos de {uf}</a>' if RE_UF.fullmatch(uf) else "")
-            + ".</small></p></div></details>"
-            "<script>document.querySelectorAll('[data-copiar]').forEach(function(b){b.onclick=function(){"
-            "var i=b.previousElementSibling;i.select();(navigator.clipboard?navigator.clipboard.writeText(i.value)"
-            ":Promise.reject()).then(function(){b.textContent='Copiado!'},function(){document.execCommand('copy')})}})"
-            "</script>")
+            "sair um voto ou uma notícia nova. Toque no seu app:</p><p class=\"apps\">"
+            + "".join(f'<a class="botao{"" if i == 0 else " secundario"}" href="{e(h)}" target="_blank" rel="noopener">'
+                      f"{e(n)}</a>" for i, (n, h) in enumerate(apps))
+            + f'</p><p class="mut"><small><a href="{e(url_feed(pid))}">Ver o feed</a>{extra} · '
+            f'<a href="{e(site())}feed.xml">Todas as pessoas</a></small></p></div></details>')
 
 
 def link_head(pid, nome):

@@ -289,8 +289,6 @@ details.acompanhar>summary svg{color:var(--caramelo)}
 details.acompanhar[open]>summary{background:var(--ouro);color:var(--tinta);border-color:var(--ouro)}
 details.acompanhar[open]>summary svg{color:var(--tinta)}
 details.acompanhar .card{margin-top:8px;max-width:60ch}
-details.acompanhar ol{margin:.4em 0;padding-left:1.3em}
-.copiar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.copiar input{flex:1 1 220px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:999px;
-  background:var(--card);color:var(--fg);font:inherit;font-size:.875rem}
+.acompanhar .apps{display:flex;flex-wrap:wrap;gap:8px}
+.acompanhar .apps .botao.secundario{border:1px solid currentColor}
 @media print{details.acompanhar{display:none}}
