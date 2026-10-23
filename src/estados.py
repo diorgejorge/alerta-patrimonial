@@ -564,8 +564,9 @@ def demo(parl=(), serie=None, paginas=None):
                ("Transferências do FNDE - Salário-Educação", "legais"),
                ("Transferências de Convênios da União", "voluntarias"),
                ("Transferências Especiais da União", "especiais")]
-    fin, lista, entes, mun = {}, [], [], {}
-    autores = [f"DEPUTADO DEMO {i:02d}" for i in range(12)] + ["BANCADA DE DEMO", "COMISSAO DE SAUDE"]
+    fin, lista, entes, mun, siglas = {}, [], [], {}, list(UFS)
+    parl = list(parl) or [dict(nome=f"Deputada Demo {uf} {j}", cargo="DEPUTADO FEDERAL" if j < 4 else "SENADOR",
+                               partido="XX", uf=uf, perfil=None) for uf in UFS for j in range(1, 6)]
     for i, (uf, (cod, nome)) in enumerate(UFS.items()):
         if uf == "AC":  # um estado com a fonte fora do ar, para a pagina mostrar "Fonte nao encontrada"
             fin[uf] = dict(ano_despesa=None, despesa="falha", ano_receita=None, receita="falha")
@@ -580,7 +581,9 @@ def demo(parl=(), serie=None, paginas=None):
             mun[f"{cod}{j:05d}"] = dict(total=round(rnd.uniform(1e6, 5e8), 2), tipos={})
         for k in range(8):
             lc = f"{nome.upper()} (UF)" if k % 3 == 0 else f"CIDADE DEMO {k % 3 + 1} - {uf}"
-            lista.append(dict(autor=autores[(i + k) % len(autores)], tipo=rnd.choice(
+            de = siglas[(i + 1) % len(siglas)] if k == 6 else uf  # um autor de outra UF
+            autor = "BANCADA DE DEMO" if k == 7 else f"DEPUTADA DEMO {de} {k % 4 + 1}"
+            lista.append(dict(autor=autor, tipo=rnd.choice(
                 ["Emenda Individual - Transferências com Finalidade Definida", "Emenda Individual - Transferências Especiais",
                  "Emenda de Bancada"]), local=lc, funcao=rnd.choice(funcoes), pago=round(rnd.uniform(1e5, 2e7), 2)))
     estaduais, ano_est = deputados_estaduais(serie, paginas, None, hoje)
@@ -589,6 +592,6 @@ def demo(parl=(), serie=None, paginas=None):
                           for k in range(1, 4)] for uf in UFS}
         ano_est = 2022
     assembleias = {uf: dict(a, ok=True) for uf, a in carregar_assembleias().items()}
-    return montar(fin, agregar(lista), list(parl), entes, mun, estaduais, assembleias,
+    return montar(fin, agregar(lista), parl, entes, mun, estaduais, assembleias,
                   dict(anos=[2023, 2024, 2025, 2026], faltou=[], ano_estadual=2025, eleicao_estadual=ano_est,
                        falhou_emendas=False))
