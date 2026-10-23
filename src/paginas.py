@@ -217,8 +217,9 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None):
 
 
 def copiar_estilo(docs):
-    """estilo.css, logo e a pagina de privacidade (LGPD arts. 9, 18 e 41), com os dados de config/privacidade.json."""
-    shutil.copyfile(SRC / "estilo.css", Path(docs) / "estilo.css")
+    """estilo.css, selo.js, logo e a pagina de privacidade (LGPD arts. 9, 18 e 41), com os dados de config/privacidade.json."""
+    for f in ("estilo.css", "selo.js"):  # estilo comum e a animacao do selo de cera
+        shutil.copyfile(SRC / f, Path(docs) / f)
     for img in ("logo.png", "icone.png"):  # marca do Caramelo Vasculha
         shutil.copyfile(SRC / img, Path(docs) / img)
     try:

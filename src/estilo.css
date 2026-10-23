@@ -227,6 +227,27 @@ html button.tag.reu:hover{background:var(--realce);border-color:var(--atencao)}
   .pessoas{grid-template-columns:repeat(3,1fr)}
   h1{font-size:1.75rem}
 }
+/* selo de cera (#52): borda recortada, relevo de cera e animacao de carimbo (selo.js marca .carimbado ao entrar na tela).
+   Cor em --cera; variantes: .ouro (exemplar), .caramelo (Mao na massa), .alerta-cera (carimbo de alerta). */
+.selo-cera{--cera:#a8322a;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 4px 0 0;border:0;background:none;
+  color:inherit;font:inherit;font-size:.8125rem;font-weight:700;line-height:1.2;text-align:left;cursor:pointer}
+.selo-cera.ouro{--cera:#c98a0c}.selo-cera.caramelo{--cera:#b4561f}.selo-cera.alerta-cera{--cera:#b3261e}
+.selo-cera .cera{position:relative;flex:none;display:grid;place-items:center;width:42px;height:42px;transform:rotate(-8deg);
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)) drop-shadow(0 5px 8px rgba(0,0,0,.25))}
+.selo-cera .cera::before{content:"";position:absolute;inset:0;
+  background:radial-gradient(circle at 34% 28%,color-mix(in srgb,var(--cera) 45%,#fff) 0,var(--cera) 42%,color-mix(in srgb,var(--cera) 65%,#000) 100%);
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M58.4%207.7%20Q68.8%204.7%2074.0%2014.1%20Q84.6%2015.4%2085.9%2026.0%20Q95.3%2031.2%2092.3%2041.6%20Q99.0%2050.0%2092.3%2058.4%20Q95.3%2068.8%2085.9%2074.0%20Q84.6%2084.6%2074.0%2085.9%20Q68.8%2095.3%2058.4%2092.3%20Q50.0%2099.0%2041.6%2092.3%20Q31.2%2095.3%2026.0%2085.9%20Q15.4%2084.6%2014.1%2074.0%20Q4.7%2068.8%207.7%2058.4%20Q1.0%2050.0%207.7%2041.6%20Q4.7%2031.2%2014.1%2026.0%20Q15.4%2015.4%2026.0%2014.1%20Q31.2%204.7%2041.6%207.7%20Q50.0%201.0%2058.4%207.7Z'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpath d='M58.4%207.7%20Q68.8%204.7%2074.0%2014.1%20Q84.6%2015.4%2085.9%2026.0%20Q95.3%2031.2%2092.3%2041.6%20Q99.0%2050.0%2092.3%2058.4%20Q95.3%2068.8%2085.9%2074.0%20Q84.6%2084.6%2074.0%2085.9%20Q68.8%2095.3%2058.4%2092.3%20Q50.0%2099.0%2041.6%2092.3%20Q31.2%2095.3%2026.0%2085.9%20Q15.4%2084.6%2014.1%2074.0%20Q4.7%2068.8%207.7%2058.4%20Q1.0%2050.0%207.7%2041.6%20Q4.7%2031.2%2014.1%2026.0%20Q15.4%2015.4%2026.0%2014.1%20Q31.2%204.7%2041.6%207.7%20Q50.0%201.0%2058.4%207.7Z'/%3E%3C/svg%3E") center/contain no-repeat}
+.selo-cera .cera::after{content:"";position:absolute;inset:8px;border-radius:50%;box-shadow:inset 0 1px 2px rgba(0,0,0,.45),0 1px 0 rgba(255,255,255,.3)}
+.selo-cera .cera>span{position:relative;z-index:1;font-size:.95rem;line-height:1;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,.45)}
+.selo-cera:hover .rot{text-decoration:underline}
+.selo-cera:is([disabled],[aria-disabled="true"]){cursor:not-allowed;opacity:.55}
+html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
+.selo-cera.carimbado .cera{animation:carimbo .75s cubic-bezier(.2,.8,.3,1.15) both}
+.selo-cera.carimbado .rot{animation:aparece .4s .35s both}
+@keyframes carimbo{0%{opacity:0;transform:translateY(-16px) scale(1.9) rotate(-30deg)}
+  55%{opacity:1;transform:translateY(0) scale(.86) rotate(4deg)}75%{transform:scale(1.07) rotate(-11deg)}100%{opacity:1;transform:scale(1) rotate(-8deg)}}
+@keyframes aparece{from{opacity:0;transform:translateX(-4px)}to{opacity:1;transform:none}}
+@media print{.selo-cera .cera{filter:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{
   :root{color-scheme:light}

@@ -51,6 +51,14 @@ def test_legenda_sempre_aberta_e_filtros_recolhidos(html):
     assert all(f'id="{i}"' in filtros for i in ("cg", "rg", "nv"))
 
 
+def test_icones_flat_sem_emoji(html):
+    assert not re.search("[\U0001F300-\U0001FAFF\u2600-\u27BF]", html)  # emojis trocados por SVG (#52)
+
+
+def test_selo_js_publicado_junto(site, html):
+    assert '<script src="selo.js" defer>' in html and (site / "selo.js").exists()
+
+
 # ---------- navegador ----------
 
 @pytest.fixture(scope="module")
@@ -135,6 +143,7 @@ def test_card_dois_periodos(abrir):
     assert "PSDB → PL" in c.locator(".resumo").text_content()
     assert "2 períodos" in c.locator("button.ver").get_attribute("title")
     assert c.locator(".det .periodo").count() == 2
+    assert c.locator(".selo-cera.caramelo").count() == 1  # Mao na massa vira selo de cera
     face = c.locator(".tags").text_content()
     assert "Mão na massa" in face and "3 empresas" in face
     assert "R$ 3.000.000" in c.locator(".valor b").text_content()  # soma dos periodos
