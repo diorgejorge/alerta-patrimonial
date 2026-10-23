@@ -269,7 +269,7 @@ def copiar_estilo(docs):
                                         if cfg.get("contato_encarregado", "").strip() else "")) or falta,
                 ATUALIZADO=e(cfg.get("atualizado_em", "").strip() or "Não informado"),
                 MEDICAO=texto_medicao())
-    for nome in ("privacidade.html", "aviso-legal.html"):  # aviso legal (#62): o que o site e e como pedir correcao
+    for nome in ("privacidade.html", "funcionamento.html"):  # funcionamento do site (#62): o que o site e e como pedir correcao
         tpl = (SRC / nome).read_text(encoding="utf-8")
         (Path(docs) / nome).write_text(re.sub(r"__([A-Z]+)__", lambda m: vals.get(m.group(1), m.group(0)), tpl),
                                        encoding="utf-8")
@@ -289,7 +289,7 @@ RODAPE_LEGAL = "data-rodape-legal"
 
 
 def rodape_legal(site):
-    """Aviso legal (#62) no fim de todas as paginas publicadas: dados oficiais so reorganizados, nenhum indicador
+    """Rodape legal (#62) no fim de todas as paginas publicadas: dados oficiais so reorganizados, nenhum indicador
     afirma irregularidade, e onde pedir correcao. Idempotente. Devolve quantas paginas receberam o rodape."""
     site = Path(site)
     n = 0
@@ -298,11 +298,11 @@ def rodape_legal(site):
         if RODAPE_LEGAL in h or "</body>" not in h:
             continue
         pre = "../" * (len(pag.relative_to(site).parts) - 1)
-        rodape = (f'<footer class="rodape-legal" {RODAPE_LEGAL}>Projeto pessoal e independente de análise de dados '
+        rodape = (f'<footer class="rodape-legal" {RODAPE_LEGAL}>Ferramenta independente de agregação de dados '
                   f'públicos, sem vínculo com governo, partido ou empresa. Dados de fontes oficiais (TSE, '
                   f'Portal da Transparência, Câmara e Senado), que respondem por eles; aqui eles só são organizados. '
                   f'Confira sempre na fonte indicada. Nenhum destaque afirma irregularidade ou crime. '
-                  f'<a href="{pre}aviso-legal.html">Aviso legal e correções</a> · '
+                  f'<a href="{pre}funcionamento.html">Funcionamento do site e correções</a> · '
                   f'<a href="{pre}privacidade.html">Privacidade</a></footer>\n')
         pag.write_text(h.replace("</body>", rodape + "</body>", 1), encoding="utf-8")
         n += 1

@@ -278,8 +278,8 @@ const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href
   PROC_ON&&`<a class="lk" href="${esc(PROC(p))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`].filter(Boolean).join(" · ");
 // compartilhar (#61): o compartilhar.js desenha o card numa imagem com estes dados (mesmos numeros da face do card)
 const SHARE=p=>{if(!REL(p.pagina))return"";const cap=p.per.reduce((s,a)=>a.cap>0&&s!=null?s+a.cap:null,0);
-  const n=p.cresc==null?[]:[[(p.cresc>0?"+":"")+R(p.cresc),`a mais no patrimônio de ${p.ano_ini} a ${p.ano_fim}`]];
-  if(cap){n.push([R(cap),"daria para guardar só com o salário"]);if(p.cresc>0)n.push([VZ(p.cresc/cap),"o que daria para guardar com o salário"]);}
+  const pa=PCTA(p),n=pa?[[pa,`no patrimônio de ${p.ano_ini} a ${p.ano_fim}`]]:[];
+  if(cap){if(p.cresc>0)n.push([VZ(p.cresc/cap),"o que daria para guardar com o salário"]);}
   const d={nome:CAP(p.nome_urna||p.nome),ficha:[p.cargos.length?CAP(p.cargos[p.cargos.length-1]):"",p.partidos[p.partidos.length-1],p.ufs[p.ufs.length-1]].filter(Boolean).join(" · "),
     numeros:n,url:[...p.per].reverse().find(a=>/^https:\/\//.test(a.link_tse||""))?.link_tse||"https://dadosabertos.tse.jus.br/",fontes:"Fonte: declarações de bens entregues ao TSE"+(cap?" e salário oficial do cargo":"")+"."};
   return`<button type="button" class="lk" data-compartilhar="${esc(JSON.stringify(d))}" title="Gera uma imagem deste card para mandar no WhatsApp e nas redes">Compartilhar</button>`;};
@@ -465,16 +465,18 @@ const MARCAS=p=>{const ne=p.qtd_empresas||0,rd=p.per.find(a=>a.nivel_calculado&&
       `${ICO.predio} ${ne?`${ne.toLocaleString("pt-BR")} ${ne===1?"empresa":"empresas"}`:"Tem empresas"}`)].filter(Boolean);
   return l.length?`<p class="tags">${l.join("")}</p>`:"";};
 // analogia principal: quantas vezes o que daria para guardar com o salario (soma dos periodos; sem salario de referencia, nao aparece)
+// face do card (#62): so o percentual de aumento do patrimonio declarado; os valores em reais ficam em Detalhes
+const PCTA=p=>p.cresc==null||p.pat_ini==null?null:p.pat_ini>0?(p.cresc>=0?"+":"−")+Math.round(Math.abs(p.cresc)/p.pat_ini*100).toLocaleString("pt-BR")+"%":p.cresc>0?"começou do zero":null;
+const AUM=p=>{const v=PCTA(p);return v?`<b>${v}</b>`:`<b>Não informado</b>`;};
 const VEZES=p=>{const cap=p.per.reduce((s,a)=>a.cap>0&&s!=null?s+a.cap:null,0);
   return cap&&p.cresc>0?`É <b>${VZ(p.cresc/cap)}</b> o que daria para guardar com o salário`:"";};
 // fatos do card: mesma fonte e um icone por linha; linha sem dado nao aparece
 const FATOS=p=>{const ic=(e,t)=>t?`<li><span class="ic" aria-hidden="true">${e}</span><span>${t}</span></li>`:"";
-  const de=p.pat_ini==null?"Não informado":RC(p.pat_ini),ate=p.pat_fim==null?"Não informado":RC(p.pat_fim);
-  return`<ul class="fatos">${ic(ICO.alta,`Patrimônio foi de <b>${de}</b> para <b>${ate}</b>`)}${ic(ICO.moeda,VEZES(p))}${ic(ICO.carrinho,COMPRA(p.cresc))}${ic(ICO.regua,p.maior.percentil==null?"":`Comparado com os colegas ${COL(p.maior)}`)}</ul>`;};
+  return`<ul class="fatos">${ic(ICO.moeda,VEZES(p))}${ic(ICO.carrinho,COMPRA(p.cresc))}${ic(ICO.regua,p.maior.percentil==null?"":`Comparado com os colegas ${COL(p.maior)}`)}</ul>`;};
 // detalhes sob demanda: contadores completos, numeros do calculo e periodos
 const DET=p=>{const m=p.per.length>1;
   return`<div class="det" hidden>${CONT(p)}
-${m?`<p class="mut">Maior crescimento: <b class="maior-ano">${p.maior.ano_ini}–${p.maior.ano_fim}</b></p><ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:DL(p.per[0])}</div>`;};
+${m?`<p class="mut">Maior crescimento: <b class="maior-ano">${p.maior.ano_ini}–${p.maior.ano_fim}</b></p><ul class="periodos">${p.per.map(a=>PER(a,p)).join("")}</ul>`:CR(p.per[0])+DL(p.per[0])}</div>`;};
 const ROT_VER="Detalhes";
 // abre e fecha os detalhes do card (clique delegado no documento)
 function verDet(ev){const b=ev.target.closest("button.ver");if(!b)return false;
@@ -486,7 +488,7 @@ const PRES=p=>`<div class="faixa-pres"><span class="avatar g" aria-hidden="true"
 const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
 const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}${p.presidente?" presidente":""}">${p.presidente?PRES(p):""}<div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b>${p.nivel?`<span class="chip nv-${p.nivel}" role="img" aria-label="${NV[p.nivel]}: ${RES(p.maior)}" title="${NV[p.nivel]}${p.per.length>1?` no período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})`:""}. Veja a fórmula em Como ler os números">${RES(p.maior)}</span>`:""}</div>
 <p class="resumo">${CPU_RES(p)}</p>
-<p class="valor"><b>+${R(p.cresc)}</b><span>a mais no patrimônio de ${p.ano_ini} a ${p.ano_fim}</span></p>
+<p class="valor">${AUM(p)}<span>no patrimônio de ${p.ano_ini} a ${p.ano_fim}</span></p>
 ${FATOS(p)}${MARCAS(p)}${DET(p)}
 <div class="pe"><p class="links">${LK(p)}</p><button type="button" class="ver" aria-expanded="false" data-rot="${ROT_VER}"${p.per.length>1?` title="Números do cálculo e os ${p.per.length} períodos"`:""}>${ROT_VER}<span aria-hidden="true"> ▾</span></button></div></li>`;
 // parlamentares exemplares: um card por pessoa (nome + UF), periodos agrupados

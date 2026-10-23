@@ -136,12 +136,14 @@ def test_card_um_periodo_esconde_zeros_e_detalha_sob_demanda(abrir):
     c = card(abrir(), UM_PERIODO)
     assert c.locator(".nome").text_content() == "Maria da Silva"
     assert c.locator(".resumo").text_content().split() == ["Senador", "·", "PT", "·", "MS"]
-    assert "de 2018 a 2026" in c.locator(".valor").text_content()
-    assert "Patrimônio foi de" in c.locator(".fatos").text_content() and "4,0×" in c.locator(".fatos").text_content()
+    valor = c.locator(".valor").text_content()
+    assert "de 2018 a 2026" in valor and "+100%" in valor and "R$" not in valor  # #62: so o percentual na face
+    assert "R$" not in c.locator(".fatos").text_content() and "4,0×" in c.locator(".fatos").text_content()
     assert c.locator(".tags").count() == 0  # nenhuma marcacao: nada de "Nenhuma empresa" na face
     det, ver = c.locator(".det"), c.locator("button.ver")
     assert ver.text_content().startswith("Detalhes") and ver.get_attribute("aria-expanded") == "false"
     assert "Nenhuma empresa declarada" in det.text_content() and "Cresceu quantas vezes isso" in det.text_content()
+    assert "R$" in det.text_content()  # valores exatos ficam nos detalhes
     assert not det.is_visible()
     ver.click()
     assert det.is_visible() and ver.get_attribute("aria-expanded") == "true"
@@ -158,7 +160,7 @@ def test_card_dois_periodos(abrir):
     assert c.locator(".tag.selo").count() == 1 and c.locator(".selo-cera").count() == 0  # selo de cera so na aba propria
     face = c.locator(".tags").text_content()
     assert "Mão na massa" in face and "3 empresas" in face
-    assert "R$ 3.000.000" in c.locator(".valor b").text_content()  # soma dos periodos
+    assert c.locator(".valor b").text_content() == "+300%"  # soma dos periodos sobre o patrimonio inicial (#62)
     assert "Notícias (3)" in c.locator(".links").text_content()
 
 

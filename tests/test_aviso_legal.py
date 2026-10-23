@@ -22,9 +22,9 @@ def test_rodape_em_todas_as_paginas_com_caminho_relativo(tmp_path):
     s = site(tmp_path)
     assert paginas.rodape_legal(s) == 2
     raiz, pessoa = (s / "index.html").read_text(encoding="utf-8"), (s / "pessoa" / "p0001.html").read_text(encoding="utf-8")
-    assert 'href="aviso-legal.html"' in raiz and 'href="../aviso-legal.html"' in pessoa
+    assert 'href="funcionamento.html"' in raiz and 'href="../funcionamento.html"' in pessoa
     assert 'href="../privacidade.html"' in pessoa
-    assert "Projeto pessoal e independente" in raiz and "respondem por eles" in raiz and "Nenhum destaque afirma irregularidade" in raiz
+    assert "Ferramenta independente de agregação de dados públicos" in raiz and "respondem por eles" in raiz and "Nenhum destaque afirma irregularidade" in raiz
     assert raiz.index("rodape-legal") < raiz.index("</body>")
     assert "rodape-legal" not in (s / "parcial.html").read_text(encoding="utf-8")
 
@@ -53,7 +53,7 @@ def test_aviso_legal_publicado_com_canal(tmp_path, monkeypatch):
     docs = tmp_path / "docs"
     docs.mkdir()
     paginas.copiar_estilo(docs)
-    aviso = (docs / "aviso-legal.html").read_text(encoding="utf-8")
+    aviso = (docs / "funcionamento.html").read_text(encoding="utf-8")
     assert "__" not in re.sub(r"<[^>]+>", "", aviso)
     assert "issues/new?template=correcao.yml" in aviso and "23/10/2026" in aviso
     for rotulo in ("Faixas de cor", "vezes o possível = ", "Emergência sem reconhecimento oficial", "Emenda parada"):

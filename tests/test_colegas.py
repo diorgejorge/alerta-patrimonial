@@ -48,7 +48,7 @@ def test_regua_escapa_o_cargo():
 
 
 def test_formula_no_aviso_legal_e_no_como_ler():
-    aviso = (RAIZ / "src" / "aviso-legal.html").read_text(encoding="utf-8")
+    aviso = (RAIZ / "src" / "funcionamento.html").read_text(encoding="utf-8")
     assert "Régua dos colegas" in aviso and "5 partes iguais" in aviso and "90 de cada 100" in aviso
     assert "menos de 20" in aviso and "inflação" in aviso
     tpl = (RAIZ / "src" / "template.html").read_text(encoding="utf-8")
