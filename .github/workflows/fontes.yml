@@ -1,4 +1,4 @@
-name: Aprovar fonte sugerida
+name: Issue · aprovar fonte sugerida
 on:
   issues:
     types: [labeled]

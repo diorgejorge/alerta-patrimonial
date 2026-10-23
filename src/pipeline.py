@@ -690,7 +690,7 @@ def main():
     blocos = dict(CARTOES=cartoes, **graficos_painel)
     for marca, conteudo in blocos.items():
         html_painel = html_painel.replace(f"<!--{marca}-->", conteudo)
-    # blocos gerados a parte: o workflow "Publicar painel" remonta o index com o template atual
+    # blocos gerados a parte: o workflow "3 · Publicar site" remonta o index com o template atual
     (docs / "blocos.json").write_text(json.dumps(blocos, ensure_ascii=False), encoding="utf-8")
     (docs / "index.html").write_text(html_painel, encoding="utf-8")
     if pid:

@@ -31,8 +31,22 @@ Abra `docs/index.html` (ou `_demo/docs/index.html`) no navegador.
 ## Automação (GitHub Actions)
 1. Crie um repositório **privado** e envie estes arquivos.
 2. Em Settings → Secrets and variables → Actions, crie `ID_SEGREDO` (um texto aleatório longo; gera o id interno `p0001`... de cada pessoa sem expor CPF; sem ele não há páginas por pessoa) e `TRANSPARENCIA_TOKEN` com a chave gratuita da API do Portal da Transparência (cadastro em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email). Todas as consultas ao Portal (emendas, benefícios, despesas e sanções) usam só essa API; sem a chave, a seção "Dinheiro público" do dossiê fica sem dados. (Opcional) Crie também `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID`.
-3. O workflow `atualizar.yml` roda sozinho toda segunda-feira às 04:00 (Brasília): baixa os dados do TSE, refaz alertas, notícias e consultas ao Portal da Transparência, grava `docs/` e `data/estado.json` (memória para marcar alertas "novos") e o `pages.yml` publica o site em seguida. Leva cerca de 1 hora; uma execução manual (Actions → Atualizar alertas → Run workflow) espera a anterior terminar. O GitHub desativa agendamentos de repositórios sem nenhum commit por 60 dias; como cada execução grava um commit, isso não deve acontecer, mas se acontecer basta reativar em Actions.
-4. Painel no GitHub Pages: em Settings → Pages, escolha **Source: GitHub Actions**. O workflow `pages.yml` publica `docs/` depois de cada atualização (ou manualmente em Actions → Publicar painel). Lembre que o site do Pages é **público**, mesmo com repositório privado.
+3. Painel no GitHub Pages: em Settings → Pages, escolha **Source: GitHub Actions**. Lembre que o site do Pages é **público**, mesmo com repositório privado.
+
+### Fluxos (aba Actions)
+Os fluxos de dados são separados para o site atualizar rápido: o principal publica o painel em minutos, e o dossiê por estado, que é lento, roda depois, sozinho. Os números indicam a ordem.
+
+| Fluxo | Arquivo | Quando roda | O que faz | Tempo |
+|---|---|---|---|---|
+| **1 · Dados dos políticos** | `atualizar.yml` | Toda segunda às 04:00 (Brasília) ou manual | TSE, alertas de patrimônio, Portal da Transparência por pessoa, cota, projetos, empresas e notícias. Grava `docs/` (painel e páginas por pessoa), `data/estado.json` e `data/estados_base.json` (base do fluxo 2, sem CPF). | minutos |
+| **2 · Dossiê por estado** | `estados.yml` | Logo depois do fluxo 1, ou manual | Gasto do estado e verbas da União (SICONFI), emendas dos últimos 4 anos (API do Portal), carimbos de emergência (S2iD) e emenda parada, municípios e deputados estaduais. Grava `docs/estado/`. O SICONFI aceita cerca de 1 consulta por segundo: os municípios entram em partes, e cada execução continua de onde a anterior parou (cache cifrado). | até 3 h |
+| **3 · Publicar site** | `pages.yml` | Depois dos fluxos 1 e 2, a cada mudança visual na `main`, ou manual | Monta o painel com o template atual e publica `docs/` no GitHub Pages. | 1 min |
+| **Testes e acessibilidade** | `testes.yml` | A cada push em `src/`, `tests/` ou `config/` | Testes unitários e de integração (sem rede, dados mockados) e Lighthouse no celular. | minutos |
+| **Versão automática** | `versao.yml` | A cada push na `main` | Cria a tag `vX.Y.Z` e a release com a mensagem do commit. | segundos |
+| **Issue · aprovar fonte sugerida** | `fontes.yml` | Rótulo `aprovada` numa issue de fonte | Grava a fonte em `config/fontes_noticias.csv`. | segundos |
+| **Issue · aprovar processo informado** | `processos.yml` | Rótulo `aprovada` numa issue de processo | Desligado no site (#51); guardado para quando houver base oficial. | segundos |
+
+Uma execução manual (Actions → nome do fluxo → Run workflow) espera a anterior do mesmo fluxo terminar. O GitHub desativa agendamentos de repositórios sem nenhum commit por 60 dias; como cada execução grava um commit, isso não deve acontecer, mas se acontecer basta reativar em Actions.
 
 ## Sugestões de fontes pelo site
 O painel tem o bloco "Ajude a ampliar as fontes", que abre formulários de issue no GitHub (é preciso ter conta; a sugestão fica pública):

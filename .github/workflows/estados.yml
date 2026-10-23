@@ -1,9 +1,9 @@
-name: Dossie por estado
-# #53: roda depois do "Atualizar alertas" (que grava data/estados_base.json), para nao segurar o painel.
+name: 2 · Dossiê por estado
+# #53: roda depois do "1 · Dados dos políticos" (que grava data/estados_base.json), para nao segurar o painel.
 # Pode demorar: o SICONFI aceita ~1 consulta/s e os municipios entram em partes (cache continua de onde parou).
 on:
   workflow_run:
-    workflows: ["Atualizar alertas"]
+    workflows: ["1 · Dados dos políticos"]
     types: [completed]
   workflow_dispatch:
 permissions:

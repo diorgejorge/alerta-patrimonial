@@ -1,4 +1,4 @@
-name: Aprovar processo informado
+name: Issue · aprovar processo informado
 on:
   issues:
     types: [labeled]

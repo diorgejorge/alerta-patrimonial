@@ -1,4 +1,4 @@
-name: Atualizar alertas
+name: 1 · Dados dos políticos
 on:
   schedule:
     - cron: "0 7 * * 1"   # toda segunda, 07:00 UTC (04:00 em Brasília: faixa em que a API do Portal aceita 300 consultas/min)

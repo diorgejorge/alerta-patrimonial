@@ -1,4 +1,4 @@
-name: Versão
+name: Versão automática
 # cada commit na main vira uma versão: tag vX.Y.Z (patch +1) e release com a mensagem do commit
 on:
   push:
