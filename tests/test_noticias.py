@@ -30,6 +30,7 @@ def nt(titulo, link, data=D, tags=None):
     ("Fulano é eleito deputado federal em Roraima", "eleitoral"),
     ("Fulano (PL) recebe apoio do governo", "politico"),
     ("Brazilian lawmaker elected again", "eleitoral"),
+    ("Deputada propõe reembolso-creche maior", "legislativo"),
     ("Brazil police arrest congressman in corruption scandal", "criminal"),
 ])
 

@@ -14,8 +14,8 @@ PALAVRAS = {
                 r" pcdob republicanos podemos avante solidariedade cidadania uniao_brasil party",
     "eleitoral": r"eleic\w* eleit\w* reeleit\w* reeleic\w* candidat\w* campanha\w* votos? urnas? tse tre turno"
                  r" coligac\w* intencao pesquisa\w* debate\w* elect\w* vote\w* voters?",
-    "legislativo": r"projetos?_de_lei pec plenario camara senado assembleia comissao\w* cpi cpmi emendas?"
-                   r" relator\w* votac\w* aprov\w* veto\w* sancion\w* medida_provisoria tramitac\w* congress\w*"
+    "legislativo": r"projetos?_de_lei projetos? propo\w* pec plenario camara senado assembleia comissao\w* cpi"
+                   r" cpmi emendas? relator\w* votac\w* aprov\w* veto\w* sancion\w* medida_provisoria tramitac\w* congress\w*"
                    r" lawmakers? senate",
     "gestao": r"prefeitura\w* secretari\w* obras? saude educacao orcamento\w* licitac\w* contrat\w* investiment\w*"
               r" gestao administracao programa\w* hospita\w* escolas? verbas? repass\w* recursos",
