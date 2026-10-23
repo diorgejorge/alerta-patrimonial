@@ -224,6 +224,10 @@ def serie_demo(seed=7):
                            sq_candidato=None, cd_eleicao=None, sg_ue=None, nome_urna=f"DEMO {i:03d}",
                            suplementar=False, empresas=[], empresas_cnpj=[]))  # sem SQ real: link_tse fica None no demo
         linhas.append(dict(linhas[-1], ano=2022, patrimonio=base * f, eleito=False))
+    # presidente eleito em 2022 com crescimento pequeno (sem nivel): mesmo assim aparece nos destaques (#63)
+    linhas.append(dict(linhas[-1], chave="demo:presidente", ano=2018, nome="PRESIDENTE DEMO", nome_urna="PRESIDENTE DEMO",
+                       cargo="PRESIDENTE", uf="BR", partido="XX", eleito=False, patrimonio=1_000_000.0))
+    linhas.append(dict(linhas[-1], ano=2022, eleito=True, patrimonio=1_050_000.0))
     return pd.DataFrame(linhas)
 
 
@@ -335,6 +339,14 @@ def nivel(r, p):
     if r.percentil >= i["percentil"]:
         return "informativo"
     return None
+
+
+def presidente_em_exercicio(serie, hoje=None):
+    """Chave de quem foi eleito PRESIDENTE na eleicao mais recente com posse ja ocorrida (1o de janeiro seguinte), ou None (#63)."""
+    hoje = hoje or dt.date.today()
+    eleitos = serie[serie["eleito"].astype(bool) & (serie["cargo"].map(norm) == "PRESIDENTE")
+                    & (serie["ano"].astype(int) < hoje.year)]
+    return None if eleitos.empty else eleitos.sort_values("ano").iloc[-1]["chave"]
 
 
 # ---------------------------------------------------------------- saida
@@ -505,7 +517,10 @@ def main():
     if df.empty:
         sys.exit("Nenhuma pessoa com duas declaracoes consecutivas.")
     df["monitorado"] = df.apply(lambda r: r.chave in cpfs or norm(r.nome) in nomes, axis=1)
-    alertas = df[df.nivel.notna()].copy()
+    # o presidente em exercicio sempre entra nos destaques, mesmo sem nivel (#63)
+    pres = presidente_em_exercicio(serie)
+    df["presidente_atual"] = df["chave"].eq(pres) if pres else False
+    alertas = df[df.nivel.notna() | df.presidente_atual].copy()
 
     # memoria de alertas por id interno (versoes antigas usavam o CPF na chave: sao descartadas)
     try:  # cifrado (cifra.py); o arquivo antigo em texto puro e lido uma vez e regravado cifrado no fim
@@ -516,15 +531,18 @@ def main():
     alertas["pessoa"] = alertas.chave.map(pid) if pid else None
     alertas["id"] = (alertas.pessoa.astype(str) + "|" + alertas.ano_ini.astype(str) + "-" + alertas.ano_fim.astype(str)
                      if pid else None)
-    alertas["novo"] = alertas.apply(lambda r: ORDEM[r.nivel] > ORDEM.get(estado.get(r.id, ""), 0), axis=1)
+    alertas["novo"] = alertas.apply(lambda r: ORDEM.get(r.nivel, 0) > ORDEM.get(estado.get(r.id, ""), 0), axis=1)
 
     so_lista = bool(p["publicar_somente_monitorados"] and (cpfs or nomes))  # trava: so quem esta na lista
     if so_lista:
         vis = alertas[alertas.monitorado]
     else:
-        vis = alertas.assign(o=alertas.nivel.map(ORDEM)).sort_values(["o", "percentil"], ascending=False) \
+        vis = alertas.assign(o=alertas.nivel.map(ORDEM).fillna(0)).sort_values(["o", "percentil"], ascending=False) \
                      .head(p["max_linhas_sem_lista"]).drop(columns="o")
-    vis = vis.assign(o=vis.nivel.map(ORDEM)).sort_values(["novo", "o", "cresc"], ascending=False).drop(columns="o")
+        # o limite de linhas nao tira o presidente; a trava da lista de monitorados vale para todos
+        vis = pd.concat([vis, alertas[alertas.presidente_atual & ~alertas.index.isin(vis.index)]])
+    vis = vis.assign(o=vis.nivel.map(ORDEM).fillna(0)).sort_values(["presidente_atual", "novo", "o", "cresc"],
+                                                                     ascending=False).drop(columns="o")
 
     pub = vis.drop(columns=["chave", "id", "cargo_ini", "empresas_cnpj"])  # CPF/CNPJ nunca vao para o site
     pub = pub.astype(object).where(pub.notna(), None)
@@ -778,7 +796,7 @@ def main():
         print(f"[aviso] meus representantes falhou ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)
     # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
-    dados["alertas"].sort(key=lambda a: (-(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
+    dados["alertas"].sort(key=lambda a: (not a.get("presidente_atual"), -(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
     tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
     html_painel = tpl.replace("/*DADOS*/null", json.dumps(arredonda(dados), ensure_ascii=False))
     html_painel = html_painel.replace("/*BENS*/null", json.dumps(bens, ensure_ascii=False))

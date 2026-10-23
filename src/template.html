@@ -80,6 +80,15 @@ button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 .alerta .valor b{font-family:var(--fonte-marca);font-size:1.75rem;font-weight:800;line-height:1.1;color:var(--destaque,var(--titulo));font-variant-numeric:tabular-nums}
 .alerta .valor span{font-size:.8125rem;color:var(--mut)}
 .alertas{align-items:start}
+/* presidente em exercicio (#63): primeiro card, largura toda, borda ouro e faixa com foto */
+.alerta.presidente{grid-column:1/-1;border:2px solid var(--ouro);box-shadow:0 0 0 4px color-mix(in srgb,var(--ouro) 22%,transparent),var(--elev);padding:18px 22px}
+.faixa-pres{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+.faixa-pres .rot{display:inline-flex;align-items:center;gap:.4em;padding:4px 12px;border-radius:999px;background:var(--ouro);color:var(--tinta);font-size:.8125rem;font-weight:800;letter-spacing:.02em;text-transform:uppercase;line-height:1.35}
+.faixa-pres .avatar{border:3px solid var(--ouro)}
+.alerta.presidente .nome{font-size:1.5rem}.alerta.presidente .valor b{font-size:2.25rem}
+@media (min-width:720px){.alerta.presidente{display:grid;grid-template-columns:104px 1fr;column-gap:24px}.alerta.presidente>*{grid-column:2}
+  .alerta.presidente>.faixa-pres{display:contents}.alerta.presidente .faixa-pres .avatar{grid-column:1;grid-row:1/span 7;align-self:start;width:104px;height:104px;font-size:1.9rem}.alerta.presidente .faixa-pres .rot{justify-self:start}
+  .alerta.presidente .fatos{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
 .fatos{list-style:none;margin:0;padding:12px 0 0;border-top:1px solid var(--line);display:grid;gap:8px;font-size:.875rem;line-height:1.5}
 .fatos li{display:grid;grid-template-columns:1.6em 1fr;align-items:start}.fatos .ic{line-height:1.5}.fatos b{font-variant-numeric:tabular-nums}
 .alerta .tags .tag{gap:.35em}
@@ -242,6 +251,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 // icones flat de traco (cor do texto); um so desenho por ideia
 const ICO={"estrela":'<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg>',"pata":'<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.2" ry="3.4"/><circle cx="5.8" cy="10.6" r="1.9"/><circle cx="9.4" cy="6.6" r="1.9"/><circle cx="14.6" cy="6.6" r="1.9"/><circle cx="18.2" cy="10.6" r="1.9"/></svg>',"predio":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M11 21v-3h2v3"/></svg>',"alta":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>',"moeda":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-.9-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.6-3-1.5M12 6.5v11"/></svg>',"carrinho":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.2"/><circle cx="18" cy="20" r="1.2"/><path d="M3 4h2.2l2.3 11.2h11.2L21 7.5H6.4"/></svg>',"balanca":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a3 3 0 0 0 5 0zM19 8l-2.5 6a3 3 0 0 0 5 0z"/></svg>'};
 ICO.check='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>';
+ICO.faixa='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6M5 10v8M9.7 10v8M14.3 10v8M19 10v8M3 20h18"/></svg>';
 ICO.urna='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v9H4zM8 11V4h8v7M10 7h4"/></svg>';
 const PCT=v=>Number(v).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%";
 const D=/*DADOS*/null;
@@ -311,9 +321,11 @@ function agrupaPessoas(l){
       // presenca e votos (#56, #58): iguais em todos os periodos da pessoa (vem do parlamentar em exercicio)
       presenca:per.map(a=>a.presenca).find(Boolean)||null,votos:per.map(a=>a.votos).find(Boolean)||null,
       // parlamentar: cargo do TSE ou contagem de projetos da casa em que esta em exercicio (o cargo do TSE pode ser outro)
+      presidente:per.some(a=>a.presidente_atual),foto:[...per].reverse().map(a=>a.link_foto).find(v=>/^https:\/\//.test(v||"")),
       parlamentar:per.some(a=>a.projetos||/^(DEPUTADO FEDERAL|SENADOR)$/i.test(a.cargo||""))};});
 }
-const PES=D?agrupaPessoas(D.alertas||[]):[];
+// o presidente em exercicio vem sempre primeiro (#63); sort estavel mantem a ordem dos demais
+const PES=D?agrupaPessoas(D.alertas||[]).sort((x,y)=>y.presidente-x.presidente):[];
 // periodos da pessoa que atendem aos filtros de busca, nivel e dimensao (ign: o grafico ignora o proprio filtro)
 function casa(p,ign){
   const q=$("q").value.toLowerCase(),nv=$("nv").value;
@@ -467,8 +479,11 @@ const ROT_VER="Detalhes";
 function verDet(ev){const b=ev.target.closest("button.ver");if(!b)return false;
   const d=b.closest("li").querySelector(".det"),abre=d.hidden;d.hidden=!abre;b.setAttribute("aria-expanded",abre);
   b.firstChild.textContent=abre?"Fechar":b.dataset.rot;return true;}
+// faixa do presidente em exercicio (#63): cargo e resultado do TSE, foto oficial sobre as iniciais
+const INI=n=>String(n).split(/\s+/).filter(w=>w&&!MIN.has(w.toLowerCase())).slice(0,2).map(w=>w[0]).join("").toUpperCase();
+const PRES=p=>`<div class="faixa-pres"><span class="avatar g" aria-hidden="true">${esc(INI(p.nome_urna||p.nome))}${p.foto?`<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:""}</span><span class="rot">${ICO.faixa} Presidente da República em exercício</span></div>`;
 const MULTI=p=>p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:"";
-const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}"><div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b><span class="chip nv-${p.nivel}" role="img" aria-label="${NV[p.nivel]}: ${RES(p.maior)}" title="${NV[p.nivel]}${p.per.length>1?` no período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})`:""}. Veja a fórmula em Como ler os números">${RES(p.maior)}</span></div>
+const CARD=p=>`<li class="card alerta${p.exemplar?" exemplar":""}${p.presidente?" presidente":""}">${p.presidente?PRES(p):""}<div class="topo"><b class="nome">${p.exemplar?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(CAP(p.nome_urna||p.nome))}${p.novo?' <span class="novo">novo</span>':""}</b>${p.nivel?`<span class="chip nv-${p.nivel}" role="img" aria-label="${NV[p.nivel]}: ${RES(p.maior)}" title="${NV[p.nivel]}${p.per.length>1?` no período de maior crescimento (${p.maior.ano_ini}–${p.maior.ano_fim})`:""}. Veja a fórmula em Como ler os números">${RES(p.maior)}</span>`:""}</div>
 <p class="resumo">${CPU_RES(p)}</p>
 <p class="valor"><b>+${R(p.cresc)}</b><span>a mais no patrimônio de ${p.ano_ini} a ${p.ano_fim}</span></p>
 ${FATOS(p)}${MARCAS(p)}${DET(p)}
@@ -516,7 +531,7 @@ function tabelaToda(){
   if(!$("tabela").open)return;
   // uma linha por pessoa; com varios periodos, cada celula traz uma linha por periodo, na mesma ordem da coluna Periodo
   const L=(p,f)=>p.per.map(f).join("<br>");
-  document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar">${ICO.estrela}</span> `:""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Patrimônio no início"><span>${L(p,a=>R(a.pat_ini))}</span></td><td class="n" data-label="Patrimônio no fim"><span>${L(p,a=>R(a.pat_fim))}</span></td><td class="n" data-label="Crescimento"><span>${p.per.length>1?`<b>${R(p.cresc)}</b><br><small>${L(p,a=>`${a.ano_ini}–${a.ano_fim}: ${R(a.cresc)}`)}</small>`:R(p.cresc)}</span></td><td class="n" data-label="Daria para guardar com o salário"><span>${L(p,a=>R(a.cap))}</span></td><td class="n" data-label="Cresceu quantas vezes isso"><span>${L(p,a=>VZ(a.razao))}</span></td><td class="n" data-label="Entre colegas do mesmo cargo"><span>${p.per.length>1?L(p,a=>PC(a.percentil).replace(/<br>/," ")):PC(p.per[0].percentil)}</span></td><td class="nivel ${p.nivel}" data-label="Faixa"><span>${NV[p.nivel]}${p.per.length>1?`<br><small>maior crescimento: ${p.maior.ano_ini}–${p.maior.ano_fim}</small>`:""}</span></td></tr>`).join("");
+  document.getElementById("tb").innerHTML=ROWS.map(p=>`<tr><td data-label="Nome"><span>${p.exemplar?`<span class="estrela" title="Parlamentar exemplar">${ICO.estrela}</span> `:""}${esc(p.nome)}${p.novo?' <span class="novo">novo</span>':""}${MULTI(p)}<br><small>${LK(p)}</small></span></td><td data-label="Tags"><span class="tags">${TAGS(p)}</span>${CONT(p,"span","contadores compacto")}</td><td data-label="Período"><span>${L(p,a=>`${a.ano_ini}–${a.ano_fim}${p.per.length>1?` <small>${esc(a.cargo||"Não informado")}${TSE(a)?` · ${TSE(a)}`:""}</small>`:""}`)}</span></td><td class="n" data-label="Patrimônio no início"><span>${L(p,a=>R(a.pat_ini))}</span></td><td class="n" data-label="Patrimônio no fim"><span>${L(p,a=>R(a.pat_fim))}</span></td><td class="n" data-label="Crescimento"><span>${p.per.length>1?`<b>${R(p.cresc)}</b><br><small>${L(p,a=>`${a.ano_ini}–${a.ano_fim}: ${R(a.cresc)}`)}</small>`:R(p.cresc)}</span></td><td class="n" data-label="Daria para guardar com o salário"><span>${L(p,a=>R(a.cap))}</span></td><td class="n" data-label="Cresceu quantas vezes isso"><span>${L(p,a=>VZ(a.razao))}</span></td><td class="n" data-label="Entre colegas do mesmo cargo"><span>${p.per.length>1?L(p,a=>PC(a.percentil).replace(/<br>/," ")):PC(p.per[0].percentil)}</span></td><td class="nivel ${p.nivel||""}" data-label="Faixa"><span>${NV[p.nivel]||"Sem faixa"}${p.per.length>1?`<br><small>maior crescimento: ${p.maior.ano_ini}–${p.maior.ano_fim}</small>`:""}</span></td></tr>`).join("");
 }
 // lista completa leve (#43): docs/todos.json so e baixado quando o leitor abre a lista
 // pessoa: [nome publico, nome civil, pagina do dossie, marcas ("e" exemplar, "s" selo), periodos]

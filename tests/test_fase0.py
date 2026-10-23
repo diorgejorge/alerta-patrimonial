@@ -127,8 +127,8 @@ def test_lista_completa(saida):
     t = json.loads((saida / "docs" / "todos.json").read_text(encoding="utf-8"))
     texto = (saida / "docs" / "index.html").read_text(encoding="utf-8")
     dados = json.loads(re.search(r"^const D=(.*);$", texto, re.M).group(1))
-    assert t["pessoas"] == len(t["lista"]) == 400 and t["comparacoes"] == dados["universo"]  # demo: 1 periodo por pessoa
-    assert dados["todos"]["pessoas"] == 400 and "lista" not in dados["todos"]  # o index so traz o resumo
+    assert t["pessoas"] == len(t["lista"]) == 401 and t["comparacoes"] == dados["universo"]  # demo: 1 periodo por pessoa (400 + presidente, #63)
+    assert dados["todos"]["pessoas"] == 401 and "lista" not in dados["todos"]  # o index so traz o resumo
     nomes = [p[0] + "|" + p[1] for p in t["lista"]]
     assert len(set(nomes)) == len(nomes)  # ninguem aparece duas vezes (#47)
     assert all(len(p) == 5 and p[4] and all(len(x) == 9 and 0 <= x[7] <= 3 for x in p[4]) for p in t["lista"])
@@ -143,7 +143,7 @@ def test_trava_com_lista(tmp_path, monkeypatch):
     rodar(tmp_path, monkeypatch, ID_SEGREDO="s1", MONITORADOS_CSV="nome,cpf,renda_extra_mensal\nPESSOA DEMO 001,,0\n")
     texto = (tmp_path / "docs" / "index.html").read_text(encoding="utf-8")
     dados = json.loads(re.search(r"^const D=(.*);$", texto, re.M).group(1))
-    assert {a["nome"] for a in dados["alertas"]} <= {"PESSOA DEMO 001"}
+    assert {a["nome"] for a in dados["alertas"]} <= {"PESSOA DEMO 001"}  # a trava vale ate para o presidente (#63)
     t = json.loads((tmp_path / "docs" / "todos.json").read_text(encoding="utf-8"))
     assert {p[0] for p in t["lista"]} <= {"DEMO 001"}  # a trava vale tambem para a lista completa
     assert len(list((tmp_path / "docs" / "pessoa").glob("*.html"))) <= 1

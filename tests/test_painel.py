@@ -164,9 +164,30 @@ def test_card_dois_periodos(abrir):
 
 def test_cards_com_mesma_escala_tipografica(abrir):
     pg = abrir()
-    tam = pg.evaluate("""()=>{const px=s=>[...document.querySelectorAll('#cards '+s)].map(e=>getComputedStyle(e).fontSize);
+    tam = pg.evaluate("""()=>{const px=s=>[...document.querySelectorAll('#cards .alerta:not(.presidente) '+s)].map(e=>getComputedStyle(e).fontSize);
         return {nome:px('.nome'),valor:px('.valor b'),fatos:px('.fatos li')}}""")
     assert all(len(set(v)) == 1 for v in tam.values()), tam
+
+
+def test_presidente_em_exercicio_primeiro_e_maior(abrir):
+    """#63: o presidente em exercicio vem primeiro, largura toda, com faixa; sem nivel o card fica sem cor."""
+    pg = abrir()
+    c = pg.locator("#cards > li").first
+    assert "presidente" in c.get_attribute("class")
+    assert "Presidente da República em exercício" in c.locator(".faixa-pres").text_content()
+    assert c.locator(".topo .chip").count() == 0  # sem nivel calculado: nenhuma faixa de cor
+    largura = pg.evaluate("()=>[...document.querySelectorAll('#cards > li')].slice(0,2).map(e=>e.getBoundingClientRect().width)")
+    assert largura[0] > largura[1] * 1.5
+    nome = pg.evaluate("()=>[...document.querySelectorAll('#cards .nome')].slice(0,2).map(e=>parseFloat(getComputedStyle(e).fontSize))")
+    assert nome[0] > nome[1]
+    assert pg.locator("#cards .presidente").count() == 1
+
+
+def test_presidente_some_com_filtro_que_nao_o_inclui(abrir):
+    pg = abrir()
+    pg.fill("#q", "demo 0")
+    pg.dispatch_event("#q", "input")
+    assert pg.locator("#cards .presidente").count() == 0
 
 
 def test_vezes_o_salario(abrir):
