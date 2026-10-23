@@ -150,9 +150,9 @@ def imagem(linhas):
         numeros.append([("+" if r["cresc"] > 0 else "−" if r["cresc"] < 0 else "") + brl(abs(r["cresc"])),
                         f"a mais no patrimônio de {r['ano_ini']} a {r['ano_fim']}"])
     if r["cap"]:
-        numeros.append([brl(r["cap"]), "daria para guardar só com o salário"])
+        numeros.append([brl(r["cap"]), "daria para guardar somente com o salário"])
     if r["razao"]:
-        numeros.append([vezes(r["razao"]) + "×", "o que daria para guardar com o salário"])
+        numeros.append([vezes(r["razao"]) + "×", "o que daria para guardar somente com o salário"])
     ficha = " · ".join(str(x) for x in (cap(topo.get("cargo")), topo.get("partido"), topo.get("uf")) if x)
     return dict(nome=cap((topo.get("nome_urna") or topo.get("nome") or "").strip()), ficha=ficha, numeros=numeros,
                 url=r["tse"] or TSE_DADOS, fontes=FONTE_TSE + (FONTE_SALARIO if r["cap"] else "") + ".")
