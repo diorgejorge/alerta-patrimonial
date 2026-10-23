@@ -74,9 +74,13 @@ def ler(arq, seg=None, aceitar_puro=False):
 def baixar(url, dest, cab=None, timeout=300, perguntar=True, seg=None):
     """Conteudo de `url`, guardado cifrado em `dest`. Com copia guardada: `perguntar=False` usa a copia sem acessar a
     rede; senao pergunta ao servidor se mudou (If-Modified-Since, data guardada em dest.modificado, que nao e dado
-    pessoal). Devolve bytes, ou None se nao baixou e nao ha copia."""
-    dest, marca = Path(dest), Path(str(dest) + ".modificado")
-    guardado = ler(dest, seg)
+    pessoal). `dest=None`: so baixa, sem guardar o bruto (ano fechado ja resumido, #48). Devolve bytes, ou None se
+    nao baixou e nao ha copia."""
+    if dest is None:
+        dest = marca = guardado = None
+    else:
+        dest, marca = Path(dest), Path(str(dest) + ".modificado")
+        guardado = ler(dest, seg)
     if guardado is not None and not perguntar:
         return guardado
     h = {"User-Agent": "alerta-patrimonial/1.0", **(cab or {})}
@@ -88,7 +92,7 @@ def baixar(url, dest, cab=None, timeout=300, perguntar=True, seg=None):
             while bloco := r.read(1 << 20):
                 partes.append(bloco)
             dados = b"".join(partes)
-            if gravar(dest, dados, seg) and r.headers.get("Last-Modified"):
+            if dest is not None and gravar(dest, dados, seg) and r.headers.get("Last-Modified"):
                 marca.write_text(r.headers["Last-Modified"])
             return dados
     except urllib.error.HTTPError as ex:

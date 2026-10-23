@@ -9,7 +9,8 @@ import datetime as dt, html, io, json, math, sys, time, urllib.parse, urllib.req
 from pathlib import Path
 import pandas as pd
 import cifra, cota
-from cache import resultados
+from cache import resultados, resumo_fechado, resumo_log
+from collections import Counter
 
 VERSAO_PROJETOS = 1  # mude ao alterar a leitura: invalida as listas guardadas dos anos fechados
 
@@ -67,30 +68,36 @@ def _norma(situacao):
 
 def contar_camara(anos, cache):
     """{id do deputado: (apresentados, aprovados)} de todos os deputados autores nos anos pedidos; None se nao veio.
-    Ano fechado (#48): a lista (deputado, projeto, aprovado) fica guardada cifrada por 30 dias (um projeto antigo pode
-    virar lei) e os CSVs daquele ano nao sao baixados de novo; o ano atual e sempre relido."""
+    Ano fechado (#48): a lista (deputado, projeto, aprovado) fica guardada cifrada com o sha256 dos dois CSVs; os CSVs
+    daquele ano nao sao guardados e so sao baixados de novo a cada 30 dias (cache.CONFERIR_S: um projeto antigo pode
+    virar lei), e relidos so se o conteudo mudou. O ano atual e sempre relido."""
     partes, atual = [], dt.date.today().year
-    guardados = resultados(cache, "projetos_camara", 30 * 86400)
+    guardados = resultados(cache, "projetos_camara", 400 * 86400)
+    origens = Counter()
     for ano in anos:
         fechado = guardados is not None and int(ano) < atual
-        k = (VERSAO_PROJETOS, "camara", int(ano))
-        g = guardados.get(k) if fechado else None
-        if g is not None:
-            partes.append(pd.DataFrame(g))
-            continue
         arqs = [Path(cache) / f"camara_proposicoes_{ano}.csv", Path(cache) / f"camara_proposicoes_autores_{ano}.csv"]
-        prop, aut = baixar(CAMARA_PROP.format(ano=ano), arqs[0]), baixar(CAMARA_AUT.format(ano=ano), arqs[1])
-        if prop and aut:
-            try:
-                partes.append(ler_camara(prop, aut))
-            except Exception as ex:
-                print(f"[aviso] projetos: Camara {ano} ilegivel ({ex!r})", file=sys.stderr)
-                continue
-            if fechado:  # guarda a lista e apaga os CSVs brutos (~77 MB por ano no actions/cache)
-                guardados.set(k, partes[-1].to_dict("list"))
-                for a in arqs:
+        try:
+            if fechado:
+                def brutos():  # so a memoria: o bruto do ano fechado nao vai para o actions/cache
+                    prop = baixar(CAMARA_PROP.format(ano=ano), None)
+                    return prop and (prop, baixar(CAMARA_AUT.format(ano=ano), None))
+                d, origem = resumo_fechado(guardados, (VERSAO_PROJETOS, "camara", int(ano)), brutos,
+                                           lambda prop, aut: ler_camara(prop, aut).to_dict("list"))
+                for a in arqs:  # CSVs brutos antigos: ~77 MB por ano a menos no actions/cache
                     for p in (a, Path(str(a) + ".modificado")):
                         p.unlink(missing_ok=True)
+                if d is None:
+                    continue
+                origens[origem] += 1
+                partes.append(pd.DataFrame(d))
+            else:
+                prop, aut = baixar(CAMARA_PROP.format(ano=ano), arqs[0]), baixar(CAMARA_AUT.format(ano=ano), arqs[1])
+                if prop and aut:
+                    partes.append(ler_camara(prop, aut))
+        except Exception as ex:
+            print(f"[aviso] projetos: Camara {ano} ilegivel ({ex!r})", file=sys.stderr)
+    resumo_log("Projetos da Camara", origens)
     if not partes:
         return None
     df = pd.concat(partes, ignore_index=True).drop_duplicates(["dep", "prop"])
