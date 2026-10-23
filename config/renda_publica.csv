@@ -1,5 +1,23 @@
-cargo,vigente_desde,mensal_bruto
-DEPUTADO FEDERAL,2019,33763.00
-DEPUTADO FEDERAL,2023,46366.19
-SENADOR,2019,33763.00
-SENADOR,2023,46366.19
+cargo,vigente_desde,mensal_bruto,base
+DEPUTADO FEDERAL,2019,33763.00,subsídio oficial
+DEPUTADO FEDERAL,2023,46366.19,subsídio oficial
+SENADOR,2019,33763.00,subsídio oficial
+SENADOR,2023,46366.19,subsídio oficial
+DEPUTADO ESTADUAL,2019,25322.25,teto: 75% do deputado federal (CF art. 27 § 2º)
+DEPUTADO ESTADUAL,2023,34774.64,teto: 75% do deputado federal (CF art. 27 § 2º)
+DEPUTADO DISTRITAL,2019,25322.25,teto: 75% do deputado federal (CF art. 32 § 3º e art. 27 § 2º)
+DEPUTADO DISTRITAL,2023,34774.64,teto: 75% do deputado federal (CF art. 32 § 3º e art. 27 § 2º)
+VEREADOR,2019,18991.69,teto: 75% do deputado estadual (CF art. 29 VI f)
+VEREADOR,2023,26080.98,teto: 75% do deputado estadual (CF art. 29 VI f)
+PRESIDENTE,2019,39293.32,teto do serviço público: ministro do STF (CF art. 37 XI)
+PRESIDENTE,2023,46366.19,teto do serviço público: ministro do STF (CF art. 37 XI)
+VICE-PRESIDENTE,2019,39293.32,teto do serviço público: ministro do STF (CF art. 37 XI)
+VICE-PRESIDENTE,2023,46366.19,teto do serviço público: ministro do STF (CF art. 37 XI)
+GOVERNADOR,2019,39293.32,teto do serviço público: ministro do STF (CF art. 37 XI)
+GOVERNADOR,2023,46366.19,teto do serviço público: ministro do STF (CF art. 37 XI)
+VICE-GOVERNADOR,2019,39293.32,teto do serviço público: ministro do STF (CF art. 37 XI)
+VICE-GOVERNADOR,2023,46366.19,teto do serviço público: ministro do STF (CF art. 37 XI)
+PREFEITO,2019,39293.32,teto do serviço público: ministro do STF (CF art. 37 XI)
+PREFEITO,2023,46366.19,teto do serviço público: ministro do STF (CF art. 37 XI)
+VICE-PREFEITO,2019,39293.32,teto do serviço público: ministro do STF (CF art. 37 XI)
+VICE-PREFEITO,2023,46366.19,teto do serviço público: ministro do STF (CF art. 37 XI)

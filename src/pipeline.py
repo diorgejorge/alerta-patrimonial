@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 CACHE, DOCS, CFG = ROOT / "data" / "cache", ROOT / "docs", ROOT / "config"
 ESTADO = ROOT / "data" / "estado.json"
 BASE = "https://cdn.tse.jus.br/estatistica/sead/odsele"
-ORDEM = {"forte": 3, "atencao": 2, "informativo": 1}
+ORDEM = {"forte": 3, "atencao": 2, "informativo": 1, "sem_salario": 0.5}  # sem salario: abaixo das cores
 
 # DivulgaCandContas: pagina do candidato em
 #   {DIVULGA}/{REGIAO}/{UF}/{ID_ELEICAO}/{SQ_CANDIDATO}/{ANO}/{SG_UE}
@@ -317,7 +317,7 @@ def _classifica(df, p):
     return df
 
 
-REDUZ = {"forte": "atencao", "atencao": "informativo", "informativo": "informativo"}
+REDUZ = {"forte": "atencao", "atencao": "informativo", "informativo": "informativo", "sem_salario": "sem_salario"}
 
 
 def nivel(r, p):
@@ -325,9 +325,11 @@ def nivel(r, p):
         return None
     rz = r.razao if pd.notna(r.razao) else None
     f, a, i = p["limiar_forte"], p["limiar_atencao"], p["limiar_informativo"]
-    if rz is not None and rz >= f["razao"] and r.percentil >= f["percentil"]:
+    if rz is None:  # sem salario pago pelo Estado (#62): sem cor, so a marca, para quem cresceu mais que os colegas
+        return "sem_salario" if r.percentil >= i["percentil"] else None
+    if rz >= f["razao"] and r.percentil >= f["percentil"]:
         return "forte"
-    if (rz is not None and rz >= a["razao"] and r.percentil >= a["percentil"]) or r.percentil >= 98:
+    if (rz >= a["razao"] and r.percentil >= a["percentil"]) or r.percentil >= 98:
         return "atencao"
     if r.percentil >= i["percentil"]:
         return "informativo"
@@ -409,7 +411,7 @@ def carregar_bens():
         return None
 
 
-NIVEL_COD = {"forte": 3, "atencao": 2, "informativo": 1}  # lista completa: 0 = sem destaque
+NIVEL_COD = {"forte": 3, "atencao": 2, "informativo": 1, "sem_salario": 4}  # lista completa: 0 = sem destaque
 REL_OK = lambda u: isinstance(u, str) and bool(u) and not re.match(r"\s*[a-z][a-z0-9+.-]*:", u, re.I)
 
 

@@ -34,7 +34,8 @@ PROCESSOS_ATIVO = False
 FALHA = "Fonte não encontrada: as fontes de notícias não responderam nesta execução."
 SEM_TEMPO = "Não informado: busca não realizada nesta execução (limite de tempo)."
 TEMAS = '(patrimônio OR bens OR "declaração de bens" OR empresa OR "Tribunal de Contas" OR TCU)'
-NV = {"forte": "Muito acima do esperado", "atencao": "Acima do esperado", "informativo": "Para conhecer"}
+NV = {"forte": "Faixa vermelha", "atencao": "Faixa laranja", "informativo": "Faixa azul",
+      "sem_salario": "Sem salário informado"}  # mesmos rotulos de graficos.ROTULO_NIVEL (#62)
 ONDE = {"titulo": "no título", "resumo": "no resumo", "texto": "no texto"}
 CARGOS = {"DEPUTADO": "deputado OR deputada", "SENADOR": "senador OR senadora",
           "GOVERNADOR": "governador OR governadora", "PREFEITO": "prefeito OR prefeita",
@@ -478,7 +479,7 @@ def periodo(a):
             f'<td class="n" data-label="Daria para guardar com o salário">{brl(a.get("cap"))}</td>'
             f'<td class="n" data-label="Cresceu quantas vezes isso">{rz}</td>'
             f'<td class="n" data-label="Entre colegas do mesmo cargo">{pc}</td>'
-            f'<td class="nivel {e(nv)}" data-label="Nível">{e(NV.get(nv, nv))}</td></tr>')
+            f'<td class="nivel {e(nv)}" data-label="Faixa">{e(NV.get(nv, nv))}</td></tr>')
 
 
 def compra(cresc, bens):

@@ -7,8 +7,8 @@ from texto import cap
 
 SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
-ORDEM = {"forte": 3, "atencao": 2, "informativo": 1}
-SIMBOLO = {"forte": "▲", "atencao": "◆", "informativo": "●"}  # forma alem da cor
+ORDEM = {"forte": 3, "atencao": 2, "informativo": 1, "sem_salario": 0.5}
+SIMBOLO = {"forte": "▲", "atencao": "◆", "informativo": "●", "sem_salario": "○"}  # forma alem da cor
 NUM = ' class="n"'  # colunas numericas (alinhadas a direita)
 e = html.escape
 
@@ -29,7 +29,7 @@ def chip_nivel(nv):
     if not nv:
         return ""
     return (f'<span class="chip nv-{e(nv)}"><span aria-hidden="true">{SIMBOLO.get(nv, "")}</span>'
-            f'Nível {e(graficos.ROTULO_NIVEL.get(nv, nv))}</span>')
+            f'{e(graficos.ROTULO_NIVEL.get(nv, nv))}</span>')
 
 
 def iniciais(nome):
@@ -89,7 +89,7 @@ def ler_vinculos(caminho=ROOT / "config" / "vinculos.csv"):
 # ---------------------------------------------------------------- pagina da pessoa
 def _tabela_periodos(linhas):
     cab = ["Período", "Cargo", "Patrimônio no início", "Patrimônio no fim", "Crescimento",
-           "Daria para guardar com o salário", "Cresceu quantas vezes isso", "Entre colegas do mesmo cargo", "Nível"]
+           "Daria para guardar com o salário", "Cresceu quantas vezes isso", "Entre colegas do mesmo cargo", "Faixa"]
     corpo = []
     for a in sorted(linhas, key=lambda a: (a.get("ano_ini") or 0, a.get("ano_fim") or 0)):
         cel = [f'{a.get("ano_ini")}–{a.get("ano_fim")}', e(cap(a.get("cargo"))), brl(a.get("pat_ini")),
@@ -105,7 +105,7 @@ def _tabela_periodos(linhas):
 def _resumo(linhas):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("cresc") or 0))
     rz = max((a["razao"] for a in linhas if a.get("razao") is not None), default=None)
-    kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "Não informado"), "Nível mais alto"),
+    kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "Não informado"), "Faixa mais alta"),
             (brl(topo.get("cresc")), f"Crescimento em {topo.get('ano_ini')}–{topo.get('ano_fim')}"),
             (vezes(rz), "Maior “quantas vezes o possível”"),
             (str(len(linhas)), "Períodos em destaque")]
@@ -246,7 +246,7 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=
                       cartao(pid, linhas, h)))
     itens.sort(key=lambda t: (t[0], t[1]), reverse=True)
     cartoes = '<ul class="pessoas">' + "".join(t[2] for t in itens) + "</ul>" if itens else ""
-    cont = {n: sum(1 for a in alertas if a.get("nivel") == n) for n in ("forte", "atencao", "informativo")}
+    cont = {n: sum(1 for a in alertas if a.get("nivel") == n) for n in graficos.ROTULO_NIVEL}
     series = temas.por_mes(n for v in noticias.values() if isinstance(v, list) for n in v)
     graf = dict(GRAFICO_NIVEIS=graficos.barras_niveis(cont, uid="pn") + _alt(graficos.tabela_niveis(cont)),
                 GRAFICO_TEMAS=graficos.noticias_por_tema(series, uid="pt")

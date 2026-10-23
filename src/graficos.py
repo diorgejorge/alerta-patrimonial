@@ -7,7 +7,9 @@ g-barra/g-coluna nas marcas; g-tabela nas tabelas alternativas."""
 import html, math, re
 
 e = html.escape
-ROTULO_NIVEL = {"forte": "Muito acima do esperado", "atencao": "Acima do esperado", "informativo": "Para conhecer"}
+# so a cor da faixa (#62): o significado e a formula ficam na legenda, sem rotulo que soe como julgamento
+ROTULO_NIVEL = {"forte": "Faixa vermelha", "atencao": "Faixa laranja", "informativo": "Faixa azul",
+                "sem_salario": "Sem salário informado"}  # sem cor: fora das faixas, mas nos destaques
 ROTULO_TAG = {"politico": "Político", "eleitoral": "Eleitoral", "legislativo": "Legislativo",
               "gestao": "Gestão", "patrimonial": "Patrimonial", "judicial": "Judicial",
               "criminal": "Segurança", "outros": "Outros"}
@@ -80,7 +82,7 @@ def _abre(p, w, h, titulo, desc, cls):
 
 
 def _padroes(p):
-    """Hachuras por nivel (forte 45 graus, atencao 135 graus, informativo pontos) em currentColor."""
+    """Hachuras por nivel (forte 45 graus, atencao 135 graus, informativo pontos, sem salario vertical) em currentColor."""
     lin = '<line x1="3" y1="0" x2="3" y2="6" stroke="currentColor" stroke-width="1.5"/>'
     return ("<defs>"
             f'<pattern id="{p}-forte" class="g-hachura" width="6" height="6" patternUnits="userSpaceOnUse" '
@@ -89,7 +91,9 @@ def _padroes(p):
             f'patternTransform="rotate(135)">{lin}</pattern>'
             f'<pattern id="{p}-informativo" class="g-hachura" width="5" height="5" patternUnits="userSpaceOnUse">'
             '<circle cx="2.5" cy="2.5" r="1.1" fill="currentColor" stroke="currentColor" stroke-width=".3"/>'
-            "</pattern></defs>")
+            "</pattern>"
+            f'<pattern id="{p}-sem_salario" class="g-hachura" width="6" height="6" patternUnits="userSpaceOnUse">'
+            f"{lin}</pattern></defs>")
 
 
 def _ponta_dir(x, y, w, h, r=4):
@@ -150,7 +154,7 @@ def barras_niveis(contagens: dict, uid: str, titulo: str = "Destaques por nível
 
 def tabela_niveis(contagens: dict, titulo: str = "Destaques por nível") -> str:
     vals = _niveis(contagens)
-    return _tabela(titulo, ("Nível", "Destaques"), [(rot, inteiro(v)) for _, rot, v in vals],
+    return _tabela(titulo, ("Faixa", "Destaques"), [(rot, inteiro(v)) for _, rot, v in vals],
                    ("Total", inteiro(sum(v for _, _, v in vals))))
 
 

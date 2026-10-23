@@ -118,19 +118,19 @@ def test_barras_niveis():
     s = g.barras_niveis(NIV, "n")
     raiz = acessivel(s)
     tx = textos(raiz)
-    assert tx == ["Muito acima do esperado", "3", "Acima do esperado", "0", "Para conhecer", "12"]
-    for k in ("forte", "atencao", "informativo"):
+    assert tx == ["Faixa vermelha", "3", "Faixa laranja", "0", "Faixa azul", "12", "Sem salário informado", "0"]
+    for k in ("forte", "atencao", "informativo", "sem_salario"):
         assert f'class="g-barra nv-{k}"' in s
         assert f'fill="url(#g-n-niv-{k})"' in s
-    assert s.count('class="g-padrao"') == 3
+    assert s.count('class="g-padrao"') == 4
     zero = [el for el in raiz.iter(NS + "text") if el.text == "0"][0]
     assert zero.get("x") == "184"  # barra minima de 2 px + 6 de folga a partir de x=176
-    assert "Acima do esperado: 0" in raiz.find(NS + "desc").text
+    assert "Faixa laranja: 0" in raiz.find(NS + "desc").text
 
 
 def test_barras_niveis_vazio_e_grande():
     raiz = acessivel(g.barras_niveis({}, "v"))
-    assert textos(raiz) == ["Muito acima do esperado", "0", "Acima do esperado", "0", "Para conhecer", "0"]
+    assert textos(raiz) == ["Faixa vermelha", "0", "Faixa laranja", "0", "Faixa azul", "0", "Sem salário informado", "0"]
     raiz = acessivel(g.barras_niveis({"forte": 12345, "atencao": None}, "w"))
     assert "12.345" in textos(raiz)
 
@@ -138,7 +138,7 @@ def test_barras_niveis_vazio_e_grande():
 def test_tabela_niveis():
     t = ET.fromstring(g.tabela_niveis(NIV))
     assert t.find("caption").text == "Destaques por nível"
-    assert [th.text for th in t.iter("th")] == ["Nível", "Destaques", "Muito acima do esperado", "Acima do esperado", "Para conhecer", "Total"]
+    assert [th.text for th in t.iter("th")] == ["Faixa", "Destaques", "Faixa vermelha", "Faixa laranja", "Faixa azul", "Sem salário informado", "Total"]
     assert t.find("tfoot").find("tr").find("td").text == "15"
 
 
