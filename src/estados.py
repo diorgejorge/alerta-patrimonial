@@ -408,6 +408,28 @@ def carimbos(lista, rec, entes=()):
     return out
 
 
+ANOS_PARADA = 2  # emenda empenhada ha 2 anos ou mais sem nenhum pagamento
+CARIMBO_PARADA = "Emenda parada"
+
+
+def paradas(lista, hoje=None):
+    """{uf: [emendas empenhadas ha ANOS_PARADA anos ou mais sem nenhum pagamento]}, maior empenho primeiro."""
+    corte = (hoje or dt.date.today()).year - ANOS_PARADA
+    out = {}
+    for d in lista:
+        lc = local(d["local"])
+        if lc and d.get("ano") and d["ano"] <= corte and (d.get("empenhado") or 0) > 0 and d["pago"] <= 0:
+            out.setdefault(lc[0], []).append(dict(d, municipio=lc[1]))
+    for l in out.values():
+        l.sort(key=lambda d: -d["empenhado"])
+    return out
+
+
+def execucao(pago, empenhado):
+    """Parte do empenhado que ja foi paga, em %; None sem empenho. Pago inclui restos de anos anteriores: limite 100."""
+    return min(round(pago / empenhado * 100), 100) if empenhado else None
+
+
 def consulta_noticias(lugar, ano):
     return (f'"{lugar}" (enchente OR seca OR estiagem OR chuva OR desastre OR "defesa civil" OR emergência) '
             f"after:{ano - 1}-07-01 before:{ano + 1}-01-01")
@@ -442,17 +464,22 @@ def coletivo(autor):
 
 
 def agregar(lista):
-    """{uf: dict(pago, n, tipos{tipo: valor}, autores{autor: [pago, n]}, municipios{MUN: dict(pago, n, autores)})}."""
+    """{uf: dict(pago, n, empenhado, tipos{tipo: valor}, autores{autor: [pago, n, empenhado]},
+    municipios{MUN: dict(pago, n, autores)})}. n conta as emendas com pagamento; empenhado soma todas (execucao)."""
     por = {}
     for d in lista:
         lc = local(d["local"])
-        if not lc or d["pago"] <= 0:
+        emp = d.get("empenhado") or 0.0
+        if not lc or (d["pago"] <= 0 and emp <= 0):
             continue
         uf, mun = lc
-        u = por.setdefault(uf, dict(pago=0.0, n=0, estado=0.0, tipos={}, autores={}, municipios={}))
+        u = por.setdefault(uf, dict(pago=0.0, n=0, estado=0.0, empenhado=0.0, tipos={}, autores={}, municipios={}))
+        a = u["autores"].setdefault(d["autor"] or "Não informado", [0.0, 0, 0.0])
+        u["empenhado"] += emp; a[2] += emp
+        if d["pago"] <= 0:
+            continue
         u["pago"] += d["pago"]; u["n"] += 1
         u["tipos"][d["tipo"] or "Não informado"] = u["tipos"].get(d["tipo"] or "Não informado", 0.0) + d["pago"]
-        a = u["autores"].setdefault(d["autor"] or "Não informado", [0.0, 0])
         a[0] += d["pago"]; a[1] += 1
         if mun is None:
             u["estado"] += d["pago"]
@@ -472,16 +499,17 @@ def ligar_autores(autores, uf, parl):
             por_nome.setdefault((n, p["uf"]), p)
             por_nome.setdefault((n, None), p)
     out, vistos = [], set()
-    for autor, (pago, n) in sorted(autores.items(), key=lambda kv: -kv[1][0]):
+    for autor, (pago, n, emp) in sorted(autores.items(), key=lambda kv: (-kv[1][0], -kv[1][2])):
         p = None if coletivo(autor) else por_nome.get((norm(autor), uf)) or por_nome.get((norm(autor), None))
         if p:
             vistos.add(id(p))
         out.append(dict(autor=autor, nome=p["nome"] if p else autor.title(), pago=round(pago, 2), n=n,
+                        empenhado=round(emp, 2),
                         coletivo=coletivo(autor), cargo=p["cargo"] if p else "", partido=p["partido"] if p else "",
                         uf=p["uf"] if p else "", link=relativo(p.get("dossie") or p.get("perfil")) if p else None))
     for p in parl:
         if p["uf"] == uf and id(p) not in vistos:
-            out.append(dict(autor=p["nome"], nome=p["nome"], pago=0.0, n=0, coletivo=False, cargo=p["cargo"], partido=p["partido"],
+            out.append(dict(autor=p["nome"], nome=p["nome"], pago=0.0, n=0, empenhado=0.0, coletivo=False, cargo=p["cargo"], partido=p["partido"],
                             uf=uf, link=relativo(p.get("dossie") or p.get("perfil"))))
     return out
 
@@ -558,31 +586,40 @@ def coletar(buscar, api, parl, serie=None, paginas=None, link=None, cache=None, 
         a["ok"] = bool(a["site"]) and (checar(a["site"]) if checar else True)
     return montar(fin, agregar(lista), parl, entes, mun, estaduais, assembleias,
                   dict(anos=anos, faltou=faltou, ano_estadual=ano, eleicao_estadual=ano_est,
-                       falhou_emendas=len(faltou) == len(anos), s2id=rec is not None), cars)
+                       falhou_emendas=len(faltou) == len(anos), s2id=rec is not None), cars, paradas(lista, hoje))
 
 
-def montar(fin, emd, parl, entes, mun, estaduais, assembleias, meta, cars=None):
+def _contar(lista, campo):
+    """{valor normalizado do campo: quantas} (municipio None = o estado como um todo)."""
+    out = {}
+    for d in lista:
+        k = norm(d[campo]) if d[campo] else None
+        out[k] = out.get(k, 0) + 1
+    return out
+
+
+def montar(fin, emd, parl, entes, mun, estaduais, assembleias, meta, cars=None, parad=None):
     """{uf: dados da pagina} + {uf: dados sob demanda (municipios e deputados estaduais)}.
-    cars: {uf: [emendas carimbadas]} (carimbos())."""
+    cars: {uf: [emendas de emergencia carimbadas]} (carimbos()); parad: {uf: [emendas paradas]} (paradas())."""
     paginas, extras, por_uf = {}, {}, {}
     for ent in entes:
         por_uf.setdefault(ent["uf"], {})[norm(ent["nome"])] = ent
     for uf, (_, nome) in UFS.items():
-        u = emd.get(uf) or dict(pago=0.0, n=0, estado=0.0, tipos={}, autores={}, municipios={})
+        u = emd.get(uf) or dict(pago=0.0, n=0, estado=0.0, empenhado=0.0, tipos={}, autores={}, municipios={})
         f = fin.get(uf) or {}
         paginas[uf] = dict(uf=uf, nome=nome, financas=f, emendas=dict(pago=round(u["pago"], 2), n=u["n"],
+                           empenhado=round(u["empenhado"], 2),
                            estado=round(u["estado"], 2), tipos=sorted(u["tipos"].items(), key=lambda kv: -kv[1])),
                            autores=ligar_autores(u["autores"], uf, parl), assembleia=assembleias.get(uf), meta=meta,
-                           carimbos=(cars or {}).get(uf, []))
-        por_autor, por_mun = {}, {}
-        for d in paginas[uf]["carimbos"]:
-            por_autor[norm(d["autor"])] = por_autor.get(norm(d["autor"]), 0) + 1
-            por_mun[d["municipio"]] = por_mun.get(d["municipio"], 0) + 1
+                           carimbos=(cars or {}).get(uf, []), paradas=(parad or {}).get(uf, []))
+        conta = lambda chave, campo: _contar(paginas[uf][chave], campo)
+        por_autor, por_mun = conta("carimbos", "autor"), conta("carimbos", "municipio")
+        par_autor, par_mun = conta("paradas", "autor"), conta("paradas", "municipio")
         quem = {}
         for a in paginas[uf]["autores"]:
-            a["carimbos"] = por_autor.get(norm(a["autor"]), 0)
+            a["carimbos"], a["paradas"] = por_autor.get(norm(a["autor"]), 0), par_autor.get(norm(a["autor"]), 0)
             quem.setdefault(norm(a["autor"]), a)
-        for d in paginas[uf]["carimbos"]:  # nome e link do autor como na lista de parlamentares
+        for d in paginas[uf]["carimbos"] + paginas[uf]["paradas"]:  # nome e link do autor como na lista
             a = quem.get(norm(d["autor"])) or {}
             d.update(autor_nome=a.get("nome") or d["autor"].title(), autor_link=a.get("link"))
         lm = []
@@ -590,17 +627,17 @@ def montar(fin, emd, parl, entes, mun, estaduais, assembleias, meta, cars=None):
         for ent in nomes_mun.values():
             em = u["municipios"].get(norm(ent["nome"])) or {}
             uniao = mun.get(ent["cod"])
-            if not em and not uniao:
+            if not em and not uniao and not par_mun.get(norm(ent["nome"])):
                 continue
             top = sorted((em.get("autores") or {}).items(), key=lambda kv: -kv[1])[:TOP_AUTORES_MUN]
             lm.append([ent["nome"], round(em.get("pago", 0.0), 2), em.get("n", 0),
                        uniao["total"] if uniao else None, [[a.title(), round(v, 2)] for a, v in top],
-                       por_mun.get(norm(ent["nome"]), 0)])
+                       por_mun.get(norm(ent["nome"]), 0), par_mun.get(norm(ent["nome"]), 0)])
         for nm, em in u["municipios"].items():  # municipio da emenda que nao bateu com o SICONFI: entra assim mesmo
             if nm not in nomes_mun:
                 top = sorted(em["autores"].items(), key=lambda kv: -kv[1])[:TOP_AUTORES_MUN]
                 lm.append([nm.title(), round(em["pago"], 2), em["n"], None, [[a.title(), round(v, 2)] for a, v in top],
-                           por_mun.get(nm, 0)])
+                           por_mun.get(nm, 0), par_mun.get(nm, 0)])
         lm.sort(key=lambda m: -(m[1] + (m[3] or 0)))
         extras[uf] = dict(municipios=lm, ano_uniao=meta.get("ano_estadual"), siconfi_municipios=bool(mun),
                           estaduais=estaduais.get(uf, []), eleicao=meta.get("eleicao_estadual"))
@@ -639,6 +676,15 @@ def secao_despesa(f):
             + _mais(linhas[TOP_FUNCOES:], total, f"Ver as outras {len(linhas) - TOP_FUNCOES} áreas"))
 
 
+def _execucao(emd):
+    """Quanto do empenhado (dinheiro reservado) ja virou pagamento."""
+    pct = execucao(emd["pago"], emd.get("empenhado"))
+    if pct is None:
+        return ""
+    return (f'<p class="exec-total">Execução: de {brl_curto(emd["empenhado"])} empenhados, <b>{pct}%</b> já foram '
+            f'pagos.<span class="barra" aria-hidden="true"><i style="width:{max(pct, 1)}%"></i></span></p>')
+
+
 def secao_receita(f, emd):
     r = f.get("receita")
     if r == "falha" or r is None:
@@ -662,16 +708,45 @@ def secao_receita(f, emd):
         tipos = [(t, v, "") for t, v in emd["tipos"]]
         corpo += (f'<h3>Emendas parlamentares</h3><p class="destaque"><b>{brl_curto(pago)}</b> pagos em {emd["n"]} '
                   f'emendas com gasto no estado ({brl_curto(emd["estado"])} no estado como um todo e o resto em '
-                  f'municípios), {emd["de"]}–{emd["ate"]}.</p>{_barras(tipos, pago)}')
+                  f'municípios), {emd["de"]}–{emd["ate"]}.</p>{_execucao(emd)}{_barras(tipos, pago)}')
     else:
         corpo += '<h3>Emendas parlamentares</h3><p class="vazio"><b>Não informado</b>.</p>'
     return corpo
 
 
-def carimbo(texto=CARIMBO, pequeno=False):
+def carimbo(texto=CARIMBO, pequeno=False, cor="alerta-cera"):
     """Selo de cera comum do site (estilo.css + selo.js) com o texto ao lado."""
-    return (f'<span class="selo-cera alerta-cera{" p" if pequeno else ""}"><span class="cera" aria-hidden="true">'
+    return (f'<span class="selo-cera {cor}{" p" if pequeno else ""}"><span class="cera" aria-hidden="true">'
             f'<span>!</span></span><span class="rot">{e(texto)}</span></span>')
+
+
+def _parada(d):
+    lugar = (d["municipio"] or UFS.get(local(d["local"])[0], ("", ""))[1]).title()
+    nome = e(d.get("autor_nome") or d["autor"].title())
+    autor = f'<a href="{e(d["autor_link"])}">{nome}</a>' if d.get("autor_link") else nome
+    return (f'<li>{carimbo(CARIMBO_PARADA, cor="parada-cera")}<span class="rot">{e(lugar)} · {brl_curto(d["empenhado"])} '
+            f'empenhados em {d["ano"]}, nada pago<small>Autor: {autor} · {e(d.get("funcao") or "Não informado")}</small>'
+            f'<small><a href="{transparencia._link("/emendas/consulta", codigoEmenda=d["codigo"])}" target="_blank" '
+            f'rel="noopener">Ver a emenda</a></small></span></li>')
+
+
+def _lista_conferir(itens, fazer):
+    corpo = f'<ul class="carimbadas">{"".join(fazer(d) for d in itens[:TOP_CARIMBOS])}</ul>'
+    if len(itens) > TOP_CARIMBOS:
+        corpo += (f'<details class="mais"><summary>Ver as outras {len(itens) - TOP_CARIMBOS}</summary>'
+                  f'<ul class="carimbadas">{"".join(fazer(d) for d in itens[TOP_CARIMBOS:])}</ul></details>')
+    return corpo
+
+
+def secao_paradas(itens, meta):
+    intro = (f'<p class="fonte">Emendas empenhadas (dinheiro reservado) em {ANOS_PARADA} anos ou mais antes de hoje '
+             f'sem nenhum pagamento até agora. Pode ser obra atrasada, projeto com problema ou empenho que vai ser '
+             f'cancelado: o carimbo pede conferência, não prova irregularidade.</p>')
+    if meta.get("falhou_emendas"):
+        return intro + f'<p class="vazio"><b>{NAO_ACHOU}</b>.</p>'
+    if not itens:
+        return intro + '<p class="vazio">Nenhuma emenda parada.</p>'
+    return intro + _lista_conferir(itens, _parada)
 
 
 def _carimbada(d):
@@ -699,11 +774,7 @@ def secao_carimbos(cars, meta):
         return intro + f'<p class="vazio"><b>{NAO_ACHOU}</b>: sem essa base nenhuma emenda é carimbada.</p>'
     if not cars:
         return intro + '<p class="vazio">Nenhuma emenda de defesa civil sem reconhecimento oficial.</p>'
-    corpo = f'<ul class="carimbadas">{"".join(_carimbada(d) for d in cars[:TOP_CARIMBOS])}</ul>'
-    if len(cars) > TOP_CARIMBOS:
-        corpo += (f'<details class="mais"><summary>Ver as outras {len(cars) - TOP_CARIMBOS}</summary>'
-                  f'<ul class="carimbadas">{"".join(_carimbada(d) for d in cars[TOP_CARIMBOS:])}</ul></details>')
-    return intro + corpo
+    return intro + _lista_conferir(cars, _carimbada)
 
 
 def _autor(a):
@@ -715,8 +786,13 @@ def _autor(a):
         info = "fora do mandato atual ou sem cadastro"
     valor = (f'{brl_curto(a["pago"])} <small>em {a["n"]} emenda{"s" if a["n"] != 1 else ""}</small>'
              if a["n"] else '<small>nenhuma emenda paga aqui</small>')
-    n = a.get("carimbos")
-    marca = f'<small>{carimbo(f"{n} sem reconhecimento oficial", pequeno=True)}</small>' if n else ""
+    pct = execucao(a["pago"], a.get("empenhado"))
+    if pct is not None:
+        valor += f'<small class="exec">{pct}% do empenhado pago</small>'
+    n, par = a.get("carimbos"), a.get("paradas")
+    marca = (f'<small>{carimbo(f"{n} sem reconhecimento oficial", pequeno=True)}</small>' if n else "") + \
+            (f'<small>{carimbo(f"{par} parada" + ("s" if par > 1 else ""), pequeno=True, cor="parada-cera")}</small>'
+             if par else "")
     return f'<li><span class="rot">{nome}<small>{e(info)}</small>{marca}</span><span class="val">{valor}</span></li>'
 
 
@@ -787,8 +863,11 @@ def pagina_uf(p):
 <section class="card"><h2>Parlamentares autores de emendas</h2>
 <p class="fonte">Deputados federais e senadores do estado em exercício, pelo valor pago em emendas de sua autoria com gasto em {e(p["nome"])}. Ser autor de emenda é parte do mandato e não é, por si, irregular.</p>
 {secao_autores(p["autores"], p["uf"], emd["falhou"])}</section>
-<section class="card" id="carimbos"><h2>Emendas emergenciais para conferir</h2>
-{secao_carimbos(p.get("carimbos") or [], m)}</section>
+<section class="card" id="carimbos"><h2>Emendas para conferir</h2>
+<h3>Emergência sem reconhecimento oficial</h3>
+{secao_carimbos(p.get("carimbos") or [], m)}
+<h3>Paradas</h3>
+{secao_paradas(p.get("paradas") or [], m)}</section>
 <section class="card"><h2>Municípios e Assembleia</h2>
 {secao_municipios(p["uf"])}
 {secao_estaduais(p.get("assembleia"), p["uf"])}</section>"""
@@ -859,7 +938,10 @@ def demo(parl=(), serie=None, paginas=None):
                 ["Emenda Individual - Transferências com Finalidade Definida", "Emenda Individual - Transferências Especiais",
                  "Emenda de Bancada"]), local=lc, funcao="Segurança Pública" if civil else rnd.choice(funcoes),
                 subfuncao="Defesa civil" if civil else "", ano=2025, codigo=f"2025{i:02d}{k:04d}",
-                pago=round(rnd.uniform(1e5, 2e7), 2), empenhado=0.0))
+                pago=round(rnd.uniform(1e5, 2e7), 2), empenhado=round(rnd.uniform(2e7, 3e7), 2)))
+        lista.append(dict(autor=f"DEPUTADA DEMO {uf} 2", tipo="Emenda Individual - Transferências com Finalidade Definida",
+                          local=f"CIDADE DEMO 1 - {uf}", funcao="Urbanismo", subfuncao="", ano=2023,
+                          codigo=f"2023{i:02d}9999", pago=0.0, empenhado=round(rnd.uniform(1e6, 5e6), 2)))  # parada
         rec["cod"][f"{cod}00001"] = {2025}  # Cidade Demo 2 teve reconhecimento federal
     estaduais, ano_est = deputados_estaduais(serie, paginas, None, hoje)
     if not estaduais:
@@ -870,4 +952,4 @@ def demo(parl=(), serie=None, paginas=None):
     cars = noticias_apoio(carimbos(lista, rec, entes), None)
     return montar(fin, agregar(lista), parl, entes, mun, estaduais, assembleias,
                   dict(anos=[2023, 2024, 2025, 2026], faltou=[], ano_estadual=2025, eleicao_estadual=ano_est,
-                       falhou_emendas=False, s2id=True), cars)
+                       falhou_emendas=False, s2id=True), cars, paradas(lista, hoje))

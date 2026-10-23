@@ -31,8 +31,10 @@ details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;f
 .conteudo button{margin-top:.6em}
 .ufs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin:12px 0}
 /* carimbo de alerta: selo de cera comum (estilo.css + selo.js); aqui so nao e clicavel e tem o texto em caixa alta */
-.selo-cera.alerta-cera{cursor:default;color:var(--forte);text-transform:uppercase;letter-spacing:.03em;font-weight:800}
-.selo-cera.alerta-cera:hover .rot{text-decoration:none}
+.selo-cera.alerta-cera,.selo-cera.parada-cera{cursor:default;color:var(--forte);text-transform:uppercase;letter-spacing:.03em;font-weight:800}
+.selo-cera.alerta-cera:hover .rot,.selo-cera.parada-cera:hover .rot{text-decoration:none}
+.selo-cera.parada-cera{--cera:#8a4d12;color:var(--atencao)}
+.exec{display:block;color:var(--mut);font-size:.8rem}.exec-total .barra{display:block;margin-top:.3em}
 .selo-cera.p{min-height:32px;font-size:.75rem}.selo-cera.p .cera{width:28px;height:28px}.selo-cera.p .cera::after{inset:5px}
 ul.carimbadas{list-style:none;margin:0;padding:0}.carimbadas li{padding:.6em 0;border-bottom:1px solid var(--line)}
 .carimbadas li:last-child{border-bottom:0}.carimbadas .rot{display:block}
@@ -57,8 +59,8 @@ __CORPO__
   }
   function el(tag, txt, cls){ var n = document.createElement(tag); if (txt != null) n.textContent = txt; if (cls) n.className = cls; return n; }
   // selo de cera comum (selo.js carimba tambem os criados depois, como esta lista sob demanda)
-  function carimbo(txt){
-    var c = el("span", null, "selo-cera alerta-cera p"), cera = el("span", null, "cera");
+  function carimbo(txt, cor){
+    var c = el("span", null, "selo-cera " + cor + " p"), cera = el("span", null, "cera");
     cera.setAttribute("aria-hidden", "true"); cera.appendChild(el("span", "!"));
     c.appendChild(cera); c.appendChild(el("span", txt, "rot")); return c;
   }
@@ -81,7 +83,8 @@ __CORPO__
         val.appendChild(document.createTextNode(brl(m[1]) + " em emendas"));
         val.appendChild(el("small", (d.siconfi_municipios ? brl(m[3]) : "Não informado") + " da União em " + (d.ano_uniao || "")));
         val.lastChild.style.display = "block";
-        if (m[5]) rot.appendChild(carimbo(m[5] + " emergencial sem reconhecimento oficial"));
+        if (m[5]) rot.appendChild(carimbo(m[5] + " emergencial sem reconhecimento oficial", "alerta-cera"));
+        if (m[6]) rot.appendChild(carimbo(m[6] + " emenda" + (m[6] > 1 ? "s" : "") + " parada" + (m[6] > 1 ? "s" : ""), "parada-cera"));
         li.appendChild(rot); li.appendChild(val); ul.appendChild(li);
       });
       mais.hidden = n <= limite;

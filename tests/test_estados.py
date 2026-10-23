@@ -290,6 +290,17 @@ def test_carimbos_so_emergencial_sem_reconhecimento():
     assert estados.carimbos(lista, None) == {}
 
 
+def test_paradas_e_execucao():
+    lista = [estados.enxuta(emenda("A", "SANTOS - SP", 0, ano=2023, empenhado=100)),  # parada
+             estados.enxuta(emenda("B", "SANTOS - SP", 0, ano=2025, empenhado=100)),  # recente: ainda nao
+             estados.enxuta(emenda("C", "SANTOS - SP", 5, ano=2023, empenhado=100)),  # teve pagamento
+             estados.enxuta(emenda("D", "SÃO PAULO (UF)", 0, ano=2024, empenhado=300))]  # parada (2 anos)
+    assert [d["autor"] for d in estados.paradas(lista, HOJE)["SP"]] == ["D", "A"]
+    assert estados.execucao(50, 200) == 25 and estados.execucao(300, 200) == 100 and estados.execucao(5, 0) is None
+    sp = estados.agregar(lista)["SP"]
+    assert sp["empenhado"] == 600 and sp["pago"] == 5 and sp["n"] == 1 and sp["autores"]["A"] == [0.0, 0, 100.0]
+
+
 def test_noticias_so_apoiam_e_respeitam_o_limite():
     cars = {"SP": [dict(municipio="SANTOS", ano=2025), dict(municipio="SANTOS", ano=2024)],
             "MG": [dict(municipio=None, ano=2025)]}
@@ -317,7 +328,8 @@ class BuscarComCkan(BuscarFalso):
 
 def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
     api = ApiFalsa({2026: [emenda("FULANA DEP", "CAMPINAS - SP", 50), emenda("FULANA DEP", "SÃO PAULO (UF)", 25),
-                           emenda("FULANA DEP", "SANTOS - SP", 7, subfuncao="Defesa civil", ano=2026)]})
+                           emenda("FULANA DEP", "SANTOS - SP", 7, subfuncao="Defesa civil", ano=2026, empenhado=100)],
+                    2024: [emenda("FULANA DEP", "SANTOS - SP", 0, ano=2024, empenhado=40)]})
     parl = [dict(nome="Fulana Dep", cargo="DEPUTADO FEDERAL", partido="PX", uf="SP", dossie="pessoa/p0001.html")]
     cache = CacheMem()
     pag, extra = estados.coletar(BuscarComCkan(_respostas(), falha=[("dca", "33", "2025", "DCA-Anexo I-E")]), api, parl,
@@ -326,6 +338,7 @@ def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
     assert cache.salvo and len(pag) == 27
     assert extra["SP"]["municipios"][0][:4] == ["Campinas", 50.0, 1, 830.0]
     assert [m[0] for m in extra["SP"]["municipios"] if m[5]] == ["Santos"]
+    assert [m[0] for m in extra["SP"]["municipios"] if m[6]] == ["Santos"]
     assert estados.gerar(tmp_path, pag, extra, "2026-10-23 04:00") == 28
     sp = (tmp_path / "estado" / "SP.html").read_text(encoding="utf-8")
     assert "R$ 1,4 mil" in sp and "Saúde" in sp and "Cota-Parte do FPE" in sp
@@ -333,6 +346,8 @@ def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
     assert 'data-json="SP.json"' in sp
     assert sp.count('<span class="rot">Emergência sem reconhecimento oficial</span>') == 1 and "1 sem reconhecimento oficial" in sp
     assert "Santos, 2026" in sp and "nenhuma encontrada" in sp
+    assert "Santos · R$ 40 empenhados em 2024, nada pago" in sp and "1 parada" in sp
+    assert "59% do empenhado pago" in sp and "<b>59%</b> já foram pagos" in sp  # 82 pagos de 140 empenhados
     assert 'Autor: <a href="../pessoa/p0001.html">Fulana Dep</a>' in sp
     rj = (tmp_path / "estado" / "RJ.html").read_text(encoding="utf-8")
     assert "Fonte não encontrada" in rj  # despesa do RJ falhou e o link da Alerj nao abriu
@@ -357,7 +372,7 @@ def test_demo_gera_todas_as_ufs(tmp_path):
     assert estados.gerar(tmp_path, pag, extra, "demo") == 28
     assert all(extra[uf]["municipios"] and extra[uf]["estaduais"] for uf in estados.UFS)
     ac = (tmp_path / "estado" / "AC.html").read_text(encoding="utf-8")
-    assert "Fonte não encontrada" in ac and '<span class="rot">Emergência sem reconhecimento oficial</span>' in ac
+    assert "Emenda parada" in ac and "Fonte não encontrada" in ac and '<span class="rot">Emergência sem reconhecimento oficial</span>' in ac
 
 
 def test_pipeline_demo_publica_os_estados(tmp_path, monkeypatch):
