@@ -456,8 +456,12 @@ def reconhecimentos(buscar, baixar_=baixar):
     CKAN). None se a fonte falhar: sem essa base nenhuma emenda e carimbada."""
     d = buscar(CKAN_S2ID)
     recursos = ((d or {}).get("result") or {}).get("resources") if isinstance(d, dict) else None
-    alvos = [r for r in recursos or [] if "RECONHEC" in norm(f'{r.get("name")} {r.get("description")}')
-             and r.get("url")]
+    if recursos is None:
+        print(f"[aviso] S2iD: catalogo {CKAN_S2ID} sem resposta valida", file=sys.stderr)
+    alvos = [r for r in recursos or [] if r.get("url") and any(
+        k in norm(f'{r.get("name")} {r.get("description")} {r.get("url")}') for k in ("RECONHEC", "PORTARIA"))]
+    if recursos and not alvos:  # mostra o que o catalogo tem, para ajustar o filtro (so nomes publicos de arquivos)
+        print("S2iD: arquivos no catalogo: " + "; ".join(str(r.get("name") or r.get("url"))[:80] for r in recursos[:30]))
     out, lidos = dict(cod={}, nome={}, uf={}), 0
     for r in alvos:
         bruto = baixar_(r["url"])
