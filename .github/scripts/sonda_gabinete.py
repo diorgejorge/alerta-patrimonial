@@ -1,6 +1,8 @@
 """Sonda temporaria (#66): verifica fontes oficiais da equipe de gabinete. Apagar depois."""
-import re, urllib.request
-UA = {"User-Agent": "alerta-patrimonial/1.0", "Accept": "text/html, */*"}
+import json, re, sys, urllib.request
+sys.path.insert(0, "src")
+import gabinete
+UA = {"User-Agent": "alerta-patrimonial/1.0", "Accept": "text/html, application/json, */*"}
 
 
 def get(url):
@@ -19,14 +21,19 @@ def texto(h):
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", h))
 
 
-for dep in (220593, 204554):
-    h = get(f"https://www.camara.leg.br/deputados/{dep}/pessoal-gabinete")
-    i = h.find("Pessoal de gabinete")
-    print(texto(h[i - 200:])[:2500])
-    print("tabelas:", re.findall(r"<table[^>]*>", h), re.findall(r"<h[23][^>]*>.*?</h[23]>", h, re.S)[:10])
-    print("links:", sorted(set(re.findall(r'href="([^"]*(?:gabinete|pessoal|secretar)[^"]*)"', h, re.I)))[:20])
-for u in ("https://www6g.senado.leg.br/transparencia/sen/5672/pessoal/?local=gabinete&vinculo=todos",
-          "https://www6g.senado.gov.br/transparencia/sen/5672/pessoal/?local=gabinete&vinculo=todos",
-          "https://www25.senado.leg.br/web/transparencia/sen/5672/pessoal"):
-    h = get(u)
-    print(texto(h)[:1200])
+deps = json.loads(get("https://dadosabertos.camara.leg.br/api/v2/deputados?itens=3&ordem=ASC&ordenarPor=nome"))["dados"]
+for d in deps:
+    h = get(gabinete.CAMARA.format(id=d["id"]))
+    i, j = h.find("Pessoal de gabinete - "), h.find("Histórico de contratação")
+    print(d["nome"], "| contagem:", gabinete.contar_camara(h), "| tabelas:", h.count("<table"))
+    print("ATUAL:", re.sub(r"[A-ZÁÉÍÓÚÂÊÔÃÕÇ]{3,}(?: [A-ZÁÉÍÓÚÂÊÔÃÕÇ]{2,})+", "NOME", texto(h[i:j if j > 0 else i + 6000]))[:1500])
+    print("estrutura atual:", re.findall(r"<t[dh][^>]*>", h[i:j])[:12])
+for local in ("gabinete", "escritorio"):
+    h = get(f"https://www6g.senado.leg.br/transparencia/sen/5672/pessoal/?local={local}&vinculo=todos")
+    t = texto(h)
+    print(local, re.findall(r"(Efetivos|Comissionados|Terceirizados|Estagi\w+) \((\d+)\)", t)[:6],
+          re.findall(r"Escrit\w+ de apoio[^.]{0,80}", t)[:3])
+at = json.loads(get(gabinete.SENADO))
+c = gabinete.contar_senado(at)
+print("API Alan Rick:", c.get("ALAN RICK"), "| senadores na API:", len(c))
+print(sorted(c.items(), key=lambda t: -t[1])[:5], sorted(c.items(), key=lambda t: t[1])[:5])
