@@ -2,8 +2,8 @@
 montado com os numeros do proprio card (educado e sem acusacoes) e os dados da imagem de compartilhar, que o
 compartilhar.js desenha no navegador. Nada aqui consulta a rede: os contatos chegam prontos (contatos.py)."""
 import html, json, os, re, urllib.parse
-import economia
-from texto import cap
+import estados
+from texto import cap, de_estado
 
 e = html.escape
 SITE = "https://diorgejorge.github.io/alerta-patrimonial/"
@@ -54,7 +54,7 @@ def _fonte(link):
 
 def texto(nome, uf, r, cota=None, projetos=None, url=SITE, extra=None):
     """Texto pronto de cobranca: pede explicacao publica com base em dados oficiais, cada numero com a sua fonte.
-    Nunca afirma irregularidade. `extra`: frase pronta de outro modulo (ex.: comparacao com a economia)."""
+    Nunca afirma irregularidade. `extra`: frase pronta de outro modulo ."""
     pontos = []
     cresceu = r.get("cresc") is not None and r["cresc"] > 0
     if cresceu:
@@ -75,7 +75,7 @@ def texto(nome, uf, r, cota=None, projetos=None, url=SITE, extra=None):
     pedido = ("Pode explicar, de forma pública, de onde veio esse crescimento? Por exemplo: herança, venda de bens, "
               "outra atividade ou renda da família." if cresceu else
               "Peço que continue prestando contas do mandato de forma clara e pública.")
-    de = f" {economia._nome_uf(uf, 'de')}" if uf in economia.estados.UFS else f" de {uf}" if uf else ""
+    de = f" {de_estado(uf, estados.UFS[uf][1])}" if uf in estados.UFS else f" de {uf}" if uf else ""
     corpo = "\n\n" + "\n".join(f"- {p}" for p in pontos) if pontos else ""
     return (f"Prezado(a) {nome},\n\n"
             f"Sou eleitor(a){de} e acompanho os dados oficiais do seu mandato.{corpo}\n\n{pedido}\n\n"
