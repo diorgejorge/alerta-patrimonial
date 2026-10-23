@@ -64,6 +64,13 @@ def test_selo_js_publicado_junto(site, html):
     assert '<script src="selo.js" defer>' in html and (site / "selo.js").exists()
 
 
+def test_paginas_internas_com_a_identidade_do_painel(site):
+    paginas = [site / "privacidade.html", next((site / "pessoa").glob("*.html")), next((site / "dossie").glob("*.html"))]
+    for pg in paginas:
+        h = pg.read_text(encoding="utf-8")
+        assert 'class="vidro"' in h and 'class="topo-site"' in h and "logo.png" in h, pg.name
+
+
 # ---------- navegador ----------
 
 @pytest.fixture(scope="module")

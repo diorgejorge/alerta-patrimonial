@@ -140,6 +140,15 @@ table.resp th{font-weight:600;color:var(--mut)}.n{text-align:right;font-variant-
 .cab{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:8px}
 .cab .ficha{margin:.2em 0;color:var(--mut)}
 .voltar{display:inline-flex;align-items:center;min-height:44px}
+/* paginas internas: mesma marca do painel numa barra curta (logo, nome e lema), com volta ao painel */
+.topo-site{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:4px 0 18px}
+.marca-link{display:inline-flex;align-items:center;gap:12px;color:inherit;text-decoration:none}
+.marca-link img{flex:none;width:56px;height:56px;border-radius:50%;background:#fff;border:3px solid var(--ouro);box-shadow:0 3px 10px rgba(0,0,0,.25)}
+.marca-link b{display:block;font-family:var(--fonte-marca);font-size:1.35rem;font-weight:800;line-height:1.1;color:var(--ouro)}
+.marca-link small{display:block;font-size:.85rem;color:var(--mut)}
+.topo-site .voltar{padding:0 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--fg);font-weight:600;text-decoration:none}
+.topo-site .voltar:hover{border-color:var(--mut)}
+@media print{.topo-site .voltar{display:none}.marca-link b{color:#000}}
 
 /* graficos SVG (classes do src/graficos.py) */
 svg{max-width:100%;height:auto;color:var(--fg)}
