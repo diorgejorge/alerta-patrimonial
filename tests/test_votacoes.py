@@ -81,3 +81,14 @@ def test_demo_so_para_parlamentar():
     d = votacoes.demo("SENADOR")
     assert d["casa"] == "senado" and d["votos"] and d["presenca"]["justificadas"] is not None
     json.dumps(d)  # vai para o JSON do painel
+
+
+def test_texto_cobranca_cita_a_fonte_oficial():
+    x = dict(id="a", tema="Tema A", voto="Sim", data="2025-03-10", link="https://www.camara.leg.br/x")
+    t = votacoes.texto_cobranca("Fulano", x)
+    assert t.startswith("Prezado(a) Fulano,") and "site da Câmara dos Deputados (https://www.camara.leg.br/x)" in t
+    assert 'votou "Sim" em "Tema A", em 10/03/2025' in t and "por que votou assim" in t and "[seu nome]" in t
+    t2 = votacoes.texto_cobranca("", dict(x, voto="Não votou", link="https://www25.senado.leg.br/y"))
+    assert "Prezado(a) parlamentar" in t2 and "do Senado Federal" in t2 and "não votou" in t2 and "o motivo" in t2
+    html = votacoes.secao([x], "DEPUTADO FEDERAL", {}, ITENS, nome="Fulano")
+    assert 'data-cobrar-voto="Prezado(a) Fulano' in html and "Cobrar sobre este voto" in html

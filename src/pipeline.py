@@ -13,6 +13,7 @@ import cota
 import projetos
 import parlamentares
 import votacoes, presenca
+from texto import cap
 import empresas
 import estados
 import temas
@@ -627,7 +628,7 @@ def main():
     for k, q in pessoas.items():
         x = por_chave.get(q["chave"]) or (votacoes.demo(q["cargo"]) if args.demo else {})
         try:
-            html_v = (votacoes.secao(x.get("votos"), q["cargo"], vot_ctx),
+            html_v = (votacoes.secao(x.get("votos"), q["cargo"], vot_ctx, nome=cap(q["nome_urna"] or q["nome"])),
                       presenca.secao(x.get("presenca"), q["cargo"], pres_ctx.get("fontes"), x.get("casa")))
         except Exception as ex:
             print(f"[aviso] secao de votacoes falhou para {q['nome']} ({ex!r})", file=sys.stderr)

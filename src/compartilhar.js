@@ -141,9 +141,30 @@
     }, "image/png");
   }
 
+  // pagina da pessoa: leva o texto do voto para a aba Como cobrar (com os canais do gabinete); no dossie, copia
+  function cobrarVoto(bt) {
+    var txt = bt.getAttribute("data-cobrar-voto"), campo = document.getElementById("cobrar-texto"),
+        aba = document.getElementById("aba-cobrar"), aviso = bt.parentNode.querySelector(".voto-aviso");
+    if (campo && aba) {
+      campo.value = txt; aba.click(); campo.focus();
+      var av = campo.closest("section").querySelector(".cobrar-aviso");
+      if (av) av.textContent = "Texto sobre o voto pronto. Copie e mande por um dos canais acima.";
+      return;
+    }
+    copiar(txt).then(function () { if (aviso) aviso.textContent = "Texto copiado. É só colar no e-mail ou na mensagem ao gabinete."; },
+      function () {
+        var t = document.createElement("textarea");
+        t.className = "cobrar-texto"; t.rows = 8; t.readOnly = true; t.value = txt;
+        bt.parentNode.after(t); t.select();
+        if (aviso) aviso.textContent = "Não deu para copiar sozinho: o texto está abaixo, selecionado.";
+      });
+  }
+
   document.addEventListener("click", function (ev) {
     var bt = ev.target.closest("[data-compartilhar]");
     if (bt) { compartilhar(bt); return; }
+    var cv = ev.target.closest("[data-cobrar-voto]");  // "Cobrar sobre este voto" (#56)
+    if (cv) { cobrarVoto(cv); return; }
     var cp = ev.target.closest("[data-copiar-texto]");  // texto sugerido da aba Como cobrar (#60)
     var campo = cp && document.getElementById(cp.getAttribute("data-copiar-texto"));
     if (!campo) return;

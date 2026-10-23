@@ -281,3 +281,20 @@ def test_dossie_e_pagina_da_pessoa_com_votos_e_presenca(site):
     assert com and all('id="presenca"' in h and 'class="barra"' in h for h in com)
     pes = next((site / "pessoa").glob("*.html")).read_text(encoding="utf-8")
     assert 'id="aba-votos"' in pes and "<h3>Como votou</h3>" in pes
+
+
+def test_cobrar_sobre_um_voto_leva_o_texto_para_como_cobrar(servidor, site):
+    # #56: na pagina da pessoa o botao do voto preenche o texto da aba Como cobrar (com os canais do gabinete)
+    nav, url = servidor
+    pes = next(p for p in sorted((site / "pessoa").glob("*.html")) if "data-cobrar-voto" in p.read_text(encoding="utf-8"))
+    pg = nav.new_page(viewport={"width": 1280, "height": 900})
+    erros = []
+    pg.on("pageerror", lambda e: erros.append(str(e)))
+    pg.goto(url.replace("index.html", f"pessoa/{pes.name}#votos"))
+    pg.locator("#votos details").first.locator("summary").click()
+    pg.locator("#votos [data-cobrar-voto]").first.click()
+    assert pg.get_attribute("#aba-cobrar", "aria-selected") == "true" and pg.is_visible("#cobrar-texto")
+    assert "Vi no site" in pg.input_value("#cobrar-texto") and "por que votou assim" in pg.input_value("#cobrar-texto") \
+        or "o motivo" in pg.input_value("#cobrar-texto")
+    assert not erros, erros
+    pg.close()
