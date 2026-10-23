@@ -74,7 +74,7 @@ def link_head(pid, nome):
 
 
 # ---------------------------------------------------------------- foto dos dados e mudancas
-def foto(linhas, cota_total=None, noticias=None):
+def foto(linhas, cota_total=None, noticias=None, cota_link=None):
     """O que se compara entre execucoes. `noticias`: lista (busca feita) ou texto/None (busca falhou: None)."""
     ult = max(linhas, key=lambda a: a.get("ano_fim") or 0)
     nv = max((a.get("nivel") for a in linhas if a.get("nivel")), key=ORDEM_NIVEL.get, default=None)
@@ -85,7 +85,13 @@ def foto(linhas, cota_total=None, noticias=None):
                 pat=ult.get("pat_fim"),
                 ano=ult.get("ano_fim"), nivel=nv, cota=None if cota_total is None else round(cota_total),
                 exemplar=any(a.get("exemplar") for a in linhas), selo=any(a.get("selo") for a in linhas),
-                noticias=links, tse=tse, presenca=_presenca(linhas), votos=_votos(linhas))
+                noticias=links, tse=tse, presenca=_presenca(linhas), votos=_votos(linhas),
+                cota_link=_https(cota_link), presenca_link=next((_https(a["presenca"].get("link")) for a in linhas
+                                                                if isinstance(a.get("presenca"), dict)), None))
+
+
+def _https(u):
+    return u if str(u or "").startswith("https://") else None
 
 
 def _presenca(linhas):
@@ -117,46 +123,50 @@ def mudancas(antes, agora, pagina, detalhes=None):
     nome = agora["nome"]
     if not antes:
         return [_item("inicio", f"Começamos a acompanhar {nome}",
-                      f"A partir de hoje você fica sabendo quando algo mudar. Patrimônio declarado agora: {brl(agora['pat'])}"
-                      f"{' em ' + str(agora['ano']) if agora.get('ano') else ''}.", pagina)]
+                      f"A partir de hoje você fica sabendo quando algo mudar. Patrimônio declarado ao TSE: {brl(agora['pat'])}"
+                      f"{' em ' + str(agora['ano']) if agora.get('ano') else ''}. Fonte: TSE.", agora.get("tse") or pagina)]
     itens = []
     if agora["ano"] != antes.get("ano") or agora["pat"] != antes.get("pat"):
         dif = (agora["pat"] or 0) - (antes.get("pat") or 0)
         itens.append(_item("patrimonio", f"Nova declaração de bens: {brl(agora['pat'])} em {agora['ano']}",
                            f"Antes: {brl(antes.get('pat'))} em {antes.get('ano') or 'Não informado'}. Diferença: "
-                           f"{'+' if dif >= 0 else '−'}{brl(abs(dif))}. Confira no TSE.", agora.get("tse") or pagina))
+                           f"{'+' if dif >= 0 else '−'}{brl(abs(dif))}. Fonte: TSE.", agora.get("tse") or pagina))
     if agora["nivel"] != antes.get("nivel"):
         rot = lambda n: graficos.ROTULO_NIVEL.get(n, "sem destaque")
         itens.append(_item("nivel", f"Destaque do patrimônio mudou: de “{rot(antes.get('nivel'))}” para "
                                     f"“{rot(agora['nivel'])}”",
-                           "Compara quanto o patrimônio cresceu com o que daria para juntar só com o salário.", pagina))
+                           "Compara quanto o patrimônio cresceu com o que daria para juntar só com o salário. "
+                           "Fonte: declarações de bens ao TSE.", agora.get("tse") or pagina))
     if agora["cota"] is not None and antes.get("cota") is not None and abs(agora["cota"] - antes["cota"]) >= COTA_MINIMA:
         dif = agora["cota"] - antes["cota"]
         itens.append(_item("cota", f"Cota parlamentar: {'mais' if dif > 0 else 'menos'} {brl(abs(dif))} em gastos",
                            f"Total em 4 anos: {brl(agora['cota'])}. É dinheiro público para passagens, escritório e "
-                           "divulgação do mandato.", pagina))
+                           "divulgação do mandato. Fonte: Câmara dos Deputados ou Senado Federal.",
+                           agora.get("cota_link") or pagina))
     for chave, rotulo in (("exemplar", "a estrela de Parlamentar exemplar"), ("selo", "o selo Mão na massa")):
         t = _marca(rotulo, bool(antes.get(chave)), agora[chave])
         if t:
-            itens.append(_item(chave, t, "Mesmos critérios para todos. Veja o porquê na página.", pagina))
+            itens.append(_item(chave, t, "Mesmos critérios para todos; o cálculo está na página. Fontes: Câmara, "
+                                         "Senado, TSE e Portal da Transparência.", pagina))
     if agora.get("presenca") is not None and antes.get("presenca") is not None \
             and antes["presenca"] - agora["presenca"] >= PRESENCA_QUEDA:
         itens.append(_item("presenca", f"Presença registrada caiu de {_pct(antes['presenca'])} para "
                                        f"{_pct(agora['presenca'])}",
-                           "Sessões com presença registrada. Ausência pode ter justificativa, como licença.", pagina))
+                           "Sessões com presença registrada. Ausência pode ter justificativa, como licença. "
+                           "Fonte: Câmara dos Deputados ou Senado Federal.", agora.get("presenca_link") or pagina))
     if agora.get("votos") is not None and antes.get("votos") is not None:
         for vid in [v for v in agora["votos"] if v not in antes["votos"]][:VOTOS_POR_VEZ]:
             v = agora["votos"][vid]
             link = v["link"] if str(v.get("link") or "").startswith("https://") else pagina
             itens.append(_item("voto", f"Votou “{v.get('voto') or 'Não informado'}” em: {v.get('tema') or vid}",
-                               "Voto registrado pela Câmara ou pelo Senado. Concorda?", link))
+                               "Concorda? Fonte: Câmara dos Deputados ou Senado Federal.", link))
     if agora["noticias"] is not None and antes.get("noticias") is not None:
         vistas = set(antes["noticias"])
         for link in [x for x in agora["noticias"] if x not in vistas][:NOTICIAS_POR_VEZ]:
             n = (detalhes or {}).get(link, {})
             meta = " · ".join(x for x in (n.get("veiculo"), _dia(n.get("data"))) if x)
             itens.append(_item("noticia", f"Na imprensa: {n.get('titulo') or link}",
-                               f"Notícia nova que cita {nome}{f' ({meta})' if meta else ''}.", link))
+                               f"Notícia nova que cita {nome}. Fonte: {meta or 'veículo no link'}.", link))
     return itens
 
 
@@ -235,21 +245,21 @@ def escrever(docs, estado, ativos):
         reg = estado[pid]
         nome = reg["foto"]["nome"]
         (pasta / f"{pid}.xml").write_bytes(rss(
-            f"{nome} · Caramelo Vasculha", f"Avisos de mudança nos dados públicos de {nome}.",
+            f"{nome} · Caramelo Vasculha", f"Avisos quando mudam os dados oficiais de {nome} (TSE, Câmara, Senado, Portal da Transparência e imprensa).",
             f"{base}pessoa/{pid}.html", url_feed(pid), reg["itens"]))
         escritos.add(pid)
         if RE_UF.fullmatch(reg["foto"].get("uf") or ""):
             por_uf.setdefault(reg["foto"]["uf"], []).extend(reg["itens"])
     for uf, itens in por_uf.items():
         (pasta / f"uf-{uf}.xml").write_bytes(rss(
-            f"Políticos de {uf} · Caramelo Vasculha", f"Avisos de mudança nos dados públicos dos políticos de {uf}.",
+            f"Políticos de {uf} · Caramelo Vasculha", f"Avisos quando mudam os dados oficiais dos políticos de {uf} (TSE, Câmara, Senado, Portal da Transparência e imprensa).",
             base, f"{base}feed/uf-{uf}.xml", _recentes(itens), com_nome=True))
         escritos.add(f"uf-{uf}")
     for f in pasta.glob("*.xml"):
         if f.stem not in escritos:
             f.unlink()
     (Path(docs) / "feed.xml").write_bytes(rss(
-        "Caramelo Vasculha · todas as pessoas", "Avisos de mudança nos dados públicos dos políticos acompanhados.",
+        "Caramelo Vasculha · todas as pessoas", "Avisos quando mudam os dados oficiais dos políticos (TSE, Câmara, Senado, Portal da Transparência e imprensa).",
         base, f"{base}feed.xml", _recentes(it for pid in ativos for it in estado[pid]["itens"]), com_nome=True))
     return len(ativos)
 
@@ -270,8 +280,8 @@ def publicar(docs, arq, segredo, alertas, pessoas, cota_por_pessoa, noticias, ag
             continue
         nts = noticias.get(q["idx"][0])
         det = {n["link"]: n for n in nts if n.get("link")} if isinstance(nts, list) else {}
-        total = (cota_por_pessoa.get(k) or {}).get("total")
-        atuais[pid] = (foto(linhas, total, nts), f"{site()}pessoa/{pid}.html", det)
+        cota = cota_por_pessoa.get(k) or {}
+        atuais[pid] = (foto(linhas, cota.get("total"), nts, cota.get("link")), f"{site()}pessoa/{pid}.html", det)
     estado, novos = atualizar(estado, atuais, agora)
     cifra.gravar(arq, json.dumps(estado, ensure_ascii=False).encode(), segredo)
     return escrever(docs, estado, set(atuais)), novos

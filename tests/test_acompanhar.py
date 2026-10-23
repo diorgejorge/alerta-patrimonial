@@ -175,3 +175,17 @@ def test_voto_novo_vira_item_com_link_da_casa():
     it = acompanhar.mudancas(foto(votos=[v1]), foto(votos=[v1, v2]), PAG)
     assert len(it) == 1 and it[0]["titulo"] == "Votou “Não” em: Arcabouço fiscal" and it[0]["link"].endswith("/2")
     assert acompanhar.mudancas(foto(), foto(votos=[v1]), PAG) == []  # primeira vez com a lista: so guarda
+
+
+def test_cada_item_cita_a_fonte_oficial_e_aponta_para_ela():
+    pr = lambda pct: dict(link="https://camara.leg.br/presenca", pct=pct)
+    a = acompanhar.foto([linha(presenca=pr(90))], 1000, [], "https://camara.leg.br/cota")
+    b = acompanhar.foto([linha(ano_fim=2026, nivel="forte", exemplar=True, presenca=pr(70))], 9000,
+                        [dict(link="https://jornal/1")], "https://camara.leg.br/cota")
+    itens = acompanhar.mudancas(a, b, PAG, {"https://jornal/1": dict(titulo="T", veiculo="Jornal")})
+    assert {i["tipo"] for i in itens} == {"patrimonio", "nivel", "cota", "exemplar", "presenca", "noticia"}
+    for it in itens:
+        assert "Fonte" in it["texto"], it
+        assert "Caramelo" not in it["texto"]
+    links = {i["tipo"]: i["link"] for i in itens}
+    assert links["cota"].endswith("/cota") and links["presenca"].endswith("/presenca") and "tse" in links["patrimonio"]
