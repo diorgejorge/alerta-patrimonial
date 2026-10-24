@@ -1,5 +1,5 @@
 {
-  "_sobre": "Indicadores do IBGE da aba Estados (#68). Cada um usa a primeira das 'tabelas' candidatas que tiver a variavel e o nivel de estado (o log do fluxo 1 diz qual). 'variavel' e 'categorias' sao trechos do nome (sem acento, maiusculas ou minusculas). 'preferir': categoria usada quando a tabela nao tem Total. 'melhor': menor ou maior. Sem PIB (#55).",
+  "_sobre": "Indicadores do IBGE da aba Estados (#68). Cada um usa a primeira das 'tabelas' candidatas que tiver a variavel e o nivel de estado (o log do fluxo 1 diz qual). 'variavel' e 'categorias' sao trechos do nome (sem acento, maiusculas ou minusculas). 'classificacao': filtro do SIDRA (/c{id}/{categoria}), ids na pagina da tabela. 'preferir': categoria usada quando a tabela nao tem Total. 'atraso_max': anos de atraso aceitos (Censo: 12). 'melhor': menor ou maior. Sem PIB (#55).",
   "indicadores": [
     {"id": "desemprego", "nome": "Desemprego", "unidade": "%", "casas": 1, "melhor": "menor",
      "tabelas": [4099], "variavel": "taxa de desocupacao",
@@ -8,15 +8,14 @@
      "tabelas": [7531, 7533, 7428], "variavel": "per capita",
      "fonte": "PNAD Contínua anual"},
     {"id": "analfabetismo", "nome": "Analfabetismo", "unidade": "%", "casas": 1, "melhor": "menor",
-     "tabelas": [7113, 7125], "variavel": "analfabetismo", "preferir": ["15 anos ou mais"],
+     "tabelas": [7113], "variavel": "analfabetismo", "classificacao": "/c2/6794/c58/2795",
      "fonte": "PNAD Contínua anual"},
     {"id": "esgoto", "nome": "Casas com esgoto", "unidade": "%", "casas": 1, "melhor": "maior",
-     "tabelas": [6805, 6732, 7262], "variavel": "percentual",
-     "categorias": {"esgot": "rede geral"},
-     "fonte": "PNAD Contínua anual"},
+     "tabelas": [6805], "variavel": "percentual", "classificacao": "/c11558/46290", "atraso_max": 12,
+     "fonte": "Censo Demográfico"},
     {"id": "mortalidade", "nome": "Mortalidade infantil", "unidade": "por mil", "casas": 1, "melhor": "menor",
-     "tabelas": [7362, 3834], "variavel": "mortalidade infantil",
-     "fonte": "IBGE"}
+     "tabelas": [7362], "variavel": "mortalidade infantil", "classificacao": "/c2/6794/c1933/all",
+     "fonte": "Projeção da População do IBGE"}
   ],
   "idh": {
     "iso3": "BRA",

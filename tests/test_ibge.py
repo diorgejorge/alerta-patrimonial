@@ -138,7 +138,7 @@ def test_dado_antigo_nao_entra_e_log_descreve_a_tabela(capsys):
 
 def test_classificacao_com_varias_categorias_fica_no_total_e_projecao_ate_o_ano_atual():
     cab = {**CAB, "D2C": "Ano (Código)", "D2N": "Ano", "D4C": "Sexo (Código)", "D4N": "Sexo", "D5C": "Ano (Código)", "D5N": "Ano"}
-    linhas = [cab] + [dict(NC="1", V=v, D1C="1", D2C="2024", D3N="Taxa de mortalidade infantil", D4N=sexo, D5C=ano)
+    linhas = [cab] + [dict(NC="1", V=v, D1C="1", D2C="2024", D3N="Taxa de mortalidade infantil", D4N=sexo, D5C="4" + ano, D5N=ano)
                       for sexo, base in (("Homens", 20.0), ("Total", 12.0)) for ano, v in
                       (("2025", str(base)), ("2026", str(base - 1)), ("2030", "1.0"))]
     s, freq, _ = ibge.ler_sidra(linhas, dict(variavel="mortalidade infantil"), ano_max=2026)
@@ -165,3 +165,11 @@ def test_descricao_com_403_usa_os_metadados_do_site():
         return meta if "/Ajax/" in url else obter_falso(url)
     d = ibge.coletar(None, dict(indicadores=[dict(ESG, variavel="desocupacao")]), obter, lambda u: b"")
     assert [i["id"] for i in d["indicadores"]] == ["esgoto"] and urls[-1].endswith("/c11558/46290")
+
+
+def test_config_real_com_filtros_do_sidra_e_censo_aceita_atraso_maior():
+    cfg = {i["id"]: i for i in ibge.ler_config()["indicadores"]}
+    assert cfg["analfabetismo"]["classificacao"] == "/c2/6794/c58/2795" and cfg["esgoto"]["atraso_max"] == 12
+    censo = lambda url: sidra({("1", "1"): {"2022": "62.5"}}, var="Domicílios - percentual do total geral", per="Ano")
+    d = ibge.coletar(None, dict(indicadores=[cfg["esgoto"]]), censo, lambda u: b"", agora=1793000000)  # 2026
+    assert d["valores"]["BR"]["esgoto"][0] == 62.5 and d["valores"]["BR"]["esgoto"][-1] is None  # um so Censo: sem seta

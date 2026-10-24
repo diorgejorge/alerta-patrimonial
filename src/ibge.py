@@ -95,10 +95,12 @@ def ler_sidra(resp, ind, ano_max=None):
 
     def nota(r):  # quantas classificacoes estao no Total (ou na categoria preferida)
         return sum(norm(r.get(k + "N")) == "TOTAL" or any(x in norm(r.get(k + "N")) for x in preferir) for k in extras)
-    teto = ano_max if len(pers) > 1 else None  # so a projecao tem anos futuros
+    projecao = len(pers) > 1  # edicao + "Ano" projetado (classificacao): so ela tem anos futuros
+    teto = ano_max if projecao else None
     melhor = {}
     for r in resp[1:]:
-        v, per = _num(r.get("V")), str(r.get(kper + "C"))
+        v = _num(r.get("V"))
+        per = str(r.get(kper + ("N" if projecao else "C")))  # na projecao o "Ano" e classificacao: o codigo nao e o ano
         if r.get(kvar + "N") != var or v is None or (teto and per[:4].isdigit() and int(per[:4]) > teto):
             continue
         nc, cod = str(r.get("NC")), str(r.get(kloc + "C"))
@@ -302,7 +304,7 @@ def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None, sonda
                 print(f"[aviso] IBGE: {ind['id']}, tabela {t}: sem a variavel '{ind['variavel']}' ou sem o Brasil ({descrever(resp)})")
                 continue
             ultimo = max(int(p[:4]) for p in lido[0]["BR"])
-            if ultimo < time.gmtime(agora).tm_year - ATRASO_MAX:
+            if ultimo < time.gmtime(agora).tm_year - ind.get("atraso_max", ATRASO_MAX):
                 print(f"[aviso] IBGE: {ind['id']}, tabela {t}: dado antigo (ultimo ano {ultimo}), nao entra")
                 continue
             achado = (t, cl) + lido
