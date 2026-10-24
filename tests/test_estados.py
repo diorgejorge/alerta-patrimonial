@@ -246,15 +246,26 @@ def test_autor_liga_ao_dossie_e_mostra_carimbos():
     sem = estados._autor(dict(com, link=None, marcas=()))
     assert "<a href=\"https://senado/1\"" in sem and "perfil oficial" in sem and "selo-cera" not in sem
     assert sem.startswith('<li><span class="rot">Fulana<small>')  # nome puro, sem link
+    assert 'class="rot"' not in html.split("<small>")[0].split("</a>", 1)[1]  # so o selo: sem texto ao lado
+    assert '<span class="sr">Eleito</span>' in html  # o significado continua para leitor de tela
+
+
+def test_legenda_so_com_os_selos_que_aparecem():
+    autores = [dict(marcas=("eleito:2022",), paradas=0), dict(marcas=(), paradas=2)]
+    leg = estados.legenda_autores(autores)
+    assert "legenda-selos" in leg and "<b>Eleito</b>" in leg and "<b>Emendas paradas</b>" in leg
+    assert "Exemplar" not in leg and "Mão na massa" not in leg
+    assert estados.legenda_autores([dict(marcas=(), paradas=0)]) == ""
 
 
 def test_base_leva_pagina_e_carimbos():
     parl = [dict(nome="Fulana", cargo="SENADOR", partido="PX", uf="SP", perfil=None, _chave="cpf:1", exemplar=True),
             dict(nome="Beltrano", cargo="SENADOR", partido="PX", uf="SP", perfil=None, _chave="cpf:2", selo=True)]
-    b = estados.base(parl, None, {"cpf:1": "pessoa/p0009.html"}, None, HOJE, eleitos={"cpf:2"})["parlamentares"]
+    b = estados.base(parl, None, {"cpf:1": "pessoa/p0009.html"}, None, HOJE, eleitos={"cpf:2": 2022})["parlamentares"]
     assert b[0]["pagina"] == "pessoa/p0009.html" and b[0]["exemplar"] and not b[0]["eleito"]
     assert b[1]["pagina"] is None and b[1]["selo"] and b[1]["eleito"]
-    assert estados.marcas_de(b[0]) == ("exemplar",) and estados.marcas_de(b[1]) == ("eleito", "selo")
+    assert estados.marcas_de(b[0]) == ("exemplar",) and estados.marcas_de(b[1]) == ("eleito:2022", "selo")
+    assert "Eleito 2022" in estados.carimbos(estados.marcas_de(b[1]))
 
 
 def test_deputados_estaduais_em_exercicio():
@@ -312,7 +323,7 @@ def test_coletar_e_gerar_ponta_a_ponta(tmp_path):
     assert 'href="../pessoa/p0001.html"' in sp and "Assembleia Legislativa de São Paulo" in sp
     assert 'data-json="SP.json"' in sp
     assert "Emergência" not in sp and "S2iD" not in sp
-    assert "Santos · R$ 40 reservados em 2024, nada pago" in sp and "1 parada" in sp
+    assert "Santos · R$ 40 reservados em 2024, nada pago" in sp and "1 emenda parada" in sp
     assert "59% do prometido já pago" in sp and "<b>59%</b> já " in sp  # 82 pagos de 140 empenhados
     assert 'Autor: <a href="../pessoa/p0001.html">Fulana Dep</a>' in sp
     rj = (tmp_path / "estado" / "RJ.html").read_text(encoding="utf-8")

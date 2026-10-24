@@ -473,15 +473,19 @@ ICONES = {
 
 
 def marcas_de(p):
-    """Campos de carimbo que a pessoa tem (sem dado = sem carimbo)."""
-    return tuple(campo for campo, *_ in MARCAS if p.get(campo))
+    """Campos de carimbo que a pessoa tem (sem dado = sem carimbo); o Eleito leva o ano quando houver."""
+    return tuple(f"eleito:{p[campo]}" if campo == "eleito" and type(p[campo]) is int else campo
+                 for campo, *_ in MARCAS if p.get(campo))
 
 
 def carimbos(marcas):
     """Selos de cera pequenos, os mesmos dos cards (cor e icone); vazio se a pessoa nao tem nenhum."""
-    return "".join(f'<span class="selo-cera {cor} p" title="{e(dica)}"><span class="cera" aria-hidden="true"><span>'
-                   f'{ICONES[ic]}</span></span><span class="rot">{rot}</span></span>'
-                   for campo, cor, rot, ic, dica in MARCAS if campo in (marcas or ()))
+    anos = {m.split(":")[0]: m.split(":")[1] for m in marcas or () if ":" in m}
+    tem = {m.split(":")[0] for m in marcas or ()}
+    return "".join(f'<span class="selo-cera {cor} p" title="{rot}{" " + anos[campo] if campo in anos else ""}: {e(dica)}">'
+                   f'<span class="cera" aria-hidden="true"><span>{ICONES[ic]}</span></span>'
+                   f'<span class="sr">{rot}{" " + anos[campo] if campo in anos else ""}</span></span>'
+                   for campo, cor, rot, ic, dica in MARCAS if campo in tem)
 
 
 # ---------------------------------------------------------------- deputados estaduais (TSE) e Assembleias
@@ -572,6 +576,13 @@ def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=No
 BASE = ROOT / "data" / "estados_base.json"
 
 
+def ano_eleito(eleitos, chave):
+    """Ano da eleicao do mandato em curso (pipeline.em_mandato: {chave: ano}); True se so se sabe que e eleito."""
+    if not eleitos or chave not in eleitos:
+        return False
+    return eleitos[chave] if isinstance(eleitos, dict) else True
+
+
 def base(parl, serie=None, paginas=None, link=None, hoje=None, eleitos=None):
     """O que o dossie por estado precisa do pipeline principal, gravado em data/estados_base.json para o workflow
     proprio (estados.yml) rodar depois, sem segurar o painel: parlamentares em exercicio e deputados estaduais.
@@ -581,7 +592,7 @@ def base(parl, serie=None, paginas=None, link=None, hoje=None, eleitos=None):
     pub = [dict(nome=p["nome"], cargo=p["cargo"], partido=p["partido"], uf=p["uf"], dossie=p.get("dossie"),
                 pagina=(paginas or {}).get(p.get("_chave")), perfil=p.get("perfil"), _nomes=sorted(p.get("_nomes") or ()),
                 exemplar=bool(p.get("exemplar")), selo=bool(p.get("selo")),
-                eleito=eleitos is not None and p.get("_chave") in eleitos) for p in parl]
+                eleito=ano_eleito(eleitos, p.get("_chave"))) for p in parl]
     return dict(parlamentares=pub, estaduais=estaduais, eleicao_estadual=ano_est)
 
 
@@ -737,10 +748,19 @@ def secao_receita(f, emd):
     return corpo
 
 
-def carimbo(texto=CARIMBO_PARADA, pequeno=False, cor="parada-cera"):
-    """Selo de cera comum do site (estilo.css + selo.js) com o texto ao lado."""
-    return (f'<span class="selo-cera {cor}{" p" if pequeno else ""}"><span class="cera" aria-hidden="true">'
-            f'<span>!</span></span><span class="rot">{e(texto)}</span></span>')
+def carimbo(texto=CARIMBO_PARADA, pequeno=False, cor="parada-cera", marca="!"):
+    """Selo de cera comum do site (estilo.css + selo.js), so o selo: o significado fica na legenda da secao
+    (pedido do usuario); `texto` vai na dica e para leitor de tela. `marca`: o que vai dentro da cera."""
+    return (f'<span class="selo-cera {cor}{" p" if pequeno else ""}" title="{e(texto)}"><span class="cera" '
+            f'aria-hidden="true"><span>{marca}</span></span><span class="sr">{e(texto)}</span></span>')
+
+
+def legenda(itens):
+    """Legenda dos selos de uma secao: [(html do selo, texto)]; vazia se nenhum selo aparece."""
+    if not itens:
+        return ""
+    return ('<ul class="legenda-selos" aria-label="Legenda dos selos">'
+            + "".join(f"<li>{selo}<span>{texto}</span></li>" for selo, texto in itens) + "</ul>")
 
 
 def _parada(d):
@@ -768,7 +788,8 @@ def secao_paradas(itens, meta):
         return intro + f'<p class="vazio"><b>{NAO_ACHOU}</b>.</p>'
     if not itens:
         return intro + '<p class="vazio">Nenhuma emenda parada.</p>'
-    return intro + _lista_conferir(itens, _parada)
+    leg = legenda([(carimbo(CARIMBO_PARADA, pequeno=True), "<b>Emenda parada</b>: reservada e sem nenhum pagamento")])
+    return intro + leg + _lista_conferir(itens, _parada)
 
 
 def _autor(a):
@@ -786,12 +807,23 @@ def _autor(a):
     if pct is not None:
         valor += f'<small class="exec">{pct}% do prometido já pago</small>'
     par = a.get("paradas")
-    marca = (f'<small>{carimbo(f"{par} parada" + ("s" if par > 1 else ""), pequeno=True, cor="parada-cera")}</small>'
-             if par else "")
-    selos = carimbos(a.get("marcas"))
+    marca = carimbo(f"{par} emenda{'s' if par > 1 else ''} parada{'s' if par > 1 else ''}", pequeno=True,
+                    marca=str(par)) if par else ""
+    selos = carimbos(a.get("marcas")) + marca
     selos = f'<span class="selos">{selos}</span>' if selos else ""
-    return (f'<li><span class="rot">{nome}{selos}<small>{e(info)}{oficial}</small>{marca}</span>'
+    return (f'<li><span class="rot">{nome}{selos}<small>{e(info)}{oficial}</small></span>'
             f'<span class="val">{valor}</span></li>')
+
+
+def legenda_autores(autores):
+    """So os selos que aparecem na lista, na ordem dos cards; o da emenda parada traz o numero dentro."""
+    tem = {m.split(":")[0] for a in autores for m in a.get("marcas") or ()}
+    itens = [(carimbos((campo,)), f"<b>{rot}</b>: {e(dica[0].lower() + dica[1:]) if campo == 'eleito' else e(dica.split(': ', 1)[-1])}")
+             for campo, cor, rot, ic, dica in MARCAS if campo in tem]
+    if any(a.get("paradas") for a in autores):
+        itens.append((carimbo(CARIMBO_PARADA, pequeno=True, marca="2"),
+                      f"<b>Emendas paradas</b>: quantas estão reservadas há {ANOS_PARADA} anos ou mais sem nada pago"))
+    return legenda(itens)
 
 
 def secao_autores(autores, uf, falhou):
@@ -801,7 +833,8 @@ def secao_autores(autores, uf, falhou):
     outros = [a for a in autores if a not in do_estado and a["n"]]
     if not do_estado and not outros:
         return '<p class="vazio"><b>Não informado</b>.</p>'
-    corpo = f'<ol class="autores">{"".join(_autor(a) for a in do_estado[:TOP_AUTORES])}</ol>'
+    corpo = legenda_autores(do_estado + outros)
+    corpo += f'<ol class="autores">{"".join(_autor(a) for a in do_estado[:TOP_AUTORES])}</ol>'
     if len(do_estado) > TOP_AUTORES:
         corpo += (f'<details class="mais"><summary>Ver os outros {len(do_estado) - TOP_AUTORES} parlamentares do '
                   f'estado</summary><ol class="autores" start="{TOP_AUTORES + 1}">'

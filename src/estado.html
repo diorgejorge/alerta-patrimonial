@@ -36,6 +36,8 @@ details>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;f
 .selo-cera.parada-cera{--cera:#8a4d12;color:var(--atencao)}
 .exec{display:block;color:var(--mut);font-size:.8rem}.exec-total .barra{display:block;margin-top:.3em}
 .selo-cera.p{min-height:32px;font-size:.75rem}.selo-cera.p .cera{width:28px;height:28px}.selo-cera.p .cera::after{inset:5px}
+.legenda-selos{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:2px 18px;margin:.4em 0 .8em;padding:.5em .8em;border:1px solid var(--line);border-radius:10px;font-size:.8rem;color:var(--mut)}
+.legenda-selos li{display:flex;align-items:center;gap:6px}.legenda-selos b{color:var(--fg);font-weight:600}
 .selos{display:inline-flex;flex-wrap:wrap;gap:2px 10px;margin-left:.5em;vertical-align:middle}.selo-cera.p .cera .ico{width:14px;height:14px;color:#fff}
 ul.carimbadas{list-style:none;margin:0;padding:0}.carimbadas li{padding:.6em 0;border-bottom:1px solid var(--line)}
 .carimbadas li:last-child{border-bottom:0}.carimbadas .rot{display:block}
@@ -60,10 +62,11 @@ __CORPO__
   }
   function el(tag, txt, cls){ var n = document.createElement(tag); if (txt != null) n.textContent = txt; if (cls) n.className = cls; return n; }
   // selo de cera comum (selo.js carimba tambem os criados depois, como esta lista sob demanda)
-  function carimbo(txt, cor){
+  // so o selo (o significado fica na legenda); o texto vai na dica e para leitor de tela
+  function carimbo(txt, cor, marca){
     var c = el("span", null, "selo-cera " + cor + " p"), cera = el("span", null, "cera");
-    cera.setAttribute("aria-hidden", "true"); cera.appendChild(el("span", "!"));
-    c.appendChild(cera); c.appendChild(el("span", txt, "rot")); return c;
+    c.title = txt; cera.setAttribute("aria-hidden", "true"); cera.appendChild(el("span", marca || "!"));
+    c.appendChild(cera); c.appendChild(el("span", txt, "sr")); return c;
   }
   function link(href, txt){ var a = el("a", txt); a.href = href; if (/^https?:/.test(href)) { a.target = "_blank"; a.rel = "noopener"; } return a; }
   function municipios(d, alvo){
@@ -84,7 +87,7 @@ __CORPO__
         val.appendChild(document.createTextNode(brl(m[1]) + " em emendas"));
         val.appendChild(el("small", (d.siconfi_municipios ? brl(m[3]) : "Não informado") + " do governo federal em " + (d.ano_uniao || "")));
         val.lastChild.style.display = "block";
-        if (m[5]) rot.appendChild(carimbo(m[5] + " emenda" + (m[5] > 1 ? "s" : "") + " parada" + (m[5] > 1 ? "s" : ""), "parada-cera"));
+        if (m[5]) rot.appendChild(carimbo(m[5] + " emenda" + (m[5] > 1 ? "s" : "") + " parada" + (m[5] > 1 ? "s" : ""), "parada-cera", String(m[5])));
         li.appendChild(rot); li.appendChild(val); ul.appendChild(li);
       });
       mais.hidden = n <= limite;
@@ -92,6 +95,13 @@ __CORPO__
     }
     busca.addEventListener("input", function(){ limite = 20; desenhar(); });
     mais.addEventListener("click", function(){ limite += 40; desenhar(); });
+    if (lista.some(function(m){ return m[5]; })) {  // legenda so quando algum selo aparece
+      var leg = el("ul", null, "legenda-selos"), li = el("li"), t = el("span");
+      leg.setAttribute("aria-label", "Legenda dos selos");
+      li.appendChild(carimbo("Emendas paradas", "parada-cera", "2"));
+      t.appendChild(el("b", "Emendas paradas")); t.appendChild(document.createTextNode(": quantas estão reservadas há anos sem nada pago"));
+      li.appendChild(t); leg.appendChild(li); alvo.appendChild(leg);
+    }
     alvo.appendChild(busca); alvo.appendChild(ul); alvo.appendChild(mais);
     alvo.appendChild(el("p", "Fontes: Portal da Transparência e balanço de cada cidade no Tesouro. Cidade que não entregou o balanço aparece como Não informado.", "fonte"));
     desenhar();
