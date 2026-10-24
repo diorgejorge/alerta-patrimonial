@@ -25,3 +25,10 @@ def test_versionar_poe_hash_e_troca_quando_muda(tmp_path):
 def test_versionar_sem_arquivos_nao_mexe(tmp_path):
     (tmp_path / "index.html").write_text('<link href="estilo.css">')
     assert paginas.versionar(tmp_path) == 0
+
+
+def test_painel_js_tambem_versionado(tmp_path):
+    # #73: o JS do painel saiu do HTML; sem versao, um index novo poderia rodar com o painel.js velho do cache
+    (tmp_path / "painel.js").write_text("1")
+    (tmp_path / "index.html").write_text('<script src="painel.js"></script>')
+    assert paginas.versionar(tmp_path) == 1 and 'src="painel.js?v=' in (tmp_path / "index.html").read_text()

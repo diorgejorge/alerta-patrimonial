@@ -341,7 +341,7 @@ def rodape_legal(site):
     return n
 
 
-ARQUIVOS_VERSIONADOS = ("estilo.css", "selo.js", "compartilhar.js", "representantes.js")
+ARQUIVOS_VERSIONADOS = ("estilo.css", "selo.js", "compartilhar.js", "representantes.js", "painel.js")
 
 
 def versionar(site):
