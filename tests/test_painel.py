@@ -417,3 +417,10 @@ def test_link_para_contas_da_campanha_no_tse(abrir):
     h = pg.evaluate("TSE({link_tse:'https://divulgacandcontas.tse.jus.br/divulga/#/candidato/X',ano_ini:2018,ano_fim:2022})")
     assert "Contas da campanha" in h and h.count("divulgacandcontas.tse.jus.br") == 2
     assert pg.evaluate("TSE({link_tse:'javascript:x'})") == ""
+
+
+def test_regua_explica_troca_de_cargo(abrir):
+    pg = abrir()
+    t = pg.evaluate("GRUPO({n_pares:1604,cargo_pares:'DEPUTADO FEDERAL',cargo:'SENADOR',ano_ini:2022})")
+    assert t == "Entre 1.604 que disputaram Deputado Federal em 2022, como esta pessoa (depois ela disputou Senador)"
+    assert pg.evaluate("GRUPO({n_pares:81,cargo_pares:'SENADOR',cargo:'SENADOR',ano_ini:2018})") == "Entre 81 candidatos a Senador em 2018"

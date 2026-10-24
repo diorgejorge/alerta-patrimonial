@@ -53,3 +53,12 @@ def test_formula_no_aviso_legal_e_no_como_ler():
     assert "menos de 20" in aviso and "inflação" in aviso
     tpl = (RAIZ / "src" / "template.html").read_text(encoding="utf-8")
     assert "régua dos colegas" in tpl and "5 partes iguais" in tpl
+
+
+def test_regua_explica_quando_a_pessoa_trocou_de_cargo():
+    """Grupo = cargo disputado no inicio do periodo (ex.: deputado federal em 2022 que disputou senador em 2026)."""
+    r = graficos.regua_colegas(dict(percentil=70.0, n_pares=1604, cargo_pares="DEPUTADO FEDERAL", cargo="SENADOR",
+                                    ano_ini=2022))
+    assert "Entre 1.604 que disputaram Deputado Federal em 2022, como esta pessoa (depois ela disputou Senador)" in r
+    igual = graficos.regua_colegas(dict(percentil=70.0, n_pares=81, cargo_pares="SENADOR", cargo="SENADOR", ano_ini=2018))
+    assert "Entre 81 candidatos a Senador em 2018" in igual and "depois" not in igual

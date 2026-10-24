@@ -27,7 +27,11 @@ def regua_colegas(a):
     valor = "o maior do grupo" if p >= 99.5 else f"acima de {p:.0f}% dos colegas"
     n, cargo = int(a.get("n_pares") or 0), a.get("cargo_pares")
     n_txt = f"{n:,}".replace(",", ".")
-    grupo = ("" if not n else f"Entre {n_txt} candidatos a {e(_cap(cargo))} em {a.get('ano_ini')}" if cargo
+    depois = _cap(a.get("cargo")) or _cap(cargo)  # cargo do fim do periodo: se mudou, a legenda explica o grupo
+    grupo = ("" if not n
+             else f"Entre {n_txt} candidatos a {e(_cap(cargo))} em {a.get('ano_ini')}" if cargo and depois == _cap(cargo)
+             else f"Entre {n_txt} que disputaram {e(_cap(cargo))} em {a.get('ano_ini')}, como esta pessoa "
+                  f"(depois ela disputou {e(depois)})" if cargo
              else f"Entre {n_txt} pessoas de todos os cargos em {a.get('ano_ini')} (poucos colegas de cargo)")
     return ('<span class="colegas"><span class="regua-linha"><small aria-hidden="true">menos</small>'
             f'<span class="regua{" alto" if alto else ""}" role="img" aria-label="{e(rotulo)}">' + "<i></i>" * 5
