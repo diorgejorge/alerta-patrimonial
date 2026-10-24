@@ -101,7 +101,23 @@ def _tabela_periodos(linhas):
             + "</tr></thead><tbody>" + "".join(corpo) + "</tbody></table></div>")
 
 
+UNICA = "Só uma declaração no TSE nas eleições analisadas, sem comparação ainda."
+
+
+def _resumo_unica(a):
+    """Quem tem uma so declaracao no TSE: o patrimonio declarado em reais com o link do TSE, sem percentual nem faixa."""
+    kpis = [(_valor_tse(a.get("pat_fim"), a.get("link_tse")), f"Patrimônio declarado em {a.get('ano_fim')}"),
+            (e(cap(a.get("cargo"))), "Cargo disputado")]
+    tse = a.get("link_tse") if str(a.get("link_tse") or "").startswith("https://") else None
+    return ('<div class="kpis">' + "".join(f'<div class="card kpi"><b>{v}</b><span>{e(r)}</span></div>' for v, r in kpis)
+            + f'</div><p class="mut">{e(UNICA)}</p>'
+            + (f'<p><a class="botao" href="{e(tse)}" target="_blank" rel="noopener">Ver candidatura, bens e contas da campanha no TSE</a></p>'
+               if tse else ""))
+
+
 def _resumo(linhas):
+    if all(a.get("unica") for a in linhas):
+        return _resumo_unica(linhas[0])
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("cresc") or 0))
     so_pagina = bool(linhas[0].get("so_pagina"))  # fora dos destaques: sem faixa, e o periodo e so "analisado"
     kpis = ([(graficos.ROTULO_NIVEL[topo["nivel"]], "Faixa mais alta")] if topo.get("nivel") in graficos.ROTULO_NIVEL else [])

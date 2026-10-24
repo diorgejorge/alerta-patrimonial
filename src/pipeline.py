@@ -373,6 +373,44 @@ def em_mandato(serie, hoje=None):
     return atuais.assign(ano=atuais["ano"].astype(int)).groupby("chave")["ano"].max().to_dict()
 
 
+def ligar_ao_tse(parl, serie):
+    """Da a chave do TSE a quem esta em exercicio sem ela (senador suplente ou de primeiro mandato nao entra nos
+    periodos): candidatura com o mesmo nome e UF, so quando o nome aponta para uma pessoa so."""
+    sem = [x for x in parl if not x.get("_chave")]
+    if not sem or serie.empty:
+        return
+    por_nome = {}
+    for r in serie[["chave", "nome", "nome_urna", "uf"]].itertuples(index=False):
+        for n in {norm(r.nome), norm(r.nome_urna)} - {""}:
+            por_nome.setdefault((n, str(r.uf).upper()), set()).add(r.chave)
+    for x in sem:
+        achadas = set().union(*(por_nome.get((n, str(x.get("uf") or "").upper()), set()) for n in x.get("_nomes") or ()))
+        if len(achadas) == 1:
+            x["_chave"] = achadas.pop()
+
+
+def declaracao_unica(serie, chaves, pid=None):
+    """Ultima declaracao de quem tem uma so no TSE (sem periodo para comparar), no formato das linhas de alerta:
+    pagina propria com o patrimonio declarado, sem percentual nem faixa (marcada `unica` e `so_pagina`)."""
+    if not chaves:
+        return pd.DataFrame()
+    u = serie[serie.chave.isin(chaves)].sort_values("ano").drop_duplicates("chave", keep="last")
+    linhas = [dict(chave=r["chave"], nome=r["nome"], cargo=r["cargo"], uf=r["uf"], partido=r["partido"],
+                   ano_ini=int(r["ano"]), ano_fim=int(r["ano"]), pat_ini=None, pat_fim=r["patrimonio"], cresc=None,
+                   cap=None, cargo_ini=r["cargo"], nome_urna=txt(r.get("nome_urna")) or None, link_tse=link_tse(r),
+                   link_tse_ini=None, link_foto=link_foto(r),
+                   empresas=[str(e) for e in r["empresas"]][:MAX_EMPRESAS] if isinstance(r.get("empresas"), (list, tuple)) else [],
+                   empresas_cnpj=list(r["empresas_cnpj"]) if isinstance(r.get("empresas_cnpj"), (list, tuple)) else [],
+                   nivel=None, novo=False, topo=0, so_pagina=True, unica=True)
+              for r in u.to_dict("records")]
+    x = pd.DataFrame(linhas)
+    if x.empty:
+        return x
+    x["pessoa"] = x.chave.map(pid) if pid else None
+    x["id"] = x.pessoa.astype(str) + "|" + x.ano_fim.astype(str) if pid else None
+    return x
+
+
 CARGOS_ESTADO = {"GOVERNADOR", "VICE-GOVERNADOR", "DEPUTADO ESTADUAL", "DEPUTADO DISTRITAL"}
 
 
@@ -630,10 +668,13 @@ def main():
         parl, parl_ctx = [], {}
     # pagina propria tambem para quem esta em exercicio e nao e destaque (mesmo tratamento para todos): entram
     # depois dos destaques, marcados `so_pagina`, e saem do painel antes de grava-lo
+    ligar_ao_tse(parl, serie)  # senador sem par no TSE (suplente, primeiro mandato): liga pela declaracao unica
     extras = set() if so_lista else ({x["_chave"] for x in parl if x["_chave"]} | em_mandato_estadual(serie)) - set(vis.chave)
-    todas = pd.concat([vis, so_paginas(df, extras, pid)])
-    print(f"Paginas: {len(vis)} destaques + {len(todas) - len(vis)} em exercicio fora dos destaques "
-          f"(parlamentares federais, governadores e deputados estaduais).")
+    com_par = so_paginas(df, extras, pid)
+    unicas = declaracao_unica(serie, extras - set(com_par.chave), pid)
+    todas = pd.concat([vis, com_par, unicas])
+    print(f"Paginas: {len(vis)} destaques + {len(com_par)} em exercicio fora dos destaques + {len(unicas)} com uma so "
+          f"declaracao no TSE (parlamentares federais, governadores e deputados estaduais).")
 
     pub = todas.drop(columns=["chave", "id", "cargo_ini", "empresas_cnpj"])  # CPF/CNPJ nunca vao para o site
     pub = pub.astype(object).where(pub.notna(), None)
