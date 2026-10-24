@@ -639,16 +639,17 @@ async function todosCarregar(){
 }
 const TK={tcg:"cg",tpt:"pt",tuf:"uf"};
 // a pessoa entra se algum periodo tiver o cargo, partido ou estado; o nivel e o maior dos periodos (ign: ignora um filtro)
-function tPassa(p,ign,q){
-  for(const id of TSEL){if(id===ign)continue;const v=$(id).value;if(!v)continue;
+// filtros = [[id do select, valor escolhido]], lidos uma vez por desenho (#73): ler o DOM pessoa a pessoa travava o celular
+function tPassa(p,filtros,ign,q){
+  for(const [id,v] of filtros){if(id===ign)continue;
     if(TK[id]?!p[TK[id]].has(v):id==="tnv"?p.nv!==+v:!p.m.includes(v))return false;}
   return!q||p.q.includes(q);
 }
 function todosDraw(){
-  const q=SA($("tq").value.trim());TL=TD.P.filter(p=>tPassa(p,null,q));
+  const q=SA($("tq").value.trim()),filtros=TSEL.map(id=>[id,$(id).value]).filter(([,v])=>v);TL=TD.P.filter(p=>tPassa(p,filtros,null,q));
   // opcoes sem ninguem (com os outros filtros) ficam desativadas; sem nenhuma opcao, o filtro todo fica desativado
   for(const id of TSEL){const s=$(id),tem=new Set();
-    for(const p of TD.P)if(tPassa(p,id,q)){if(TK[id])for(const v of p[TK[id]])tem.add(v);else if(id==="tnv")tem.add(String(p.nv));else for(const c of p.m)tem.add(c);}
+    for(const p of TD.P)if(tPassa(p,filtros,id,q)){if(TK[id])for(const v of p[TK[id]])tem.add(v);else if(id==="tnv")tem.add(String(p.nv));else for(const c of p.m)tem.add(c);}
     for(const o of s.options)if(o.value)o.disabled=!tem.has(o.value)&&o.value!==s.value;
     s.disabled=!s.value&&![...s.options].some(o=>o.value&&!o.disabled);}
   const n=TL.length,tot=TD.P.length;
