@@ -224,15 +224,16 @@ def test_numeros_com_virgula_no_decimal(abrir, site):
 
 
 def test_tabela_da_pessoa_nao_quebra_palavras_no_computador(servidor, site):
-    """1280px: "Período", "R$ 26.961.420" e "Faixa vermelha" inteiros, cada um numa linha so."""
+    """1280px: nada de "Perío do"; "R$ 26.961.420" e "Faixa vermelha" numa linha so; a tabela cabe sem rolar."""
     nav, url = servidor
     pg = nav.new_page(viewport={"width": 1280, "height": 900})
     pg.goto(url.replace("index.html", f"pessoa/{next((site / 'pessoa').glob('*.html')).name}"))
-    # cada cabecalho, numero e faixa ocupa uma linha so (nada de "Perío do" ou "vermelh a")
-    linhas = pg.evaluate("""()=>[...document.querySelectorAll('table.resp th, table.resp td.n, table.resp .chip')]
+    assert pg.evaluate("getComputedStyle(document.querySelector('table.resp')).overflowWrap") == "normal"  # quebra so entre palavras
+    linhas = pg.evaluate("""()=>[...document.querySelectorAll('table.resp td.n, table.resp .chip')]
         .filter(e=>e.innerText.trim()&&!e.querySelector('br,small')).map(e=>{const r=document.createRange();r.selectNodeContents(e);
         return [e.innerText.trim(),new Set([...r.getClientRects()].map(x=>Math.round(x.bottom/12))).size]})""")
     assert linhas and all(n == 1 for _, n in linhas), [t for t, n in linhas if n != 1]
+    assert pg.evaluate("(t=>t.scrollWidth<=t.clientWidth)(document.querySelector('.tab'))")
     pg.close()
 
 
