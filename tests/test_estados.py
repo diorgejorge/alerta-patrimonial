@@ -255,6 +255,7 @@ def test_legenda_so_com_os_selos_que_aparecem():
     leg = estados.legenda_autores(autores)
     assert "legenda-selos" in leg and "<b>Eleito</b>" in leg and "<b>Emendas paradas</b>" in leg
     assert "Exemplar" not in leg and "Mão na massa" not in leg
+    assert '<b class="ano">ANO</b>' in leg and "2022" not in leg  # legenda nao mostra um ano fixo como se fosse dado
     assert estados.legenda_autores([dict(marcas=(), paradas=0)]) == ""
 
 

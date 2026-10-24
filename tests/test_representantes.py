@@ -157,6 +157,7 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     # aba propria, com a bandeira no topo e a legenda dos selos
     assert pagina.get_attribute("#aba-meus", "aria-selected") == "true" and "São Paulo" in pagina.inner_text("#meus-uf")
     assert pagina.locator("#meus-legenda .selo-cera").count() == 3
+    assert pagina.locator("#meus-legenda .selo-cera.verde .ano").inner_text() == "ANO"  # nada de ano fixo na legenda
     assert not SEM_VIRGULA.search(txt), SEM_VIRGULA.findall(txt)  # 43,5%, nunca 43.5%
     assert pagina.locator('a[href="estado/SP.html"]').count() == 1
     assert pagina.locator('a[href="feed/uf-SP.xml"]').count() == 1

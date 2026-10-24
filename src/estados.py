@@ -842,9 +842,9 @@ def prioridade(a):
 
 def legenda_autores(autores):
     """So os selos que aparecem na lista, na ordem dos cards; o da emenda parada traz o numero dentro."""
-    exemplo = {}  # o selo da legenda igual ao da lista: o Eleito com um ano que aparece nela
+    exemplo = {}  # o selo da legenda igual ao da lista; o Eleito leva "ANO" (um ano fixo parece dado real)
     for m in (m for a in autores for m in a.get("marcas") or ()):
-        exemplo[m.split(":")[0]] = max(exemplo.get(m.split(":")[0], ""), m)
+        exemplo[m.split(":")[0]] = "eleito:ANO" if m.startswith("eleito") else m
     tem = set(exemplo)
     itens = [(carimbos((exemplo[campo],)), f"<b>{rot}</b>: {e(dica[0].lower() + dica[1:]) if campo == 'eleito' else e(dica.split(': ', 1)[-1])}")
              for campo, cor, rot, ic, dica in MARCAS if campo in tem]
