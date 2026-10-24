@@ -924,7 +924,7 @@ def main():
         else:
             dados_dir.mkdir(parents=True, exist_ok=True)
             (dados_dir / estados.BASE.name).write_text(json.dumps(estados.base(parl, serie, pag, link_tse,
-                                                                              eleitos=em_mandato(serie)),
+                                                                              eleitos=em_mandato(serie), anos_eleito=anos),
                                                                   ensure_ascii=False), encoding="utf-8")
     except Exception as ex:
         print(f"[aviso] base do dossie por estado falhou ({ex!r})", file=sys.stderr)

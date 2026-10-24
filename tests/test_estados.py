@@ -265,7 +265,7 @@ def test_base_leva_pagina_e_carimbos():
     assert b[0]["pagina"] == "pessoa/p0009.html" and b[0]["exemplar"] and not b[0]["eleito"]
     assert b[1]["pagina"] is None and b[1]["selo"] and b[1]["eleito"]
     assert estados.marcas_de(b[0]) == ("exemplar",) and estados.marcas_de(b[1]) == ("eleito:2022", "selo")
-    assert "Eleito 2022" in estados.carimbos(estados.marcas_de(b[1]))
+    assert "Eleito em 2022" in estados.carimbos(estados.marcas_de(b[1]))
 
 
 def test_deputados_estaduais_em_exercicio():
@@ -471,3 +471,12 @@ def test_exemplar_e_mao_na_massa_primeiro_no_estado():
     html = estados.secao_autores(autores, "SP", falhou=False)
     ordem = [html.index(f"{n}<") for n in ("Ambos", "Exemplo", "Massa", "Rica", "Media")]
     assert ordem == sorted(ordem)  # o resto continua pelo valor pago
+
+
+def test_eleito_um_carimbo_por_eleicao_com_o_ano_dentro():
+    assert estados.ano_eleito({"cpf:1": 2022}, "cpf:1", {"cpf:1": [2022, 2018]}) == [2018, 2022]
+    assert estados.ano_eleito({"cpf:1": 2022}, "cpf:1") == [2022] and estados.ano_eleito({}, "cpf:1") is False
+    marcas = estados.marcas_de(dict(eleito=[2018, 2022], selo=True))
+    assert marcas == ("eleito:2018", "eleito:2022", "selo")
+    html = estados.carimbos(marcas)
+    assert html.count("selo-cera verde p com-ano") == 2 and '<b class="ano">2018</b>' in html and "Eleito em 2022" in html

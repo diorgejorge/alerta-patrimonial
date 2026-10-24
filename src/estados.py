@@ -458,7 +458,7 @@ def pagina_de(p):
 
 
 # carimbos dos cards do painel, na mesma ordem: (campo, cor do selo-cera, rotulo, icone flat, explicacao)
-MARCAS = (("eleito", "verde", "Eleito", "check", "Eleito pelo voto e com mandato em curso, segundo o TSE"),
+MARCAS = (("eleito", "verde", "Eleito", "check", "Venceu a eleição do ano marcado no selo, segundo o TSE"),
           ("exemplar", "ouro", "Exemplar", "estrela",
            "Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções"),
           ("selo", "caramelo", "Mão na massa", "pata", "Mão na massa: entre os 10% da sua casa com mais projetos aprovados"))
@@ -473,19 +473,33 @@ ICONES = {
 
 
 def marcas_de(p):
-    """Campos de carimbo que a pessoa tem (sem dado = sem carimbo); o Eleito leva o ano quando houver."""
-    return tuple(f"eleito:{p[campo]}" if campo == "eleito" and type(p[campo]) is int else campo
-                 for campo, *_ in MARCAS if p.get(campo))
+    """Campos de carimbo que a pessoa tem (sem dado = sem carimbo); o Eleito leva o ano, um por eleicao vencida."""
+    out = []
+    for campo, *_ in MARCAS:
+        v = p.get(campo)
+        anos = [v] if type(v) is int else v if isinstance(v, (list, tuple)) else ()
+        if campo == "eleito" and anos:
+            out += [f"eleito:{a}" for a in anos]
+        elif v:
+            out.append(campo)
+    return tuple(out)
 
 
 def carimbos(marcas):
-    """Selos de cera pequenos, os mesmos dos cards (cor e icone); vazio se a pessoa nao tem nenhum."""
-    anos = {m.split(":")[0]: m.split(":")[1] for m in marcas or () if ":" in m}
-    tem = {m.split(":")[0] for m in marcas or ()}
-    return "".join(f'<span class="selo-cera {cor} p" title="{rot}{" " + anos[campo] if campo in anos else ""}: {e(dica)}">'
-                   f'<span class="cera" aria-hidden="true"><span>{ICONES[ic]}</span></span>'
-                   f'<span class="sr">{rot}{" " + anos[campo] if campo in anos else ""}</span></span>'
-                   for campo, cor, rot, ic, dica in MARCAS if campo in tem)
+    """Selos de cera pequenos, os mesmos dos cards (cor e icone); o Eleito traz o ano dentro, um selo por eleicao
+    vencida; vazio se a pessoa nao tem nenhum."""
+    por = {}
+    for m in marcas or ():
+        campo, _, ano = m.partition(":")
+        por.setdefault(campo, []).append(ano)
+    out = []
+    for campo, cor, rot, ic, dica in MARCAS:
+        for ano in por.get(campo, ()):
+            dentro, extra, cls = (f'<b class="ano">{e(ano)}</b>', f" em {ano}", " com-ano") if ano else (ICONES[ic], "", "")
+            out.append(f'<span class="selo-cera {cor} p{cls}" title="{rot}{extra}: {e(dica)}">'
+                       f'<span class="cera" aria-hidden="true"><span>{dentro}</span></span>'
+                       f'<span class="sr">{rot}{extra}</span></span>')
+    return "".join(out)
 
 
 # ---------------------------------------------------------------- deputados estaduais (TSE) e Assembleias
@@ -576,23 +590,27 @@ def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=No
 BASE = ROOT / "data" / "estados_base.json"
 
 
-def ano_eleito(eleitos, chave):
-    """Ano da eleicao do mandato em curso (pipeline.em_mandato: {chave: ano}); True se so se sabe que e eleito."""
+def ano_eleito(eleitos, chave, anos=None):
+    """Anos das eleicoes vencidas (pipeline.anos_eleito: {chave: [anos]}), um carimbo para cada; sem a lista, o ano do
+    mandato em curso (pipeline.em_mandato: {chave: ano}); True se so se sabe que e eleito; False se nao foi."""
+    if anos and anos.get(chave):
+        return sorted(int(a) for a in anos[chave])
     if not eleitos or chave not in eleitos:
         return False
-    return eleitos[chave] if isinstance(eleitos, dict) else True
+    return [eleitos[chave]] if isinstance(eleitos, dict) and type(eleitos[chave]) is int else True
 
 
-def base(parl, serie=None, paginas=None, link=None, hoje=None, eleitos=None):
+def base(parl, serie=None, paginas=None, link=None, hoje=None, eleitos=None, anos_eleito=None):
     """O que o dossie por estado precisa do pipeline principal, gravado em data/estados_base.json para o workflow
     proprio (estados.yml) rodar depois, sem segurar o painel: parlamentares em exercicio e deputados estaduais.
     So dados publicos (nome, cargo, partido, UF, links, carimbos); CPF e chave ficam de fora.
-    `eleitos`: chaves com mandato em curso (pipeline.em_mandato), para o carimbo Eleito."""
+    `eleitos`: chaves com mandato em curso (pipeline.em_mandato); `anos_eleito`: eleicoes vencidas de cada chave
+    (pipeline.anos_eleito), um carimbo Eleito por ano."""
     estaduais, ano_est = deputados_estaduais(serie, paginas, link, hoje)
     pub = [dict(nome=p["nome"], cargo=p["cargo"], partido=p["partido"], uf=p["uf"], dossie=p.get("dossie"),
                 pagina=(paginas or {}).get(p.get("_chave")), perfil=p.get("perfil"), _nomes=sorted(p.get("_nomes") or ()),
                 exemplar=bool(p.get("exemplar")), selo=bool(p.get("selo")),
-                eleito=ano_eleito(eleitos, p.get("_chave"))) for p in parl]
+                eleito=ano_eleito(eleitos, p.get("_chave"), anos_eleito)) for p in parl]
     return dict(parlamentares=pub, estaduais=estaduais, eleicao_estadual=ano_est)
 
 
@@ -824,8 +842,11 @@ def prioridade(a):
 
 def legenda_autores(autores):
     """So os selos que aparecem na lista, na ordem dos cards; o da emenda parada traz o numero dentro."""
-    tem = {m.split(":")[0] for a in autores for m in a.get("marcas") or ()}
-    itens = [(carimbos((campo,)), f"<b>{rot}</b>: {e(dica[0].lower() + dica[1:]) if campo == 'eleito' else e(dica.split(': ', 1)[-1])}")
+    exemplo = {}  # o selo da legenda igual ao da lista: o Eleito com um ano que aparece nela
+    for m in (m for a in autores for m in a.get("marcas") or ()):
+        exemplo[m.split(":")[0]] = max(exemplo.get(m.split(":")[0], ""), m)
+    tem = set(exemplo)
+    itens = [(carimbos((exemplo[campo],)), f"<b>{rot}</b>: {e(dica[0].lower() + dica[1:]) if campo == 'eleito' else e(dica.split(': ', 1)[-1])}")
              for campo, cor, rot, ic, dica in MARCAS if campo in tem]
     if any(a.get("paradas") for a in autores):
         itens.append((carimbo(CARIMBO_PARADA, pequeno=True, marca="2"),
