@@ -40,4 +40,7 @@ jobs:
         run: |
           git config user.name "alerta-bot"; git config user.email "bot@users.noreply.github.com"
           git add docs data  # data/cache fica fora pelo .gitignore
-          git diff --cached --quiet || (git commit -m "Atualiza alertas" && git pull --rebase -X theirs && git push)
+          git diff --cached --quiet && exit 0
+          git commit -m "Atualiza alertas"
+          # outro push pode entrar entre o pull e o push: tenta de novo algumas vezes
+          for i in 1 2 3 4; do git pull --rebase -X theirs && git push && exit 0; sleep $((i * 5)); done; exit 1
