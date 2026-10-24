@@ -1,5 +1,5 @@
 """Empresas declaradas x dados abertos do CNPJ (Receita) com arquivos sinteticos no layout oficial, sem rede."""
-import json, re, sys, zipfile
+import json, time, re, sys, zipfile
 from pathlib import Path
 
 import pytest
@@ -72,7 +72,7 @@ def receita(monkeypatch):
 def test_coleta_filtra_e_usa_cache(tmp_path, receita, capsys):
     r = empresas.coletar({A, "11.222.333/0001-81", MEI}, tmp_path)
     assert r["_fonte"] is True and r["_ref"] == "2026-10"
-    assert set(r) - {"_fonte", "_ref"} == {A, MEI}  # so os pedidos e existentes
+    assert set(r) - {"_fonte", "_ref", "_pendentes"} == {A, MEI}  # so os pedidos e existentes
     assert r[A] == dict(cnae="0151201", cnae_desc="Criação de bovinos para corte", inicio="2019-03-15",
                         capital=2000000.0, situacao="ativa")
     assert r[MEI]["cnae"] == "0151201" and r[MEI]["situacao"] == "inapta" and r[MEI]["capital"] == 1234.56
@@ -86,9 +86,14 @@ def test_coleta_filtra_e_usa_cache(tmp_path, receita, capsys):
     # mesmo mes, mesmos CNPJs: nao baixa nada de novo
     r2 = empresas.coletar({A, C, MEI}, tmp_path)
     assert receita["grandes"] == 20 and r2[A] == r[A] and r2["_fonte"] is True
-    # CNPJ novo no mesmo mes: varre de novo
+    # CNPJ novo antes do prazo da recarga (config/recarga.json, #71): fica pendente, sem varrer de novo
     r3 = empresas.coletar({A, B}, tmp_path)
-    assert receita["grandes"] == 40 and r3[B]["capital"] == 5000.5
+    assert receita["grandes"] == 20 and B not in r3 and r3["_pendentes"] == {B} and r3[A] == r[A]
+    assert "ainda não consultada" in empresas.secao([("LOJA", B)], r3, 2018)
+    # passado o prazo: varre os novos junto com os ja procurados
+    r4 = empresas.coletar({A, B}, tmp_path, agora=time.time() + 8 * 86400)
+    assert receita["grandes"] == 40 and r4[B]["capital"] == 5000.5 and r4[A] == r[A] and not r4["_pendentes"]
+    assert set(json.loads(cifra.ler(tmp_path / "cnpj_receita.json"))["procurados"]) >= {A, B, MEI}
     log = capsys.readouterr()
     for c in (A, B, C, MEI, A[:8], B[:8]):
         assert c not in log.out + log.err  # CNPJ nunca vai para o log

@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import pandas as pd
 import cifra
+import recarga
 
 COMPARTILHAMENTO = "YggdBLfdninEJX9"  # link publico da Receita (SERPRO+/Nextcloud)
 WEBDAV = "https://arquivos.receitafederal.gov.br/public.php/webdav/"
@@ -196,13 +197,14 @@ def _data(s):
 def _carregar(arq):
     try:
         j = json.loads(cifra.ler(arq) or b"{}")  # cifrado (cifra.py): tem CNPJs
-        return dict(ref=j.get("ref"), procurados=set(j.get("procurados") or []), dados=j.get("dados") or {})
+        return dict(ref=j.get("ref"), procurados=set(j.get("procurados") or []), dados=j.get("dados") or {},
+                    em=j.get("em") or 0)
     except Exception:
-        return dict(ref=None, procurados=set(), dados={})
+        return dict(ref=None, procurados=set(), dados={}, em=0)
 
 
-def _salvar(arq, ref, procurados, dados):
-    cifra.gravar(arq, json.dumps(dict(ref=ref, procurados=sorted(procurados), dados=dados),
+def _salvar(arq, ref, procurados, dados, em):
+    cifra.gravar(arq, json.dumps(dict(ref=ref, procurados=sorted(procurados), dados=dados, em=em),
                                  ensure_ascii=False).encode())  # cifrado: tem CNPJs
 
 
@@ -265,34 +267,39 @@ def _varrer(ref, arqs, alvo, cache):
     return out
 
 
-def coletar(cnpjs, cache):
+def coletar(cnpjs, cache, agora=None):
     """cnpjs: CNPJs (14 posicoes) das empresas declaradas. Devolve {cnpj: dict(cnae, cnae_desc, inicio 'AAAA-MM-DD',
     capital float, situacao)} so dos encontrados (campos podem ser None), mais "_fonte": True se todos os pedidos
-    foram consultados na Receita (agora ou neste/noutro mes, pelo cache) e "_ref": 'AAAA-MM' dos dados.
-    So reprocessa os arquivos da Receita quando muda o mes de referencia ou aparece CNPJ ainda nao procurado."""
+    foram consultados na Receita (agora ou antes, pelo cache), "_pendentes": os que ainda esperam a proxima varredura
+    e "_ref": 'AAAA-MM' dos dados.
+    A varredura (20 arquivos, ~7 GB) so roda quando muda o mes de referencia ou aparece CNPJ ainda nao procurado, e no
+    maximo uma vez a cada `receita_dias` (config/recarga.json, #71); os ja procurados se somam aos novos."""
     cache = Path(cache)
     arq = cache / "cnpj_receita.json"
     alvo = {c for c in map(limpa, cnpjs or ()) if c}
     salvo = _carregar(arq)
-    ref, procurados, dados = salvo["ref"], salvo["procurados"], salvo["dados"]
-    if alvo:
-        mes = _mes()
+    ref, procurados, dados, em = salvo["ref"], salvo["procurados"], salvo["dados"], salvo["em"]
+    if alvo and (not alvo <= procurados or recarga.vencido(em, "receita_dias", 7, agora)):
+        mes = _mes() if not dados or recarga.vencido(em, "receita_dias", 7, agora) else None
         if mes and (mes[0] != ref or not alvo <= procurados):
-            print(f"Empresas (Receita): varrendo o mes {mes[0]} para {len(alvo)} empresas...")
+            todos = alvo if mes[0] != ref else alvo | procurados  # mes novo: so quem ainda importa
+            print(f"Empresas (Receita): varrendo o mes {mes[0]} para {len(todos)} empresas...")
             try:
-                novos = _varrer(mes[0], mes[1], alvo, cache)
+                novos = _varrer(mes[0], mes[1], todos, cache)
             except Exception as ex:
                 _aviso(f"varredura falhou ({ex!r})")
                 novos = None
             if novos is not None:
-                ref, procurados, dados = mes[0], set(alvo), novos
-                _salvar(arq, ref, procurados, dados)
+                ref, procurados, dados, em = mes[0], todos, novos, agora or time.time()
+                _salvar(arq, ref, procurados, dados, em)
         elif mes is None and not dados:
             _aviso("sem listagem e sem cache")
     out = {c: dados[c] for c in alvo if c in dados}
     out["_fonte"] = bool(alvo) and alvo <= procurados
+    out["_pendentes"] = frozenset(alvo - procurados) if ref else frozenset()
     out["_ref"] = ref
-    print(f"Empresas (Receita): {len(alvo)} procuradas, {len(out) - 2} encontradas (referencia {ref or '-'}).")
+    print(f"Empresas (Receita): {len(alvo)} procuradas, {len(out) - 3} encontradas, {len(out['_pendentes'])} para a "
+          f"proxima varredura (referencia {ref or '-'}).")
     return out
 
 
@@ -360,6 +367,8 @@ def secao(lista_empresas, dados, ano_ini):
             cap = _brl(v) if isinstance(v, (int, float)) and math.isfinite(v) else "Não informado"
             t += (f"<br>Atividade: {_atividade(d)}<br>{_fundada(d.get('inicio'), int(ano_ini))}"
                   f"<br>Capital social: {cap} · Situação: {e(d.get('situacao') or 'Não informado')}")
+        elif c in dados.get("_pendentes", ()):
+            t += "<br><b>Não informado</b>: empresa ainda não consultada; entra na próxima atualização da Receita."
         elif dados.get("_fonte"):
             t += "<br><b>Não informado</b>: empresa não localizada nos dados abertos do CNPJ."
         else:

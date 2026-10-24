@@ -1,0 +1,8 @@
+{
+  "_leia": "Dias entre uma recarga e outra de cada fonte. Dentro do prazo, a carga usa o dado ja processado e guardado, sem baixar de novo. Anos fechados do TSE nunca recarregam.",
+  "receita_dias": 7,
+  "ano_atual_dias": 30,
+  "emendas_anos_fechados_dias": 90,
+  "portal_dias": 30,
+  "assembleias_dias": 30
+}
