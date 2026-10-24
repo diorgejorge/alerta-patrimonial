@@ -77,28 +77,19 @@ def _serve(meta, ind):
                 freq=norm((meta.get("periodicidade") or {}).get("frequencia")))
 
 
-def resolver(ind, metadados, catalogo=None):
-    """Tabelas candidatas primeiro; depois as do catalogo do IBGE com `busca` no nome (no maximo 8)."""
-    vistos = set()
-
-    def tentar(t):
-        if t in vistos:
-            return None
-        vistos.add(t)
-        try:
-            return _serve(metadados(t), ind)
-        except Exception:
-            return None
+def resolver(ind, metadados):
+    """Primeira das tabelas candidatas (config) que tem a variavel e o nivel de estado; loga por que cada uma nao serviu.
+    (O catalogo completo de agregados nao e usado: tem varios MB e estourava o tempo da carga de 24/10.)"""
     for t in ind.get("tabelas") or ():
-        r = tentar(int(t))
+        try:
+            meta = metadados(int(t))
+        except Exception as ex:
+            print(f"[aviso] IBGE: {ind['id']}, tabela {t}: metadados indisponiveis ({ex!r})")
+            continue
+        r = _serve(meta, ind)
         if r:
             return r
-    achados = [int(a["id"]) for p in (catalogo() if catalogo else []) for a in p.get("agregados") or ()
-               if _tem(a.get("nome"), ind.get("busca") or ind["variavel"])]
-    for t in achados[:8]:
-        r = tentar(t)
-        if r:
-            return r
+        print(f"[aviso] IBGE: {ind['id']}, tabela {t}: sem a variavel, a categoria ou o nivel de estado")
     return None
 
 
@@ -183,15 +174,21 @@ def idh(cfg, baixar=_baixar):
     return None
 
 
+def _completo(d, cfg):
+    """Todos os indicadores do config e o IDH: so assim o cache vale a semana; incompleto, tenta de novo na carga."""
+    return bool(d) and len(d.get("indicadores") or ()) >= len(cfg.get("indicadores") or ()) and \
+        (bool(d.get("idh")) or not cfg.get("idh"))
+
+
 def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None):
     """Dados da aba: {"indicadores": [...], "valores": {"BR"/UF: {id: [ultimo, anterior, per, per_ant, tendencia]}},
     "idh": {...}}. Usa o cache por uma semana; se a consulta nova vier pior (menos indicadores), fica a ultima boa."""
     cfg = cfg or ler_config()
     agora = agora or time.time()
     guardado = cache.get(CHAVE) if cache is not None else None
-    if guardado and agora - guardado.get("em", 0) < VALIDADE_S:
+    if guardado and agora - guardado.get("em", 0) < VALIDADE_S and _completo(guardado["dados"], cfg):
         return guardado["dados"]
-    cat, fora, fim = [], [], time.monotonic() + PRAZO_S
+    fora, fim = [], time.monotonic() + PRAZO_S
 
     def seguro(url):
         """Primeira falha de rede (fora do ar, timeout) ou prazo estourado: o resto da etapa nem tenta."""
@@ -203,19 +200,10 @@ def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None):
             if not isinstance(ex, urllib.error.HTTPError):  # 404/500 de uma tabela nao derruba as outras
                 fora.append(ex)
             raise
-
-    def catalogo():
-        if not cat and not fora:
-            try:
-                cat.extend(seguro(API) or [])
-            except Exception as ex:
-                print(f"[aviso] IBGE: catalogo de agregados indisponivel ({ex!r})")
-            cat.append({})  # baixa uma vez so por carga, mesmo se falhar
-        return cat
     inds, valores = [], {}
     for ind in cfg.get("indicadores") or ():
         try:
-            res = resolver(ind, lambda t: seguro(f"{API}/{t}/metadados"), catalogo)
+            res = resolver(ind, lambda t: seguro(f"{API}/{t}/metadados"))
             if not res:
                 print(f"[aviso] IBGE: {ind['id']} " + ("pulado (fonte fora do ar)" if fora else "sem tabela que sirva"))
                 continue

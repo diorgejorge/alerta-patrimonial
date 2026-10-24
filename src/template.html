@@ -759,7 +759,7 @@ function indicadores(){
   // legenda: cores e setas, os icones de cada indicador (usados sem texto nos cards) e as fontes
   const fontes=[...new Set(ib.indicadores.map(i=>i.fonte))].join(", ");
   $("ind-leg").innerHTML=`<span class="ind melhor">${seta("melhor")} melhorou</span><span class="ind pior">${seta("pior")} piorou</span><span class="ind">${seta("igual")} igual</span>
-<span>em relação ao ano anterior. Nos estados:</span>${ib.indicadores.map(i=>`<span>${icoInd(i.id)} ${esc(i.nome)}</span>`).join("")}<span>Fonte: IBGE (${esc(fontes)})${h?" e PNUD":""}.</span>`;
+<span>em relação ao ano anterior.${ib.indicadores.length?" Nos estados:":""}</span>${ib.indicadores.map(i=>`<span>${icoInd(i.id)} ${esc(i.nome)}</span>`).join("")}<span>Fonte: ${[fontes&&`IBGE (${esc(fontes)})`,h&&"PNUD"].filter(Boolean).join(" e ")}.</span>`;
   $("ind-leg").hidden=false;
   const ufs=Object.keys(ib.valores).filter(u=>u!=="BR").sort((a,b)=>a.localeCompare(b));
   if(!ufs.length)return;

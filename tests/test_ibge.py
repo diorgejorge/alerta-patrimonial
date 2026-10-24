@@ -6,8 +6,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 import ibge
 
 IND = dict(id="desemprego", nome="Desemprego", unidade="%", casas=1, melhor="menor", tabelas=[4099],
-           busca="taxa de desocupacao", variavel="taxa de desocupacao")
-ESG = dict(id="esgoto", nome="Casas com esgoto", unidade="%", casas=1, melhor="maior", tabelas=[9], busca="esgotamento",
+           variavel="taxa de desocupacao")
+ESG = dict(id="esgoto", nome="Casas com esgoto", unidade="%", casas=1, melhor="maior", tabelas=[9],
            variavel="percentual", categorias={"esgot": "rede geral"})
 
 
@@ -28,11 +28,10 @@ def test_resolve_pela_tabela_e_ignora_coeficiente_de_variacao():
     assert r["tabela"] == 4099 and r["variavel"] == 4099 and r["classificacao"] == ""
 
 
-def test_sem_nivel_de_estado_procura_no_catalogo():
+def test_tabela_sem_nivel_de_estado_passa_para_a_proxima_candidata():
     metas = {4099: meta(4099, [(4099, "Taxa de desocupação")], niveis=("N1",)),
              6381: meta(6381, [(4099, "Taxa de desocupação")])}
-    cat = [dict(agregados=[dict(id="5000", nome="Outra coisa"), dict(id="6381", nome="Taxa de desocupação, trimestre móvel")])]
-    assert ibge.resolver(IND, metas.__getitem__, lambda: cat)["tabela"] == 6381
+    assert ibge.resolver(dict(IND, tabelas=[4099, 6381]), metas.__getitem__)["tabela"] == 6381
 
 
 def test_classificacao_no_total_e_categoria_pedida():
@@ -84,8 +83,15 @@ def test_coletar_monta_tudo_e_usa_cache():
     assert d["valores"]["BR"]["desemprego"][-1] == "melhor" and d["valores"]["SP"]["desemprego"][-1] == "pior"
     assert d["idh"] == dict(valor=0.786, anterior=0.78, ano=2023, posicao=84, link="https://hdr.undp.org/x")
     falha = lambda u: (_ for _ in ()).throw(OSError("fora"))
-    assert ibge.coletar(c, dict(indicadores=[IND]), falha, falha, agora=2000) == d  # dentro da semana: cache
-    assert ibge.coletar(c, dict(indicadores=[IND]), falha, falha, agora=1000 + 8 * 86400) == d  # fora: ultima boa
+    cfg1 = dict(indicadores=[IND], idh=dict(urls=["https://x/a.csv"]))
+    assert ibge.coletar(c, cfg1, falha, falha, agora=2000) == d  # dentro da semana: cache
+    assert ibge.coletar(c, cfg1, falha, falha, agora=1000 + 8 * 86400) == d  # fora: ultima boa
+
+
+def test_cache_incompleto_tenta_de_novo_na_carga():
+    c = CacheFalso({ibge.CHAVE: dict(em=1000, dados=dict(indicadores=[], valores={}, idh=dict(valor=0.786)))})
+    d = ibge.coletar(c, dict(indicadores=[IND], idh=dict(urls=["https://x/a.csv"])), obter_falso, lambda u: CSV.encode(), agora=2000)
+    assert [i["id"] for i in d["indicadores"]] == ["desemprego"] and c[ibge.CHAVE]["em"] == 2000
 
 
 def test_tudo_fora_do_ar_e_none():
@@ -108,7 +114,7 @@ def test_fora_do_ar_para_na_primeira_falha():
         raise TimeoutError("timed out")
     cfg = dict(indicadores=[IND, ESG, dict(IND, id="outro")])
     assert ibge.coletar(None, cfg, lento, lambda u: (_ for _ in ()).throw(OSError("fora"))) is None
-    assert len(chamadas) == 1  # nada de baixar o catalogo de novo para cada indicador
+    assert len(chamadas) == 1  # a primeira falha de rede pula o resto
 
 
 def test_tabela_com_erro_http_nao_derruba_as_outras():
