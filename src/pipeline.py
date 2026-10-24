@@ -373,6 +373,18 @@ def em_mandato(serie, hoje=None):
     return atuais.assign(ano=atuais["ano"].astype(int)).groupby("chave")["ano"].max().to_dict()
 
 
+CARGOS_ESTADO = {"GOVERNADOR", "VICE-GOVERNADOR", "DEPUTADO ESTADUAL", "DEPUTADO DISTRITAL"}
+
+
+def em_mandato_estadual(serie, hoje=None):
+    """Chaves de governadores, vices e deputados estaduais/distritais com mandato em curso (mesma regra do
+    em_mandato), para terem pagina propria como os parlamentares federais."""
+    hoje = hoje or dt.date.today()
+    e = serie[serie["eleito"].astype(bool) & serie["cargo"].map(norm).isin(CARGOS_ESTADO)]
+    ano = e["ano"].astype(int)
+    return set(e.loc[(ano < hoje.year) & (ano + 4 >= hoje.year), "chave"])
+
+
 # ---------------------------------------------------------------- saida
 def carregar_monitorados():
     """Lista de monitorados: segredo MONITORADOS_CSV (lido so em memoria) ou config/monitorados.csv."""
@@ -618,9 +630,10 @@ def main():
         parl, parl_ctx = [], {}
     # pagina propria tambem para quem esta em exercicio e nao e destaque (mesmo tratamento para todos): entram
     # depois dos destaques, marcados `so_pagina`, e saem do painel antes de grava-lo
-    extras = set() if so_lista else {x["_chave"] for x in parl if x["_chave"]} - set(vis.chave)  # trava vale aqui tambem
+    extras = set() if so_lista else ({x["_chave"] for x in parl if x["_chave"]} | em_mandato_estadual(serie)) - set(vis.chave)
     todas = pd.concat([vis, so_paginas(df, extras, pid)])
-    print(f"Paginas: {len(vis)} destaques + {len(todas) - len(vis)} parlamentares em exercicio fora dos destaques.")
+    print(f"Paginas: {len(vis)} destaques + {len(todas) - len(vis)} em exercicio fora dos destaques "
+          f"(parlamentares federais, governadores e deputados estaduais).")
 
     pub = todas.drop(columns=["chave", "id", "cargo_ini", "empresas_cnpj"])  # CPF/CNPJ nunca vao para o site
     pub = pub.astype(object).where(pub.notna(), None)

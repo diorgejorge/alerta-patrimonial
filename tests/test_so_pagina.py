@@ -37,3 +37,15 @@ def test_link_do_raio_x():
     assert pipeline.pagina_ou_dossie(dict(dossie="dossie/ana-sp.html", pessoa="p0001")) == "dossie/ana-sp.html"
     assert pipeline.pagina_ou_dossie(dict(pessoa="p0002", so_pagina=True)) == "pessoa/p0002.html"
     assert pipeline.pagina_ou_dossie(dict(pessoa=None)) is None
+
+
+def test_em_mandato_estadual_so_cargos_do_estado_com_mandato():
+    import datetime as dt
+    serie = pd.DataFrame([
+        dict(chave="cpf:1", cargo="GOVERNADOR", eleito=True, ano=2022),
+        dict(chave="cpf:2", cargo="DEPUTADO ESTADUAL", eleito=True, ano=2022),
+        dict(chave="cpf:3", cargo="DEPUTADO ESTADUAL", eleito=False, ano=2022),
+        dict(chave="cpf:4", cargo="DEPUTADO ESTADUAL", eleito=True, ano=2018),
+        dict(chave="cpf:5", cargo="VEREADOR", eleito=True, ano=2024),
+        dict(chave="cpf:6", cargo="DEPUTADO DISTRITAL", eleito=True, ano=2022)])
+    assert pipeline.em_mandato_estadual(serie, dt.date(2026, 10, 24)) == {"cpf:1", "cpf:2", "cpf:6"}
