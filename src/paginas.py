@@ -1,6 +1,6 @@
 """Pagina por pessoa (docs/pessoa/<id>.html) e blocos da visao geral (cartoes e graficos SVG).
 So usa o id interno (p0001...): CPF, chave e CNPJ nunca entram no HTML."""
-import csv, html, json, re, shutil
+import csv, hashlib, html, json, re, shutil
 from pathlib import Path
 import acompanhar, cobrar, gabinete, graficos, temas
 from texto import cap
@@ -338,6 +338,28 @@ def rodape_legal(site):
                   f'<a href="{pre}privacidade.html">Privacidade</a></footer>\n')
         pag.write_text(h.replace("</body>", rodape + "</body>", 1), encoding="utf-8")
         n += 1
+    return n
+
+
+ARQUIVOS_VERSIONADOS = ("estilo.css", "selo.js", "compartilhar.js", "representantes.js")
+
+
+def versionar(site):
+    """Poe ?v=<hash do conteudo> nos links de estilo e scripts comuns, para o navegador nao usar uma copia velha
+    depois de uma publicacao (o GitHub Pages deixa em cache por 10 min). Idempotente. Devolve quantas paginas mudaram."""
+    site = Path(site)
+    versoes = {f: hashlib.sha256((site / f).read_bytes()).hexdigest()[:10]
+               for f in ARQUIVOS_VERSIONADOS if (site / f).exists()}
+    if not versoes:
+        return 0
+    link = re.compile(r'((?:href|src)="(?:\.\./)*)(' + "|".join(map(re.escape, versoes)) + r')(?:\?v=[0-9a-f]*)?"')
+    n = 0
+    for pag in site.rglob("*.html"):
+        h = pag.read_text(encoding="utf-8")
+        novo = link.sub(lambda m: f'{m[1]}{m[2]}?v={versoes[m[2]]}"', h)
+        if novo != h:
+            pag.write_text(novo, encoding="utf-8")
+            n += 1
     return n
 
 

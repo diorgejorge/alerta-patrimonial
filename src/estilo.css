@@ -35,6 +35,7 @@ html.vidro option{background:#1b2f4e;color:#fff}
 html.vidro :is(#tip,.consentimento){background:#1b2f4e}
 html.vidro .marca{background:none;box-shadow:none;padding-left:0;padding-right:0}
 html.vidro :is(.abas [role=tab],.abas-site button)[aria-selected=true]{background:#fff;color:var(--marinho)}
+html.vidro .abas-site{background:rgba(20,36,62,.94)}  /* barra de abas fixa no topo: quase opaca, o texto que rola por baixo nao aparece atraves dela */
 @media print{html.vidro body{background:#fff}}
 
 *,*::before,*::after{box-sizing:border-box}

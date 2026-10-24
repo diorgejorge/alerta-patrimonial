@@ -53,6 +53,7 @@ jobs:
           paginas.copiar_estilo("_site")  # estilo, logo, icone e privacidade com o config atual
           print("Rodape legal em", paginas.rodape_legal("_site"), "paginas")  # #62
           print("Google Analytics ligado em", paginas.medicao("_site"), "paginas")  # 0 = sem id em config/analytics.json
+          print("Estilo e scripts versionados em", paginas.versionar("_site"), "paginas")  # sem copia velha em cache
           PY
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
