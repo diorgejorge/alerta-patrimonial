@@ -265,9 +265,8 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 /* eleito com mandato em curso (#67): borda verde; presidente, vice e exemplar mantem a borda deles e ganham so o carimbo */
 .alerta.eleito:not(.presidente,.vice,.exemplar),.borda-eleito{border:2px solid var(--eleito);
   box-shadow:0 0 0 4px color-mix(in srgb,var(--eleito) 20%,transparent),var(--elev)}
-/* rotulo visivel ao lado do selo ("Eleito 2022"): fita na cor da cera, por cima da borda do card */
-.selo-cera.com-rot .rot{padding:3px 10px;border-radius:999px;background:var(--cera);color:#fff;font-size:.75rem;font-weight:800;
-  letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+/* ano da eleicao dentro do selo (#67): sem texto ao lado; o significado fica na legenda da tela */
+.selo-cera.com-ano .cera{width:50px;height:50px}.selo-cera .cera .ano{display:block;font-size:.72rem;font-weight:800;letter-spacing:-.01em}
 @media print{.selo-cera .cera{filter:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{

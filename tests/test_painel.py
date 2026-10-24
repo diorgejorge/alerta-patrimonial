@@ -319,7 +319,8 @@ def test_eleito_carimbo_verde_e_borda_verde(abrir):
     pg = abrir()
     c = card(pg, [{**UM_PERIODO[0], "eleito_atual": True, "eleito_ano": 2022}])
     assert "eleito" in c.get_attribute("class") and c.locator(".selo-cera.verde.canto").count() == 1
-    assert c.locator(".selo-cera .rot").inner_text().strip().lower() == "eleito 2022"  # ano visivel
+    assert c.locator(".selo-cera .cera .ano").inner_text() == "2022"  # ano dentro do selo
+    assert c.locator(".selo-cera .rot").count() == 0  # sem texto do significado ao lado (fica na legenda)
     assert "mandato está em curso" in c.locator(".selo-cera").get_attribute("title")
     borda, cor = pg.evaluate("""()=>{const e=document.querySelector('#teste .alerta'),s=getComputedStyle(e);
         return[s.borderTopColor,getComputedStyle(document.documentElement).getPropertyValue('--eleito')]}""")
@@ -332,7 +333,7 @@ def test_eleito_carimbo_verde_e_borda_verde(abrir):
     assert card(pg, UM_PERIODO).locator(".selo-cera").count() == 0  # sem o campo (antes da carga), nada muda
     pg.evaluate("document.getElementById('teste').remove()")
     sem_ano = card(pg, [{**UM_PERIODO[0], "eleito_atual": True}])  # carga sem o ano: so "Eleito"
-    assert sem_ano.locator(".selo-cera .rot").inner_text().strip().lower() == "eleito"
+    assert sem_ano.locator(".selo-cera .ano").count() == 0 and sem_ano.locator(".selo-cera .cera svg").count() == 1
 
 
 def test_presidente_eleito_mantem_ouro_e_ganha_carimbo(abrir):
@@ -354,7 +355,7 @@ def test_legenda_e_filtro_do_eleito(abrir):
     assert b.is_visible()
     total = pg.locator("#cards .selo-cera.verde").count()
     assert total > 0
-    assert "2022" in pg.locator("#cards .selo-cera.verde .rot").first.inner_text()  # ano gravado pelo pipeline
+    assert pg.locator("#cards .selo-cera.verde .ano").first.inner_text() == "2022"  # ano gravado pelo pipeline
     b.click()
     assert pg.locator("#cards > li").count() == pg.locator("#cards .alerta.eleito").count()
     assert "Carimbo verde" in pg.inner_text("#leitura") or "Carimbo verde" in pg.evaluate("$('leitura').innerHTML")
