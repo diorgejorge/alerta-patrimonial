@@ -3,7 +3,7 @@ politicos. Fonte oficial e gratuita: API de agregados do IBGE (os mesmos dados d
 Cada indicador (config/ibge.json) acha a tabela e a variavel pelo nome nos metadados, porque o numero da tabela
 pode mudar entre edicoes da pesquisa. So no Brasil: IDH do PNUD (Relatorio de Desenvolvimento Humano).
 Tendencia: ultimo periodo contra o mesmo trimestre do ano anterior (trimestral) ou o periodo anterior (anual)."""
-import csv, io, json, re, time, urllib.parse, urllib.request
+import csv, io, json, re, time, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 from estados import UFS, norm
 
@@ -12,6 +12,7 @@ API = "https://servicodados.ibge.gov.br/api/v3/agregados"
 SIDRA = "https://sidra.ibge.gov.br/tabela/{t}"
 UA = {"User-Agent": "alerta-patrimonial/1.0"}
 VALIDADE_S = 7 * 86400  # dado trimestral/anual: consulta de novo uma vez por semana
+PRAZO_S = 180  # teto da etapa inteira: a carga de 24/10 ficou 50 min esperando a API fora do ar
 CHAVE = "ibge:v1"
 UF_DO_COD = {cod: uf for uf, (cod, _) in UFS.items()}
 NAO_E_VALOR = re.compile(r"COEFICIENTE|VARIACAO|ERRO|INTERVALO")
@@ -24,10 +25,10 @@ def ler_config(arq=CONFIG):
         return {}
 
 
-def _baixar(url, tentativas=3, pausa=2):
+def _baixar(url, tentativas=2, pausa=2):
     for i in range(tentativas):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=20) as r:
                 return r.read()
         except Exception:
             if i == tentativas - 1:
@@ -190,23 +191,35 @@ def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None):
     guardado = cache.get(CHAVE) if cache is not None else None
     if guardado and agora - guardado.get("em", 0) < VALIDADE_S:
         return guardado["dados"]
-    cat = []
+    cat, fora, fim = [], [], time.monotonic() + PRAZO_S
+
+    def seguro(url):
+        """Primeira falha de rede (fora do ar, timeout) ou prazo estourado: o resto da etapa nem tenta."""
+        if fora or time.monotonic() > fim:
+            raise TimeoutError("IBGE fora do ar ou prazo da etapa estourado")
+        try:
+            return obter(url)
+        except OSError as ex:
+            if not isinstance(ex, urllib.error.HTTPError):  # 404/500 de uma tabela nao derruba as outras
+                fora.append(ex)
+            raise
 
     def catalogo():
-        if not cat:
+        if not cat and not fora:
             try:
-                cat.extend(obter(API))
+                cat.extend(seguro(API) or [])
             except Exception as ex:
                 print(f"[aviso] IBGE: catalogo de agregados indisponivel ({ex!r})")
+            cat.append({})  # baixa uma vez so por carga, mesmo se falhar
         return cat
     inds, valores = [], {}
     for ind in cfg.get("indicadores") or ():
         try:
-            res = resolver(ind, lambda t: obter(f"{API}/{t}/metadados"), catalogo)
+            res = resolver(ind, lambda t: seguro(f"{API}/{t}/metadados"), catalogo)
             if not res:
-                print(f"[aviso] IBGE: {ind['id']} sem tabela que sirva")
+                print(f"[aviso] IBGE: {ind['id']} " + ("pulado (fonte fora do ar)" if fora else "sem tabela que sirva"))
                 continue
-            sr = series(obter(url_valores(res, 6)))
+            sr = series(seguro(url_valores(res, 6)))
         except Exception as ex:
             print(f"[aviso] IBGE: {ind['id']} indisponivel ({ex!r})")
             continue

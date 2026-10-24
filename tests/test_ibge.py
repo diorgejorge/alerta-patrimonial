@@ -98,3 +98,25 @@ def test_config_real_sem_pib_e_demo_no_formato():
     assert not any("PIB" in ibge.norm(i["nome"]) or "pib" in i["id"] for i in cfg["indicadores"])  # #55
     d = ibge.demo()
     assert set(d["valores"]) == {"BR", *ibge.UFS} and all(len(v) == 5 for v in d["valores"]["BR"].values())
+
+
+def test_fora_do_ar_para_na_primeira_falha():
+    chamadas = []
+
+    def lento(url):
+        chamadas.append(url)
+        raise TimeoutError("timed out")
+    cfg = dict(indicadores=[IND, ESG, dict(IND, id="outro")])
+    assert ibge.coletar(None, cfg, lento, lambda u: (_ for _ in ()).throw(OSError("fora"))) is None
+    assert len(chamadas) == 1  # nada de baixar o catalogo de novo para cada indicador
+
+
+def test_tabela_com_erro_http_nao_derruba_as_outras():
+    import urllib.error
+
+    def obter(url):
+        if "/9/" in url:
+            raise urllib.error.HTTPError(url, 500, "erro", None, None)
+        return obter_falso(url)
+    d = ibge.coletar(None, dict(indicadores=[dict(ESG, tabelas=[9]), IND]), obter, lambda u: b"")
+    assert [i["id"] for i in d["indicadores"]] == ["desemprego"]
