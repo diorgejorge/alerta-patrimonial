@@ -233,6 +233,28 @@ def test_agregar_e_ligar_autores():
     assert a["Ciclano RJ"]["uf"] == "RJ"  # autor de outra UF continua identificado
     assert a["Ex Deputado"]["cargo"] == ""
     assert a["Sem Emenda"]["n"] == 0  # parlamentar da UF sem emenda paga no estado tambem aparece
+    assert a["Ciclano RJ"]["link"] is None and a["Ciclano RJ"]["perfil"]  # sem dossie: nome sem link
+
+
+def test_autor_liga_ao_dossie_e_mostra_carimbos():
+    com = dict(nome="Fulana", cargo="SENADOR", partido="PX", uf="SP", n=1, pago=10.0, empenhado=10.0, coletivo=False,
+               link="../pessoa/p0001.html", perfil="https://senado/1", marcas=("eleito", "selo"))
+    html = estados._autor(com)
+    assert '<a href="../pessoa/p0001.html">Fulana</a>' in html and "perfil oficial" not in html
+    assert "selo-cera verde p" in html and "selo-cera caramelo p" in html and "Mão na massa" in html
+    assert "Exemplar" not in html  # carimbo sem dado fica escondido
+    sem = estados._autor(dict(com, link=None, marcas=()))
+    assert "<a href=\"https://senado/1\"" in sem and "perfil oficial" in sem and "selo-cera" not in sem
+    assert sem.startswith('<li><span class="rot">Fulana<small>')  # nome puro, sem link
+
+
+def test_base_leva_pagina_e_carimbos():
+    parl = [dict(nome="Fulana", cargo="SENADOR", partido="PX", uf="SP", perfil=None, _chave="cpf:1", exemplar=True),
+            dict(nome="Beltrano", cargo="SENADOR", partido="PX", uf="SP", perfil=None, _chave="cpf:2", selo=True)]
+    b = estados.base(parl, None, {"cpf:1": "pessoa/p0009.html"}, None, HOJE, eleitos={"cpf:2"})["parlamentares"]
+    assert b[0]["pagina"] == "pessoa/p0009.html" and b[0]["exemplar"] and not b[0]["eleito"]
+    assert b[1]["pagina"] is None and b[1]["selo"] and b[1]["eleito"]
+    assert estados.marcas_de(b[0]) == ("exemplar",) and estados.marcas_de(b[1]) == ("eleito", "selo")
 
 
 def test_deputados_estaduais_em_exercicio():

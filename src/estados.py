@@ -443,12 +443,45 @@ def ligar_autores(autores, uf, parl):
         out.append(dict(autor=autor, nome=p["nome"] if p else autor.title(), pago=round(pago, 2), n=n,
                         empenhado=round(emp, 2),
                         coletivo=coletivo(autor), cargo=p["cargo"] if p else "", partido=p["partido"] if p else "",
-                        uf=p["uf"] if p else "", link=relativo(p.get("dossie") or p.get("perfil")) if p else None))
+                        uf=p["uf"] if p else "", link=pagina_de(p) if p else None, perfil=p.get("perfil") if p else None,
+                        marcas=marcas_de(p) if p else ()))
     for p in parl:
         if p["uf"] == uf and id(p) not in vistos:
             out.append(dict(autor=p["nome"], nome=p["nome"], pago=0.0, n=0, empenhado=0.0, coletivo=False, cargo=p["cargo"], partido=p["partido"],
-                            uf=uf, link=relativo(p.get("dossie") or p.get("perfil"))))
+                            uf=uf, link=pagina_de(p), perfil=p.get("perfil"), marcas=marcas_de(p)))
     return out
+
+
+def pagina_de(p):
+    """Dossie da pessoa no site (pagina propria ou dossie dos destaques); sem pagina, None (nome sem link)."""
+    return relativo(p.get("pagina") or p.get("dossie"))
+
+
+# carimbos dos cards do painel, na mesma ordem: (campo, cor do selo-cera, rotulo, icone flat, explicacao)
+MARCAS = (("eleito", "verde", "Eleito", "check", "Eleito pelo voto e com mandato em curso, segundo o TSE"),
+          ("exemplar", "ouro", "Exemplar", "estrela",
+           "Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções"),
+          ("selo", "caramelo", "Mão na massa", "pata", "Mão na massa: entre os 10% da sua casa com mais projetos aprovados"))
+ICONES = {
+    "check": '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" '
+             'stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>',
+    "estrela": '<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 '
+               '5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg>',
+    "pata": '<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><ellipse cx="12" '
+            'cy="16" rx="4.2" ry="3.4"/><circle cx="5.8" cy="10.6" r="1.9"/><circle cx="9.4" cy="6.6" r="1.9"/><circle '
+            'cx="14.6" cy="6.6" r="1.9"/><circle cx="18.2" cy="10.6" r="1.9"/></svg>'}
+
+
+def marcas_de(p):
+    """Campos de carimbo que a pessoa tem (sem dado = sem carimbo)."""
+    return tuple(campo for campo, *_ in MARCAS if p.get(campo))
+
+
+def carimbos(marcas):
+    """Selos de cera pequenos, os mesmos dos cards (cor e icone); vazio se a pessoa nao tem nenhum."""
+    return "".join(f'<span class="selo-cera {cor} p" title="{e(dica)}"><span class="cera" aria-hidden="true"><span>'
+                   f'{ICONES[ic]}</span></span><span class="rot">{rot}</span></span>'
+                   for campo, cor, rot, ic, dica in MARCAS if campo in (marcas or ()))
 
 
 # ---------------------------------------------------------------- deputados estaduais (TSE) e Assembleias
@@ -539,13 +572,16 @@ def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=No
 BASE = ROOT / "data" / "estados_base.json"
 
 
-def base(parl, serie=None, paginas=None, link=None, hoje=None):
+def base(parl, serie=None, paginas=None, link=None, hoje=None, eleitos=None):
     """O que o dossie por estado precisa do pipeline principal, gravado em data/estados_base.json para o workflow
     proprio (estados.yml) rodar depois, sem segurar o painel: parlamentares em exercicio e deputados estaduais.
-    So dados publicos (nome, cargo, partido, UF, links); CPF e chave ficam de fora."""
+    So dados publicos (nome, cargo, partido, UF, links, carimbos); CPF e chave ficam de fora.
+    `eleitos`: chaves com mandato em curso (pipeline.em_mandato), para o carimbo Eleito."""
     estaduais, ano_est = deputados_estaduais(serie, paginas, link, hoje)
     pub = [dict(nome=p["nome"], cargo=p["cargo"], partido=p["partido"], uf=p["uf"], dossie=p.get("dossie"),
-                perfil=p.get("perfil"), _nomes=sorted(p.get("_nomes") or ())) for p in parl]
+                pagina=(paginas or {}).get(p.get("_chave")), perfil=p.get("perfil"), _nomes=sorted(p.get("_nomes") or ()),
+                exemplar=bool(p.get("exemplar")), selo=bool(p.get("selo")),
+                eleito=eleitos is not None and p.get("_chave") in eleitos) for p in parl]
     return dict(parlamentares=pub, estaduais=estaduais, eleicao_estadual=ano_est)
 
 
@@ -738,6 +774,8 @@ def secao_paradas(itens, meta):
 def _autor(a):
     nome = f'<a href="{e(a["link"])}">{e(a["nome"])}</a>' if a.get("link") else e(a["nome"])
     info = " · ".join(x for x in (a["cargo"].title() if a["cargo"] else "", a["partido"], a["uf"]) if x)
+    oficial = (f' · <a href="{e(a["perfil"])}" target="_blank" rel="noopener">perfil oficial</a>'
+               if not a.get("link") and a.get("perfil") and not a["coletivo"] else "")
     if a["coletivo"]:
         info = "bancada ou comissão"
     elif not a["cargo"]:
@@ -750,7 +788,10 @@ def _autor(a):
     par = a.get("paradas")
     marca = (f'<small>{carimbo(f"{par} parada" + ("s" if par > 1 else ""), pequeno=True, cor="parada-cera")}</small>'
              if par else "")
-    return f'<li><span class="rot">{nome}<small>{e(info)}</small>{marca}</span><span class="val">{valor}</span></li>'
+    selos = carimbos(a.get("marcas"))
+    selos = f'<span class="selos">{selos}</span>' if selos else ""
+    return (f'<li><span class="rot">{nome}{selos}<small>{e(info)}{oficial}</small>{marca}</span>'
+            f'<span class="val">{valor}</span></li>')
 
 
 def secao_autores(autores, uf, falhou):
@@ -894,7 +935,9 @@ def demo(parl=(), serie=None, paginas=None):
                ("Transferências Especiais da União", "especiais")]
     fin, lista, entes, mun, siglas = {}, [], [], {}, list(UFS)
     parl = list(parl) or [dict(nome=f"Deputada Demo {uf} {j}", cargo="DEPUTADO FEDERAL" if j < 4 else "SENADOR",
-                               partido="XX", uf=uf, perfil=None) for uf in UFS for j in range(1, 6)]
+                               partido="XX", uf=uf, perfil=f"https://www.camara.leg.br/deputados/{j}",
+                               pagina="pessoa/p0001.html" if j == 1 else None, eleito=j < 5, exemplar=j == 2,
+                               selo=j in (1, 3)) for uf in UFS for j in range(1, 6)]
     for i, (uf, (cod, nome)) in enumerate(UFS.items()):
         if uf == "AC":  # um estado com a fonte fora do ar, para a pagina mostrar "Fonte nao encontrada"
             fin[uf] = dict(ano_despesa=None, despesa="falha", ano_receita=None, receita="falha")
