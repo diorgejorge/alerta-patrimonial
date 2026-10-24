@@ -150,7 +150,7 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     assert pagina.locator("#meus-corpo .selo-cera.ouro").count() == 1 and pagina.locator("#meus-corpo .selo-cera.caramelo").count() == 1
     gov = pagina.locator('.rep-grupo[data-g="governador"] .rep')
     assert "Faixa laranja" in gov.inner_text() and gov.locator(".rep-lista-bt").count() == 1
-    assert "Eleito 2022" in gov.locator(".rep-selos").text_content() and "borda-eleito" in gov.get_attribute("class")
+    assert "2022" in gov.locator(".rep-selos .ano").text_content() and "borda-eleito" in gov.get_attribute("class")
     # aba propria, com a bandeira no topo e a legenda dos selos
     assert pagina.get_attribute("#aba-meus", "aria-selected") == "true" and "São Paulo" in pagina.inner_text("#meus-uf")
     assert pagina.locator("#meus-legenda .selo-cera").count() == 3
@@ -245,7 +245,7 @@ def test_escolher_cidade_mostra_prefeitura_e_lembra(pagina):
     pagina.wait_for_selector("#meus-cidade .rep")
     txt = pagina.locator("#meus-cidade").inner_text()
     assert "Prefeita Demo SP 2" in txt and "Vereadores (9)" in txt.replace("\n", " ")
-    assert "Eleito 2024" in pagina.locator("#meus-cidade .rep-selos").first.text_content()
+    assert "2024" in pagina.locator("#meus-cidade .rep-selos .ano").first.text_content()
     pagina.reload()
     pagina.wait_for_selector("#meus-cidade .rep")
     assert "Prefeita Demo SP 2" in pagina.locator("#meus-cidade").inner_text()
