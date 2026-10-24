@@ -1,5 +1,5 @@
 {
-  "_sobre": "Indicadores do IBGE da aba Estados (#68). Cada um usa a primeira das 'tabelas' candidatas que tiver a variavel e o nivel de estado (o log do fluxo 1 diz qual). 'variavel' e 'categorias' sao trechos do nome (sem acento, maiusculas ou minusculas). 'melhor': menor ou maior. Sem PIB (#55).",
+  "_sobre": "Indicadores do IBGE da aba Estados (#68). Cada um usa a primeira das 'tabelas' candidatas que tiver a variavel e o nivel de estado (o log do fluxo 1 diz qual). 'variavel' e 'categorias' sao trechos do nome (sem acento, maiusculas ou minusculas). 'preferir': categoria usada quando a tabela nao tem Total. 'melhor': menor ou maior. Sem PIB (#55).",
   "indicadores": [
     {"id": "desemprego", "nome": "Desemprego", "unidade": "%", "casas": 1, "melhor": "menor",
      "tabelas": [4099], "variavel": "taxa de desocupacao",
@@ -8,7 +8,7 @@
      "tabelas": [7531, 7533, 7428], "variavel": "per capita",
      "fonte": "PNAD Contínua anual"},
     {"id": "analfabetismo", "nome": "Analfabetismo", "unidade": "%", "casas": 1, "melhor": "menor",
-     "tabelas": [7113, 7125], "variavel": "analfabetismo",
+     "tabelas": [7113, 7125], "variavel": "analfabetismo", "preferir": ["15 anos ou mais"],
      "fonte": "PNAD Contínua anual"},
     {"id": "esgoto", "nome": "Casas com esgoto", "unidade": "%", "casas": 1, "melhor": "maior",
      "tabelas": [6805, 6732, 7262], "variavel": "percentual",

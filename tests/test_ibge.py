@@ -134,3 +134,16 @@ def test_dado_antigo_nao_entra_e_log_descreve_a_tabela(capsys):
     assert "dado antigo (ultimo ano 2016)" in capsys.readouterr().out
     ibge.coletar(None, dict(indicadores=[dict(ind, variavel="analfabetismo")]), velho, lambda u: b"", agora=1793000000)
     assert "variaveis ['Taxa de mortalidade infantil - coeficiente de variação', 'Taxa de mortalidade infantil']" in capsys.readouterr().out
+
+
+def test_classificacao_com_varias_categorias_fica_no_total_e_projecao_ate_o_ano_atual():
+    cab = {**CAB, "D2C": "Ano (Código)", "D2N": "Ano", "D4C": "Sexo (Código)", "D4N": "Sexo", "D5C": "Ano (Código)", "D5N": "Ano"}
+    linhas = [cab] + [dict(NC="1", V=v, D1C="1", D2C="2024", D3N="Taxa de mortalidade infantil", D4N=sexo, D5C=ano)
+                      for sexo, base in (("Homens", 20.0), ("Total", 12.0)) for ano, v in
+                      (("2025", str(base)), ("2026", str(base - 1)), ("2030", "1.0"))]
+    s, freq, _ = ibge.ler_sidra(linhas, dict(variavel="mortalidade infantil"), ano_max=2026)
+    assert freq == "ANUAL" and s == {"BR": {"2025": 12.0, "2026": 11.0}}  # Total; 2030 (projecao futura) fora
+    cab7113 = {**CAB, "D2C": "Ano (Código)", "D2N": "Ano", "D4C": "Grupo de idade (Código)", "D4N": "Grupo de idade"}
+    linhas = [cab7113] + [dict(NC="1", V=v, D1C="1", D2C="2024", D3N="Taxa de analfabetismo", D4N=g)
+                          for g, v in (("15 a 19 anos", "1.0"), ("15 anos ou mais", "5.3"), ("60 anos ou mais", "15.0"))]
+    assert ibge.ler_sidra(linhas, dict(variavel="analfabetismo", preferir=["15 anos ou mais"]))[0] == {"BR": {"2024": 5.3}}

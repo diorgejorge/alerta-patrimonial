@@ -66,32 +66,48 @@ def url_sidra(t, classif="", periodos=6):
     return f"{VALORES}/t/{t}/n1/all/n3/all/v/all/p/last%20{periodos}{classif or ''}"
 
 
-def ler_sidra(resp, ind):
+def _dimensoes(cab):
+    """[(chave 'D1', nome normalizado)] na ordem do cabecalho do SIDRA."""
+    return [(k[:-1], norm(v)) for k, v in cab.items() if re.fullmatch(r"D\d+N", k)]
+
+
+def ler_sidra(resp, ind, ano_max=None):
     """(series {"BR"/UF: {periodo: valor}}, frequencia, nome da variavel) da resposta do SIDRA (a 1a linha e o
-    cabecalho com o nome de cada dimensao D1..Dn). None se a tabela nao tem a variavel do indicador."""
+    cabecalho com o nome de cada dimensao D1..Dn). None se a tabela nao tem a variavel do indicador.
+    Classificacoes que vierem com mais de uma categoria: fica a linha "Total" ou a de `preferir` (config).
+    Duas dimensoes "Ano" (projecoes: edicao e ano projetado): o periodo e o ano projetado, ate `ano_max`."""
     if not isinstance(resp, list) or len(resp) < 2 or not isinstance(resp[0], dict):
         return None
-    dim = {norm(v): k[:-1] for k, v in resp[0].items() if re.fullmatch(r"D\d+N", k)}
-    kvar = dim.get("VARIAVEL")
-    kper = next((dim[n] for n in PERIODOS if n in dim), None)
-    kloc = next((k for n, k in dim.items() if TERRITORIO.search(n)), None)
+    dims = _dimensoes(resp[0])
+    kvar = next((k for k, n in dims if n == "VARIAVEL"), None)
+    pers = [(k, n) for k, n in dims if n in PERIODOS]
+    kper, nper = pers[-1] if pers else (None, None)
+    kloc = next((k for k, n in dims if TERRITORIO.search(n)), None)
     if not (kvar and kper and kloc):
         return None
     nomes = list(dict.fromkeys(r.get(kvar + "N") for r in resp[1:]))
     var = next((n for n in nomes if _tem(n, ind["variavel"]) and not NAO_E_VALOR.search(norm(n))), None)
     if not var:
         return None
-    out = {}
+    extras = [k for k, _ in dims if k not in (kvar, kloc, kper)]
+    preferir = [norm(x) for x in ind.get("preferir") or ()]
+
+    def nota(r):  # quantas classificacoes estao no Total (ou na categoria preferida)
+        return sum(norm(r.get(k + "N")) == "TOTAL" or any(x in norm(r.get(k + "N")) for x in preferir) for k in extras)
+    teto = ano_max if len(pers) > 1 else None  # so a projecao tem anos futuros
+    melhor = {}
     for r in resp[1:]:
-        v = _num(r.get("V"))
-        if r.get(kvar + "N") != var or v is None:
+        v, per = _num(r.get("V")), str(r.get(kper + "C"))
+        if r.get(kvar + "N") != var or v is None or (teto and per[:4].isdigit() and int(per[:4]) > teto):
             continue
         nc, cod = str(r.get("NC")), str(r.get(kloc + "C"))
         loc = "BR" if nc == "1" else UF_DO_COD.get(cod) if nc == "3" else None
-        if loc:
-            out.setdefault(loc, {})[str(r.get(kper + "C"))] = v
-    freq = next(PERIODOS[n] for n in PERIODOS if dim.get(n) == kper)
-    return out, freq, var
+        if loc and nota(r) >= melhor.get((loc, per), (-1, 0))[0]:
+            melhor[(loc, per)] = (nota(r), v)
+    out = {}
+    for (loc, per), (_, v) in melhor.items():
+        out.setdefault(loc, {})[per] = v
+    return out, PERIODOS[nper], var
 
 
 def descrever(resp):
@@ -101,7 +117,8 @@ def descrever(resp):
     dims = {k[:-1]: v for k, v in resp[0].items() if re.fullmatch(r"D\d+N", k)}
     kvar = next((k for k, v in dims.items() if norm(v) == "VARIAVEL"), None)
     nomes = list(dict.fromkeys(r.get(kvar + "N") for r in resp[1:]))[:4] if kvar else []
-    return f"dimensoes {list(dims.values())}; variaveis {nomes}"
+    br = [{k: r.get(k) for k in r if k == "V" or k.endswith("N") and k != "NN"} for r in resp[1:] if str(r.get("NC")) == "1"][:3]
+    return f"dimensoes {list(dims.values())}; variaveis {nomes}; linhas do Brasil {br}"
 
 
 def classif_desc(html, categorias):
@@ -236,7 +253,7 @@ def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None, sonda
                         print(f"[aviso] IBGE: {ind['id']}, tabela {t}: categoria {ind['categorias']} nao achada na descricao")
                         continue
                 resp = seguro(url_sidra(t, cl))
-                lido = ler_sidra(resp, ind)
+                lido = ler_sidra(resp, ind, time.gmtime(agora).tm_year)
             except Exception as ex:
                 print(f"[aviso] IBGE: {ind['id']}, tabela {t}: indisponivel ({ex!r})")
                 continue
