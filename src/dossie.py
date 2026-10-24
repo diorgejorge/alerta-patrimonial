@@ -559,6 +559,8 @@ def gerar_dossies(alertas, destino, max_pessoas=200, buscar=True, pausa=0.5, tim
 
     grupos = {}  # (nome, uf) -> [indices], na ordem do painel
     for i, a in enumerate(alertas):
+        if a.get("so_pagina"):  # fora dos destaques: so a pagina da pessoa (paginas.py), sem dossie repetido
+            continue
         k = (" ".join(ascii_(a.get("nome")).upper().split()), (a.get("uf") or "").upper())
         grupos.setdefault(k, []).append(i)
 

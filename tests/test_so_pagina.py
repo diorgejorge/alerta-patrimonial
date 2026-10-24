@@ -31,3 +31,9 @@ def test_extra_ganha_pagina_mas_nao_card(tmp_path, monkeypatch):
     cartoes, graf = paginas.gerar(alertas, pessoas, {}, {}, tmp_path, gerado="hoje")
     assert (tmp_path / "pessoa" / "p0002.html").exists() and alertas[1]["pagina"] == "pessoa/p0002.html"
     assert "p0001" in cartoes and "p0002" not in cartoes
+
+
+def test_link_do_raio_x():
+    assert pipeline.pagina_ou_dossie(dict(dossie="dossie/ana-sp.html", pessoa="p0001")) == "dossie/ana-sp.html"
+    assert pipeline.pagina_ou_dossie(dict(pessoa="p0002", so_pagina=True)) == "pessoa/p0002.html"
+    assert pipeline.pagina_ou_dossie(dict(pessoa=None)) is None

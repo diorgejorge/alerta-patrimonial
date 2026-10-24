@@ -489,6 +489,12 @@ def gravar_todos(docs, df, paginas_pessoa, gerado, marcas=None):
     return dict(pessoas=t["pessoas"], comparacoes=t["comparacoes"], kb=kb, exemplar=conta("e"), selo=conta("s"))
 
 
+def pagina_ou_dossie(a):
+    """Link do Raio-X da pessoa: o dossie dos destaques ou, para quem so tem pagina, docs/pessoa/<id>.html."""
+    pid = str(a.get("pessoa") or "")
+    return a.get("dossie") or (f"pessoa/{pid}.html" if re.fullmatch(r"p\d+", pid) else None)
+
+
 def so_paginas(df, chaves, pid=None):
     """Periodo mais recente de cada chave em `chaves` (parlamentares em exercicio fora dos destaques), no formato
     das linhas de alerta, marcado `so_pagina`: ganha pagina propria e dossie, mas nao vira card do painel."""
@@ -793,7 +799,7 @@ def main():
                                 de=r["de"], ate=r["ate"], link=r["link"], dossie=a.get("dossie")))
     dados["projetos"] = sorted(ranking, key=lambda x: (-x["aprovados"], -x["apresentados"]))[:10]
     if parl:  # com a lista de todos os parlamentares em exercicio, os rankings comparam a casa inteira
-        dossies = {ch: dados["alertas"][i].get("dossie") for i, ch in enumerate(todas["chave"])}
+        dossies = {ch: pagina_ou_dossie(dados["alertas"][i]) for i, ch in enumerate(todas["chave"])}
         for p in parl:
             p["dossie"] = dossies.get(p["_chave"])
         dados["cota"] = parlamentares.ranking_cota(parl) or dados["cota"]
