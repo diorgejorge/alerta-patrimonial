@@ -61,7 +61,7 @@ class Api:
 
     def __init__(self, chave_api, fim, timeout=30):
         self.chave, self.fim, self.timeout = chave_api, fim, timeout
-        self.ultimo, self.req, self.falhas, self.seguidas = 0.0, 0, 0, 0
+        self.ultimo, self.req, self.falhas, self.seguidas, self.vazias = 0.0, 0, 0, 0, 0
 
     def ativa(self):
         return bool(self.chave) and self.seguidas < 5 and time.monotonic() < self.fim
@@ -83,8 +83,12 @@ class Api:
                                      headers={"chave-api-dados": self.chave, "Accept": "application/json", "User-Agent": UA})
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as r:
-                dados = json.loads(r.read(20_000_000).decode("utf-8", "replace") or "null")
+                corpo = r.read(20_000_000).decode("utf-8", "replace").strip()
             self.seguidas = 0
+            dados = json.loads(corpo) if corpo else None
+            if dados is None:  # 204 / corpo vazio: o Portal nao tem registro (nao e falha da API)
+                self.vazias += 1
+                return []
             return dados
         except urllib.error.HTTPError as ex:
             if ex.code == 429 and not _de_novo:  # passou do limite: espera um minuto e tenta uma vez
@@ -349,7 +353,7 @@ def coletar(pessoas, tempo_max=45 * 60, chave_api=None, cache=None, bom=None):
         if c is not None:
             c.salvar()
     print(f"Portal da Transparencia (API): {len(out)} pessoas, {api.req} consultas, {api.falhas} falhas, "
-          f"{mantidas} com a ultima resposta completa mantida.")
+          f"{api.vazias} sem registro, {mantidas} com a ultima resposta completa mantida.")
     return out
 
 

@@ -62,3 +62,34 @@ def test_sem_resposta_anterior_fica_fonte_nao_encontrada(monkeypatch):
     portal(monkeypatch, {**BOA, "pf": None})
     out = transparencia.coletar(PESSOA, chave_api="x", cache=Guarda(), bom=Guarda())
     assert "Fonte não encontrada" in transparencia.secao(out["k1"], "FULANO")
+
+
+class Resposta:
+    def __init__(self, corpo):
+        self.corpo = corpo
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+    def read(self, n):
+        return self.corpo
+
+
+def test_corpo_vazio_e_sem_registro_nao_falha(monkeypatch):
+    """O Portal responde vazio quando o CPF nao consta em nada: vira lista vazia, nao "Fonte nao encontrada"."""
+    monkeypatch.setattr(transparencia.urllib.request, "urlopen", lambda req, timeout: Resposta(b""))
+    monkeypatch.setattr(transparencia.time, "sleep", lambda s: None)
+    api = transparencia.Api("x", transparencia.time.monotonic() + 60)
+    pf = transparencia.pessoa_fisica(api, "11111111111", "FULANO")
+    assert pf == dict(beneficios=[], sancoes=[], despesas=False, servidor=False)
+    assert (api.falhas, api.vazias) == (0, 1)
+
+
+def test_corpo_json_continua_igual(monkeypatch):
+    monkeypatch.setattr(transparencia.urllib.request, "urlopen", lambda req, timeout: Resposta(b'[{"servidor": true}]'))
+    monkeypatch.setattr(transparencia.time, "sleep", lambda s: None)
+    api = transparencia.Api("x", transparencia.time.monotonic() + 60)
+    assert transparencia.pessoa_fisica(api, "11111111111", "FULANO")["servidor"] is True
