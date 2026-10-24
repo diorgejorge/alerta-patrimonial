@@ -46,7 +46,7 @@
   const RANK=Array.isArray(D.estados_rank)?D.estados_rank.filter(r=>UFS[r.uf]):null;
   const resumoUf=r=>!r.total?"Não informado":r.exemplares?`${NUM(r.exemplares)} de ${NUM(r.total)} ${r.exemplares>1?"Exemplares":"Exemplar"}`:`Nenhum Exemplar entre ${NUM(r.total)}`;
   const cartao=r=>`<li><button type="button" class="uf-card" data-uf="${r.uf}" aria-pressed="false"><img src="bandeiras/${r.uf}.svg" alt="" width="60" height="40" loading="lazy" decoding="async">
-<span class="uf-nome">${r.pos?`<b class="uf-pos">${r.pos}º</b> `:""}${esc(UFS[r.uf])}</span>${RANK?`<small>${resumoUf(r)}</small>`:""}</button></li>`;
+<span class="uf-nome">${r.pos?`<b class="uf-pos">${r.pos}º</b> `:""}${esc(UFS[r.uf])}</span>${RANK?`<small>${resumoUf(r)}</small>`:""}${typeof indUf==="function"?indUf(r.uf):""}</button></li>`;
   grade.innerHTML=(RANK&&RANK.length?RANK:Object.keys(UFS).sort((a,b)=>UFS[a].localeCompare(UFS[b],"pt-BR")).map(uf=>({uf}))).map(cartao).join("");
   const nota=document.getElementById("uf-ordem");if(nota)nota.hidden=!(RANK&&RANK.length);
 

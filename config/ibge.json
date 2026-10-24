@@ -1,0 +1,27 @@
+{
+  "_sobre": "Indicadores do IBGE da aba Estados (#68). Cada um procura a tabela pelas 'tabelas' candidatas e, se nenhuma servir, pelo nome no catalogo de agregados (busca). 'variavel' e 'categorias' sao trechos do nome (sem acento, maiusculas ou minusculas). 'melhor': menor ou maior. Sem PIB (#55).",
+  "indicadores": [
+    {"id": "desemprego", "nome": "Desemprego", "unidade": "%", "casas": 1, "melhor": "menor",
+     "tabelas": [4099], "busca": "taxa de desocupacao", "variavel": "taxa de desocupacao",
+     "fonte": "PNAD Contínua trimestral"},
+    {"id": "renda", "nome": "Renda por pessoa", "unidade": "R$", "casas": 0, "melhor": "maior",
+     "tabelas": [7531, 7533, 7428], "busca": "rendimento medio mensal real domiciliar per capita", "variavel": "per capita",
+     "fonte": "PNAD Contínua anual"},
+    {"id": "analfabetismo", "nome": "Analfabetismo", "unidade": "%", "casas": 1, "melhor": "menor",
+     "tabelas": [7113, 7125], "busca": "taxa de analfabetismo das pessoas de 15 anos ou mais", "variavel": "analfabetismo",
+     "fonte": "PNAD Contínua anual"},
+    {"id": "esgoto", "nome": "Casas com esgoto", "unidade": "%", "casas": 1, "melhor": "maior",
+     "tabelas": [6805, 6732, 7262], "busca": "esgotamento sanitario", "variavel": "percentual",
+     "categorias": {"esgot": "rede geral"},
+     "fonte": "PNAD Contínua anual"},
+    {"id": "mortalidade", "nome": "Mortalidade infantil", "unidade": "por mil", "casas": 1, "melhor": "menor",
+     "tabelas": [7362, 3834], "busca": "mortalidade infantil", "variavel": "mortalidade infantil",
+     "fonte": "IBGE"}
+  ],
+  "idh": {
+    "iso3": "BRA",
+    "urls": ["https://hdr.undp.org/sites/default/files/2025_HDR/HDR25_Composite_indices_complete_time_series.csv",
+             "https://hdr.undp.org/sites/default/files/2023-24_HDR/HDR23-24_Composite_indices_complete_time_series.csv"],
+    "link": "https://hdr.undp.org/data-center/specific-country-data#/countries/BRA"
+  }
+}

@@ -123,6 +123,15 @@ background:var(--card);border:1px solid var(--line);border-radius:14px;box-shado
 .uf-card[aria-pressed="true"]{border:2px solid var(--ouro);background:var(--realce)}
 .uf-nome{font-weight:700;font-size:.9375rem;line-height:1.2}.uf-pos{color:var(--caramelo)}.uf-card small{color:var(--mut);font-size:.8125rem;font-variant-numeric:tabular-nums}
 @media (max-width:599.98px){.uf-grade{grid-template-columns:repeat(3,1fr);gap:8px}.uf-card{padding:.6em .3em}.uf-card img{width:48px;height:32px}.uf-nome{font-size:.8125rem}.uf-card small{font-size:.75rem}}
+/* indicadores do IBGE (#68): no Brasil, valor e seta; nos cards, so o icone colorido (legenda no topo da aba) */
+.ind-lista{list-style:none;margin:.6em 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:.875rem;font-variant-numeric:tabular-nums}
+.ind-lista li{display:flex;align-items:center;gap:5px}.ind-lista b{font-weight:700}.ind-lista a{color:var(--mut);font-size:.8125rem}
+.ind{display:inline-flex;align-items:center;color:var(--mut)}.ind.melhor{color:var(--novo)}.ind.pior{color:var(--forte)}
+.ind .ico,.ind-leg .ico,.uf-ind .ico{width:16px;height:16px}.ind svg{color:inherit!important}.seta{width:14px;height:14px;flex:none}
+.uf-ind{display:flex;gap:4px;justify-content:center;margin-top:2px}.uf-ind .ind{padding:3px;border-radius:50%;background:var(--realce)}
+.uf-ind .ind.melhor{background:color-mix(in srgb,var(--novo) 28%,transparent)}.uf-ind .ind.pior{background:color-mix(in srgb,var(--forte) 28%,transparent)}
+.ind-leg{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin:.4em 0;font-size:.8125rem;color:var(--mut)}.ind-leg span{display:inline-flex;align-items:center;gap:4px}
+#ind-tabela td .ind{gap:3px}
 @media (prefers-reduced-motion:reduce){.uf-card{transition:none}.uf-card:hover{transform:none}}
 .rep-resumo{margin:.8em 0 .4em}.rep-acoes{display:flex;flex-wrap:wrap;gap:8px;margin:.4em 0 .6em}.rep-acoes .botao{text-decoration:none}
 .rep-grupo h3{margin:.9em 0 .4em;font-size:1rem}.rep-grupo h3 small{font-weight:400}
@@ -235,9 +244,12 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <ul class="meus-leg" id="meus-legenda" aria-label="Legenda dos selos e faixas"></ul>
 <div id="meus-corpo" aria-live="polite"></div></section>
 <section id="estados" class="painel-aba" aria-labelledby="estados-tit" hidden><div class="uf-topo"><img class="uf-br" src="bandeiras/BR.svg" alt="" width="60" height="40"><div><h2 id="estados-tit">Escolha seu estado</h2>
-<p>Toque no seu estado e veja quem está no cargo hoje, quanto gasta do seu dinheiro e o que entrega.</p></div></div>
+<p>Toque no seu estado e veja quem está no cargo hoje, quanto gasta do seu dinheiro e o que entrega.</p>
+<ul class="ind-lista" id="ind-br" aria-label="Indicadores do Brasil" hidden></ul></div></div>
+<p class="ind-leg" id="ind-leg" hidden></p>
 <p class="fonte" id="uf-ordem" hidden>Na frente, os estados com a maior proporção de deputados federais e senadores Exemplares. <a href="funcionamento.html#ranking-estados">Como é a conta</a>. Fontes: <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">TSE</a>, <a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener">Câmara dos Deputados</a>, <a href="https://www12.senado.leg.br/dados-abertos" target="_blank" rel="noopener">Senado Federal</a> e <a href="https://portaldatransparencia.gov.br/" target="_blank" rel="noopener">Portal da Transparência</a>.</p>
 <ol class="uf-grade" id="uf-grade" aria-label="Estados"></ol>
+<details class="dados" id="ind-tab" hidden><summary>Ver os indicadores de cada estado em tabela</summary><div class="tab" id="ind-tabela"></div></details>
 </section>
 <section id="exemplares" class="painel-aba" hidden><h2><span class="estrela"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg></span> Parlamentares exemplares</h2>
 <p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência. Fontes: <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">TSE</a>, <a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener">Câmara dos Deputados</a>, <a href="https://www12.senado.leg.br/dados-abertos" target="_blank" rel="noopener">Senado Federal</a> e <a href="https://portaldatransparencia.gov.br/" target="_blank" rel="noopener">Portal da Transparência</a>.</p>
@@ -716,6 +728,46 @@ function legenda(){
     b.title=n?tt[b.dataset.v]:nt?`${f[2]}. Clique para ver na lista completa`:f[2];
     const td=b.closest("li")?.querySelector(".expl");if(!n&&td)td.append(" ",el("small",null,nt?"(nenhum entre os destaques; veja na lista completa)":"(ninguém nesta atualização)"));}
 }
+// indicadores do IBGE na aba Estados (#68): Brasil ao lado da bandeira com valor e seta; nos cards dos estados so os
+// icones coloridos (sem texto ao lado), com a legenda no topo da aba e a tabela completa sob demanda. Sem dado: escondido
+const IND_ICO={desemprego:'<path d="M4 8h16v11H4zM9 8V5h6v3"/>',renda:'<circle cx="12" cy="12" r="8.5"/><path d="M14.5 9.5c-.5-.8-1.4-1.2-2.5-1.2-1.4 0-2.5.7-2.5 1.7s1.1 1.4 2.5 1.7 2.5.8 2.5 1.8-1.1 1.7-2.5 1.7c-1.1 0-2-.4-2.5-1.2M12 6.5v1.8M12 15.7v1.8"/>',
+  analfabetismo:'<path d="M3 5h6.5A2.5 2.5 0 0 1 12 7.5V20a2 2 0 0 0-2-2H3zM21 5h-6.5A2.5 2.5 0 0 0 12 7.5V20a2 2 0 0 1 2-2h7z"/>',
+  esgoto:'<path d="M12 3.5s5.5 6.3 5.5 10a5.5 5.5 0 0 1-11 0c0-3.7 5.5-10 5.5-10z"/>',mortalidade:'<path d="M12 20s-7-4.4-7-9.6A3.9 3.9 0 0 1 12 8a3.9 3.9 0 0 1 7 2.4C19 15.6 12 20 12 20z"/>'};
+const icoInd=id=>`<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IND_ICO[id]||'<circle cx="12" cy="12" r="8"/>'}</svg>`;
+const SETA={melhor:'<path d="M12 19V5M6 11l6-6 6 6"/>',pior:'<path d="M12 5v14M6 13l6 6 6-6"/>',igual:'<path d="M5 9h14M5 15h14"/>'};
+const seta=t=>t?`<svg class="seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${SETA[t]}</svg>`:"";
+const TEND={melhor:"melhorou",pior:"piorou",igual:"ficou igual"};
+const valorInd=(v,i)=>i.unidade==="R$"?"R$ "+NUM(v,0):i.unidade==="%"?PCT(Number(v.toFixed(i.casas))):NUM(v,i.casas)+" "+i.unidade;
+const IB=()=>D&&D.ibge&&Array.isArray(D.ibge.indicadores)?D.ibge:null;
+function rotuloInd(i,r){return`${i.nome}: ${valorInd(r[0],i)} (${r[2]})${r[4]?`, ${TEND[r[4]]}${r[3]?` desde ${r[3]}`:""}`:""}`;}
+// icones do card do estado (chamado por representantes.js ao montar a grade)
+function indUf(uf){
+  const ib=IB(),v=ib&&ib.valores[uf];if(!v)return"";
+  const itens=ib.indicadores.filter(i=>v[i.id]).map(i=>{const r=v[i.id],t=rotuloInd(i,r);return`<span class="ind ${r[4]||""}" role="img" title="${esc(t)}" aria-label="${esc(t)}">${icoInd(i.id)}</span>`;});
+  return itens.length?`<span class="uf-ind">${itens.join("")}</span>`:"";
+}
+function indicadores(){
+  const ib=IB();if(!ib)return;
+  const br=ib.valores.BR||{},lista=$("ind-br");
+  const itens=ib.indicadores.filter(i=>br[i.id]).map(i=>{const r=br[i.id];
+    return`<li title="${esc(rotuloInd(i,r))}"><span class="ind ${r[4]||""}">${icoInd(i.id)}${seta(r[4])}</span> ${esc(i.nome)} <b>${valorInd(r[0],i)}</b> <a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(r[2])}</a></li>`;});
+  const h=ib.idh;
+  if(h&&h.valor){const t=h.anterior==null?"":Math.round(h.valor*1000)===Math.round(h.anterior*1000)?"igual":h.valor>h.anterior?"melhor":"pior";
+    itens.push(`<li title="Índice de Desenvolvimento Humano do PNUD${h.posicao?`: ${h.posicao}º entre os países`:""}"><span class="ind ${t}">${seta(t)}</span> IDH <b>${NUM(h.valor,3)}</b>${h.posicao?` <small>${h.posicao}º no mundo</small>`:""} <a href="${esc(h.link)}" target="_blank" rel="noopener">PNUD ${h.ano}</a></li>`);}
+  if(!itens.length)return;
+  lista.innerHTML=itens.join("");lista.hidden=false;
+  // legenda: cores e setas, os icones de cada indicador (usados sem texto nos cards) e as fontes
+  const fontes=[...new Set(ib.indicadores.map(i=>i.fonte))].join(", ");
+  $("ind-leg").innerHTML=`<span class="ind melhor">${seta("melhor")} melhorou</span><span class="ind pior">${seta("pior")} piorou</span><span class="ind">${seta("igual")} igual</span>
+<span>em relação ao ano anterior. Nos estados:</span>${ib.indicadores.map(i=>`<span>${icoInd(i.id)} ${esc(i.nome)}</span>`).join("")}<span>Fonte: IBGE (${esc(fontes)})${h?" e PNUD":""}.</span>`;
+  $("ind-leg").hidden=false;
+  const ufs=Object.keys(ib.valores).filter(u=>u!=="BR").sort((a,b)=>a.localeCompare(b));
+  if(!ufs.length)return;
+  $("ind-tabela").innerHTML=`<table class="resp"><thead><tr><th>Estado</th>${ib.indicadores.map(i=>`<th class="n"><a href="${esc(i.link)}" target="_blank" rel="noopener">${esc(i.nome)}</a></th>`).join("")}</tr></thead><tbody>${
+    ["BR",...ufs].map(u=>`<tr><th scope="row">${u==="BR"?"Brasil":esc(u)}</th>${ib.indicadores.map(i=>{const r=(ib.valores[u]||{})[i.id];
+      return`<td class="n">${r?`<span class="ind ${r[4]||""}" title="${esc(rotuloInd(i,r))}">${valorInd(r[0],i)} ${seta(r[4])}</span>`:"Não informado"}</td>`;}).join("")}</tr>`).join("")}</tbody></table>`;
+  $("ind-tab").hidden=false;
+}
 // abas (#52): uma secao por vez e a pessoa escolhe o que aprofundar; sem JS tudo aparece em sequencia
 const ABAS=[["destaques","Destaques"],["meus","Quem representa você"],["estados",ICO.mapa+" Estados"],["exemplares",ICO.estrela+" Exemplares"],["projetos",ICO.pata+" Projetos"],["cota","Cota parlamentar"],["numeros","Números"],["todos","Todas as pessoas"]];
 let ABA="";
@@ -748,7 +800,7 @@ $("filtros-bt").onclick=()=>$("filtros-bt").setAttribute("aria-expanded",$("filt
 // blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
 for(const s of document.querySelectorAll("section.grade.duas"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
-if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();$("estados").hidden=$("meus").hidden=!D.representantes;abas();heroNum();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();$("estados").hidden=$("meus").hidden=!D.representantes;indicadores();abas();heroNum();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
 $("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;if(b.dataset.todos){todosCom(b.dataset.v==="exemplar"?"e":"s");return;}F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();verDestaques();};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};

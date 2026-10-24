@@ -23,6 +23,7 @@ import cifra
 import contatos
 import paginas
 import representantes, shutil
+import ibge
 import ranking as ranking_uf  # "ranking" ja e variavel do main()
 import acompanhar
 
@@ -877,6 +878,12 @@ def main():
                                                   ranking_uf.ultimo_periodo(df))
     except Exception as ex:
         print(f"[aviso] ranking dos estados falhou ({ex!r})", file=sys.stderr)
+    # indicadores do IBGE na aba Estados (#68): Brasil e estados; sem dado, o bloco fica escondido
+    try:
+        dados["ibge"] = ibge.demo() if args.demo else ibge.coletar(
+            Cache(CACHE / "ibge.cache", 400 * 86400, seg_cache) if seg_cache else None)
+    except Exception as ex:
+        print(f"[aviso] indicadores do IBGE falharam ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)
     dados["alertas"] = [a for a in dados["alertas"] if not a.get("so_pagina")]  # extras: so a pagina propria
     # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento

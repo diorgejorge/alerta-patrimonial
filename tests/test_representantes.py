@@ -324,3 +324,31 @@ def test_aba_meus_sem_estado_convida_e_trocar_volta_as_bandeiras(pagina):
     pagina.wait_for_selector("#meus-corpo .rep")
     pagina.click("#meus-trocar")
     assert pagina.locator("#estados").is_visible()
+
+
+# ---------- indicadores do IBGE na aba Estados (#68) ----------
+
+def test_indicadores_do_brasil_legenda_cards_e_tabela(pagina):
+    pagina.goto(pagina.url_base + "#estados")
+    br = pagina.locator("#ind-br li")
+    assert br.count() == 6 and "IDH" in br.nth(5).inner_text() and "84º no mundo" in br.nth(5).inner_text()
+    assert pagina.locator('#ind-br a[href^="https://sidra.ibge.gov.br/tabela/"]').count() == 5
+    assert not SEM_VIRGULA.search(pagina.locator("#ind-br").inner_text())  # 7,4%, nunca 7.4%
+    leg = pagina.locator("#ind-leg")
+    assert leg.is_visible() and "melhorou" in leg.inner_text() and "piorou" in leg.inner_text() and "IBGE" in leg.inner_text()
+    # nos cards so os icones (sem texto ao lado), com o significado no rotulo acessivel
+    ic = pagina.locator('.uf-card[data-uf="SP"] .uf-ind .ind')
+    assert ic.count() == 5 and ic.first.inner_text() == "" and "Desemprego:" in ic.first.get_attribute("aria-label")
+    pagina.click("#ind-tab summary")
+    assert pagina.locator("#ind-tabela tbody tr").count() == 28
+
+
+def test_sem_ibge_o_bloco_fica_escondido(pagina):
+    def sem_ibge(rota):
+        r = rota.fetch()
+        rota.fulfill(response=r, body=r.text().replace('"ibge":', '"ibge_fora":'))
+    pagina.route("**/index.html", sem_ibge)
+    pagina.goto(pagina.url_base + "#estados")
+    assert pagina.locator(".uf-card").count() == 27 and pagina.locator(".uf-ind").count() == 0
+    for id_ in ("#ind-br", "#ind-leg", "#ind-tab"):
+        assert not pagina.locator(id_).is_visible(), id_
