@@ -352,3 +352,11 @@ def test_sem_ibge_o_bloco_fica_escondido(pagina):
     assert pagina.locator(".uf-card").count() == 27 and pagina.locator(".uf-ind").count() == 0
     for id_ in ("#ind-br", "#ind-leg", "#ind-tab"):
         assert not pagina.locator(id_).is_visible(), id_
+
+
+def test_celular_sem_rolagem_para_o_lado(servidor):  # noqa: F811
+    nav, url = servidor
+    pg = nav.new_page(viewport=dict(width=360, height=740), is_mobile=True)
+    pg.goto(url + "#estados")
+    assert pg.evaluate("document.documentElement.scrollWidth<=innerWidth"), "a grade de estados passou da largura do celular"
+    pg.close()
