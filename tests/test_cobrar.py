@@ -176,7 +176,8 @@ def test_paginas_tem_aba_cobrar_e_botao(site):
 
 def test_painel_carrega_o_script(site):
     h = (site / "index.html").read_text(encoding="utf-8")
-    assert '<script src="compartilhar.js" defer>' in h and "data-compartilhar" in h
+    assert '<script src="compartilhar.js" defer>' in h and '<script src="painel.js">' in h
+    assert "data-compartilhar" in (site / "painel.js").read_text(encoding="utf-8")  # JS do painel em arquivo proprio (#73)
 
 
 # ---------- interface: Chromium ----------

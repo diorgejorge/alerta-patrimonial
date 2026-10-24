@@ -284,7 +284,7 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=
 def copiar_estilo(docs):
     """estilo.css, selo.js, logo, a pagina de privacidade (LGPD arts. 9, 18 e 41) e o aviso legal, com os dados de
     config/privacidade.json."""
-    for f in ("estilo.css", "selo.js", "compartilhar.js", "representantes.js"):  # estilo, selo de cera, cobrar (#60, #61), estados (#68)
+    for f in ("estilo.css", "selo.js", "compartilhar.js", "representantes.js", "painel.js"):  # estilo, selo de cera, cobrar (#60, #61), estados (#68), painel (#73)
         shutil.copyfile(SRC / f, Path(docs) / f)
     shutil.copytree(SRC / "bandeiras", Path(docs) / "bandeiras", dirs_exist_ok=True)  # aba Estados (#68), sem link externo
     for img in ("logo.png", "icone.png"):  # marca do Caramelo Vasculha

@@ -51,7 +51,7 @@ def test_formula_no_aviso_legal_e_no_como_ler():
     aviso = (RAIZ / "src" / "funcionamento.html").read_text(encoding="utf-8")
     assert "Régua dos colegas" in aviso and "5 partes iguais" in aviso and "90 de cada 100" in aviso
     assert "menos de 20" in aviso and "inflação" in aviso
-    tpl = (RAIZ / "src" / "template.html").read_text(encoding="utf-8")
+    tpl = "".join((RAIZ / "src" / f).read_text(encoding="utf-8") for f in ("template.html", "painel.js"))  # JS do painel (#73)
     assert "régua dos colegas" in tpl and "5 partes iguais" in tpl
 
 

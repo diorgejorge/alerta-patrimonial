@@ -136,7 +136,7 @@ def test_lista_completa(saida):
     assert com_dossie and all(c.startswith("pessoa/p") for c in com_dossie)
     assert len(com_dossie) == len({a["pagina"] for a in dados["alertas"]})
     assert "cpf" not in json.dumps(t).lower()
-    assert 'fetch("todos.json"' in texto  # baixado so quando o leitor abre a lista
+    assert 'fetch("todos.json"' in (saida / "docs" / "painel.js").read_text(encoding="utf-8")  # baixado so quando o leitor abre a lista
 
 
 def test_trava_com_lista(tmp_path, monkeypatch):
