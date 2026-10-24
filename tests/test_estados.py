@@ -517,3 +517,13 @@ def test_assembleias_checadas_juntas_e_guardadas():
     assert chamadas[2:] == ["https://fora"] and ass["SP"]["ok"]
     estados.checar_assembleias(ass, checar, cache, agora=1_000_000 + 31 * 86400)  # passou o prazo: checa de novo
     assert "https://alesp" in chamadas[3:]
+
+
+def test_todos_os_exemplares_e_pata_na_massa_ficam_a_vista():
+    base = dict(cargo="DEPUTADO FEDERAL", partido="PX", uf="SP", n=1, empenhado=1.0, coletivo=False, link=None, perfil=None)
+    autores = [dict(base, nome=f"Rico{i}", pago=1000.0 - i, marcas=("eleito:2022",)) for i in range(12)]
+    autores += [dict(base, nome=f"Massa{i}", pago=1.0, marcas=("eleito:2018", "selo")) for i in range(12)]
+    html = estados.secao_autores(autores, "SP", falhou=False)
+    visivel = html.split('<details class="mais">')[0]
+    assert visivel.count("Massa") == 12 and "Ver os outros 12 parlamentares" in html
+    assert visivel.index("Pata na massa") < visivel.index("Eleito em 2018")  # o selo que da prioridade vem primeiro

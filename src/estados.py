@@ -855,7 +855,8 @@ def _autor(a):
     par = a.get("paradas")
     marca = carimbo(f"{par} emenda{'s' if par > 1 else ''} parada{'s' if par > 1 else ''}", pequeno=True,
                     marca=str(par)) if par else ""
-    selos = carimbos(a.get("marcas")) + marca
+    marcas = a.get("marcas") or ()  # Exemplar e Pata na massa antes dos anos de eleicao: o que poe a pessoa no topo
+    selos = carimbos([m for m in marcas if not m.startswith("eleito")]) + carimbos([m for m in marcas if m.startswith("eleito")]) + marca
     selos = f'<span class="selos">{selos}</span>' if selos else ""
     return (f'<li><span class="rot">{nome}{selos}<small>{e(info)}{oficial}</small></span>'
             f'<span class="val">{valor}</span></li>')
@@ -890,11 +891,13 @@ def secao_autores(autores, uf, falhou):
     if not do_estado and not outros:
         return '<p class="vazio"><b>Não informado</b>.</p>'
     corpo = legenda_autores(do_estado + outros)
-    corpo += f'<ol class="autores">{"".join(_autor(a) for a in do_estado[:TOP_AUTORES])}</ol>'
-    if len(do_estado) > TOP_AUTORES:
-        corpo += (f'<details class="mais"><summary>Ver os outros {len(do_estado) - TOP_AUTORES} parlamentares do '
-                  f'estado</summary><ol class="autores" start="{TOP_AUTORES + 1}">'
-                  f'{"".join(_autor(a) for a in do_estado[TOP_AUTORES:])}</ol></details>')
+    # todo Exemplar e Pata na massa fica a vista (#70), mesmo passando dos TOP_AUTORES
+    topo = max(TOP_AUTORES, sum(prioridade(a) < 3 for a in do_estado))
+    corpo += f'<ol class="autores">{"".join(_autor(a) for a in do_estado[:topo])}</ol>'
+    if len(do_estado) > topo:
+        corpo += (f'<details class="mais"><summary>Ver os outros {len(do_estado) - topo} parlamentares do '
+                  f'estado</summary><ol class="autores" start="{topo + 1}">'
+                  f'{"".join(_autor(a) for a in do_estado[topo:])}</ol></details>')
     if outros:
         corpo += (f'<details class="mais"><summary>Bancadas, comissões e autores de outros estados ({len(outros)})'
                   f'</summary><ul class="autores">{"".join(_autor(a) for a in outros)}</ul></details>')
