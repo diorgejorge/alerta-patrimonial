@@ -104,16 +104,20 @@ GRUPOS_MUN = (("prefeito", "Prefeito"), ("vice", "Vice-prefeito"), ("vereadores"
 FAIXAS = ("forte", "atencao", "informativo")
 
 
-def faixas(df, paginas=None):
-    """{chave: dict(faixa, lista)} de quem esta na lista completa (todos.json): faixa do patrimonio no periodo mais
-    recente (so as tres faixas coloridas), lista=1 para o painel abrir a pessoa em "Todas as pessoas" e a pagina
-    da pessoa (`paginas`: {chave: pessoa/pNNNN.html}), quando houver."""
-    if df is None or not len(df):
-        return {}
-    ult = df.sort_values(["ano_fim", "ano_ini"]).groupby("chave").tail(1)
-    pg = paginas or {}
-    return {ch: _limpa(dict(faixa=nv if nv in FAIXAS else None, lista=1, dossie=_local(pg.get(ch))))
-            for ch, nv in zip(ult["chave"], ult["nivel"])}
+def faixas(df, paginas=None, anos=None):
+    """{chave: dict(faixa, lista, dossie, eleito_anos)} por pessoa: faixa do patrimonio no periodo mais recente
+    (so as tres faixas coloridas) e lista=1 para quem esta na lista completa (todos.json), a pagina da pessoa
+    (`paginas`: {chave: pessoa/pNNNN.html}) e as eleicoes vencidas (`anos`: {chave: [anos]}, um carimbo cada)."""
+    out = {}
+    if df is not None and len(df):
+        ult = df.sort_values(["ano_fim", "ano_ini"]).groupby("chave").tail(1)
+        pg = paginas or {}
+        out = {ch: _limpa(dict(faixa=nv if nv in FAIXAS else None, lista=1, dossie=_local(pg.get(ch))))
+               for ch, nv in zip(ult["chave"], ult["nivel"])}
+    for ch, a in (anos or {}).items():
+        if a:
+            out.setdefault(ch, {})["eleito_anos"] = [int(x) for x in a]
+    return out
 
 
 def mandato_municipal(anos, hoje=None):
@@ -229,7 +233,7 @@ def demo():
                              _cpf="00000000000", perfil=f"https://www.camara.leg.br/deputados/{ident}",
                              cota=100000.0 * j, cota_media=250000.0, apresentados=10 * j, aprovados=j - 1,
                              exemplar=j == 1, selo=j == 5))
-        tse[uf] = dict(governador=[dict(nome=f"Governadora Demo {uf}", partido="YY", faixa="atencao", lista=1)],
+        tse[uf] = dict(governador=[dict(nome=f"Governadora Demo {uf}", partido="YY", faixa="atencao", lista=1, eleito_anos=[2018, 2022])],
                        estaduais=[dict(nome=f"Estadual Demo {uf} {k}", partido="ZZ") for k in range(1, 9)])
     return parl, tse, 2022
 

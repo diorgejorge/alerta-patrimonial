@@ -146,11 +146,12 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     assert "1 governador, 2 senadores, 3 deputados federais e 8 deputados estaduais" in txt
     assert "60% abaixo da média" in txt and "R$" not in txt
     # selos discretos no canto: todos eleitos; exemplar e Mao na massa so em quem tem
-    assert pagina.locator("#meus-corpo .rep").count() == pagina.locator("#meus-corpo .rep-selos .selo-cera.verde").count()
+    assert pagina.locator("#meus-corpo .rep").count() == pagina.locator("#meus-corpo .rep:has(.rep-selos .selo-cera.verde)").count()
     assert pagina.locator("#meus-corpo .selo-cera.ouro").count() == 1 and pagina.locator("#meus-corpo .selo-cera.caramelo").count() == 1
     gov = pagina.locator('.rep-grupo[data-g="governador"] .rep')
     assert "Faixa laranja" in gov.inner_text() and gov.locator(".rep-lista-bt").count() == 1
-    assert "2022" in gov.locator(".rep-selos .ano").text_content() and "borda-eleito" in gov.get_attribute("class")
+    # um carimbo por eleicao vencida, em ordem
+    assert gov.locator(".rep-selos .ano").all_text_contents() == ["2018", "2022"] and "borda-eleito" in gov.get_attribute("class")
     # aba propria, com a bandeira no topo e a legenda dos selos
     assert pagina.get_attribute("#aba-meus", "aria-selected") == "true" and "São Paulo" in pagina.inner_text("#meus-uf")
     assert pagina.locator("#meus-legenda .selo-cera").count() == 3
@@ -260,6 +261,10 @@ def test_faixas_pelo_periodo_mais_recente():
                        dict(chave="b", ano_ini=2020, ano_fim=2024, nivel=None)])
     assert rp.faixas(df) == {"a": dict(faixa="informativo", lista=1), "b": dict(lista=1)}
     assert rp.faixas(df, {"b": "pessoa/p0009.html"})["b"] == dict(lista=1, dossie="pessoa/p0009.html")
+    # eleicoes vencidas, tambem de quem nao esta na lista completa (eleito sem periodo comparavel)
+    anos = rp.faixas(df, anos={"a": [2018, 2022], "c": [2022], "d": []})
+    assert anos["a"]["eleito_anos"] == [2018, 2022] and anos["c"] == dict(eleito_anos=[2022]) and "d" not in anos
+    assert rp.faixas(None, anos={"c": [2022]}) == {"c": dict(eleito_anos=[2022])}
     out = rp.montar([dep(_chave="a")], extra={"a": dict(faixa="forte", lista=1)})
     assert out["SP"]["grupos"][2]["pessoas"][0]["faixa"] == "forte"
 
