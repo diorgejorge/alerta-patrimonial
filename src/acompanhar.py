@@ -53,7 +53,7 @@ def aumento_patrimonio(base, v):
     t = graficos.aumento_percentual(v, base)
     if t == "Não informado":
         return None
-    return {"+": f"aumentou {t[1:]}", "−": f"diminuiu {t[1:]}"}.get(t[0], t)
+    return f"aumentou {t[1:]}" if t.startswith("+") else t
 
 
 def subiu(v):

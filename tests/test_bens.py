@@ -27,6 +27,8 @@ def test_quantidades_e_links():
 
 
 def test_menos_de_um_e_vazio():
-    assert "<b>0,5</b> casas" in dossie.compra(200_000, BENS)
+    h = dossie.compra(200_000, BENS)  # nao daria para uma casa: o item some ("0,5 casas" nao diz nada)
+    assert "casa" not in h and "0," not in h and "<b>2</b> carros" in h
+    assert dossie.compra(50_000, BENS) == ""  # nenhum bem inteiro: sem a lista
     assert "<b>1</b> carro<" in dossie.compra(90_000, BENS)
     assert dossie.compra(None, BENS) == "" and dossie.compra(-5, BENS) == "" and dossie.compra(10, None) == ""

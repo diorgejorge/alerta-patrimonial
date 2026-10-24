@@ -185,7 +185,7 @@ def test_tabela_patrimonio():
     assert [td.text for td in linhas[0].findall("td")] == ["—", "início"]
     assert [td.text for td in linhas[1].findall("td")] == ["+50%", "+50%"]
     t = g.tabela_patrimonio([(2018, 100_000), (2022, 0)])
-    assert "−100%" in t and "R$" not in t
+    assert "diminuiu 100%" in t and "R$" not in t
     assert g.aumento_percentual(5, 0) == "começou do zero" and g.aumento_percentual(None, 1) == "Não informado"
     assert g.aumento_percentual(300, 100) == "+200%" and g.aumento_percentual(2_500_000, 100_000) == "+2.400%"
 

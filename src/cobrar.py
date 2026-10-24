@@ -139,7 +139,8 @@ def imagem(linhas):
     r = resumo(linhas)
     numeros = []
     if r["aumento"]:
-        numeros.append([r["aumento"], f"quanto o patrimônio aumentou de {r['ano_ini']} a {r['ano_fim']}"])
+        rot = "o patrimônio" if r["aumento"].startswith("diminuiu") else "quanto o patrimônio aumentou"
+        numeros.append([r["aumento"], f"{rot} de {r['ano_ini']} a {r['ano_fim']}"])
     ficha = " · ".join(str(x) for x in (cap(topo.get("cargo")), topo.get("partido"), topo.get("uf")) if x)
     return dict(nome=cap((topo.get("nome_urna") or topo.get("nome") or "").strip()), ficha=ficha, numeros=numeros,
                 url=r["tse"] or TSE_DADOS, fontes=FONTE_TSE + ".")

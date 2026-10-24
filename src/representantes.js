@@ -13,6 +13,8 @@
   const ico=k=>typeof ICO==="object"&&ICO[k]||"";  // icones do painel (template.html), quando houver
   const MARCA={exemplar:["exemplar","Parlamentar exemplar","Patrimônio compatível com o salário, cota abaixo da média e sem sanções"],
     selo:["selo","Mão na massa","Entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos"]};
+  // numeros sempre no padrao brasileiro: 43,5% (virgula no decimal, ponto no milhar)
+  const PCT=v=>Number(v).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%";
   const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
   const https=u=>/^https:\/\//.test(u||"");
   const rel=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);
@@ -35,10 +37,10 @@
   function numeros(p){
     // cota em percentual da media da casa (regra do site: percentual em vez de valor em reais)
     const dif=p.cota!=null&&p.cota_media?Math.round((p.cota/p.cota_media-1)*100):null;
-    const txt=dif==null?(p.cota==null?"Não informado":"Sem média da casa"):dif===0?"Na média da casa":`${Math.abs(dif).toLocaleString("pt-BR")}% ${dif>0?"acima":"abaixo"} da média`;
+    const txt=dif==null?(p.cota==null?"Não informado":"Sem média da casa"):dif===0?"Na média da casa":`${PCT(Math.abs(dif))} ${dif>0?"acima":"abaixo"} da média`;
     const cota=dif!=null&&p.cota_link&&https(p.cota_link)?`<a class="${dif>0?"acima":"abaixo"}" href="${esc(p.cota_link)}" target="_blank" rel="noopener">${txt}</a>`:`<span class="${dif>0?"acima":"abaixo"}">${txt}</span>`;
     const proj=p.apresentados==null?"Não informado":`${(p.aprovados??0).toLocaleString("pt-BR")} de ${p.apresentados.toLocaleString("pt-BR")} apresentados`;
-    const pr=p.presenca,pres=pr&&pr.pct!=null?`<div><dt>Presença</dt><dd>${pr.link&&https(pr.link)?`<a href="${esc(pr.link)}" target="_blank" rel="noopener">${esc(pr.pct)}%</a>`:`${esc(pr.pct)}%`}${pr.media_casa!=null?` <small>média da casa ${esc(pr.media_casa)}%</small>`:""}</dd></div>`:"";
+    const pr=p.presenca,pres=pr&&pr.pct!=null?`<div><dt>Presença</dt><dd>${pr.link&&https(pr.link)?`<a href="${esc(pr.link)}" target="_blank" rel="noopener">${PCT(pr.pct)}</a>`:PCT(pr.pct)}${pr.media_casa!=null?` <small>média da casa ${PCT(pr.media_casa)}</small>`:""}</dd></div>`:"";
     const votos=p.votos?`<div><dt>Temas importantes</dt><dd>Votou em ${p.votos[0]} de ${p.votos[1]}</dd></div>`:"";
     return`<dl class="rep-num"><div><dt>Gasto da cota (4 anos)</dt><dd>${cota}</dd></div><div><dt>Projetos aprovados</dt><dd>${proj}</dd></div>${pres}${votos}</dl>`;
   }

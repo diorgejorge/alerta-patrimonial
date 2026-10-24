@@ -212,13 +212,13 @@ def _escala(m):
 
 
 def aumento_percentual(v, base):
-    """Quanto o patrimonio aumentou sobre o valor original: (v - base) / base x 100, ex. '+200%' (#62: sem reais)."""
+    """Quanto o patrimonio aumentou sobre o valor original: (v - base) / base x 100, ex. '+200%' ou 'diminuiu 40%'."""
     if _nulo(v) or _nulo(base):
         return "Não informado"
     if base <= 0:
         return "começou do zero" if v > 0 else "Não informado"
     pct = (v - base) / base * 100
-    return ("+" if pct >= 0 else "−") + _num(abs(pct)) + "%"
+    return f"+{_num(pct)}%" if pct >= 0 else f"diminuiu {_num(-pct)}%"
 
 
 def patrimonio(pontos: list[tuple[int, float]], uid: str,

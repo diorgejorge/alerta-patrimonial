@@ -201,12 +201,32 @@ def test_aumento_percentual(abrir):
     """#62: aumento sobre o patrimonio do inicio, sem salario; o presidente fica no topo e o resto pelo maior percentual."""
     pg = abrir()
     assert pg.evaluate("VO({cresc:2e6,pat_ini:1e6})") == "+200%"
-    assert pg.evaluate("VO({cresc:-4e5,pat_ini:1e6})") == "−40%"
+    assert pg.evaluate("VO({cresc:-4e5,pat_ini:1e6})") == "diminuiu 40%"
     assert pg.evaluate("VO({cresc:2.3e7,pat_ini:1e6})") == "+2.300%"
     assert pg.evaluate("VO({cresc:5,pat_ini:0})") == "começou do zero"
     assert pg.evaluate("VO({cresc:null,pat_ini:1})") == "Não informado"
     vn = pg.evaluate("PES.filter(p=>!TOPO(p)).map(VN)")  # maior percentual primeiro, sempre
     assert vn == sorted(vn, reverse=True)
+
+
+SEM_VIRGULA = re.compile(r"(?<![\d.,])\d+\.\d{1,2}(?![\d.])")  # 43.5 (ponto no decimal); 2.400 (milhar) passa
+
+
+def test_numeros_com_virgula_no_decimal(abrir, site):
+    """No Brasil o decimal e com virgula (43,5%) e o milhar com ponto (2.400): nada de 43.5 em nenhuma pagina."""
+    pg = abrir()
+    pg.evaluate("()=>document.querySelectorAll('details').forEach(d=>d.open=true)")
+    txt = pg.evaluate("()=>document.body.innerText")
+    assert not SEM_VIRGULA.search(txt), SEM_VIRGULA.findall(txt)[:5]
+    for f in [*site.glob("*.html"), *(site / "pessoa").glob("*.html")]:
+        corpo = re.sub(r"<(script|style)[^>]*>.*?</\1>|<[^>]+>", " ", f.read_text(encoding="utf-8"), flags=re.S)
+        assert not SEM_VIRGULA.search(corpo), (f.name, SEM_VIRGULA.findall(corpo)[:5])
+
+
+def test_card_patrimonio_que_diminuiu(abrir):
+    c = card(abrir(), [{**UM_PERIODO[0], "cresc": -400_000, "pat_ini": 1_000_000, "pat_fim": 600_000}])
+    valor = c.locator(".valor").text_content()
+    assert "diminuiu 40%" in valor and "de aumento" not in valor
 
 
 def test_dados_antigos_nao_quebram_a_tela(abrir):

@@ -148,7 +148,7 @@ def test_imagem_numeros_do_card_e_link_do_tse():
     assert d["fontes"] == "Fonte: declarações de bens entregues ao TSE."
     assert [n[0] for n in d["numeros"]] == ["+200%"]
     d = cobrar.imagem([dict(LINHA, cresc=-250_000.0, cap=None, link_tse=None)])
-    assert d["numeros"][0][0].startswith("−") and d["url"] == cobrar.TSE_DADOS
+    assert d["numeros"][0][0].startswith("diminuiu") and d["numeros"][0][1].startswith("o patrimônio de") and d["url"] == cobrar.TSE_DADOS
 
 
 # ---------- integracao: --demo ----------

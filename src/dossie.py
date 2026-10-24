@@ -481,12 +481,16 @@ def compra(cresc, bens):
     li = []
     for b in sorted(bens.get("bens", []), key=lambda b: b["preco"]):
         n = int(cresc // b["preco"])
-        qtd = f"{n:,}".replace(",", ".") if n >= 1 else f"{cresc / b['preco']:.1f}".replace(".", ",")
+        if n < 1:  # "0,0 ilhas" nao diz nada: so entra o que daria para comprar pelo menos um
+            continue
+        qtd = f"{n:,}".replace(",", ".")
         nome = b.get("plural") if n != 1 else b["singular"]
         link = (f' · <a href="{e(b["link"])}" target="_blank" rel="noopener">{e(b.get("rotulo_link") or "ver preço")}</a>'
                 if url_ok(b.get("link")) and b["link"].startswith("https://") else "")
         li.append(f'<li><b>{qtd}</b> {e(nome or b["singular"])}<br><small>{brl(b["preco"])} cada · '
                   f'{e(b.get("referencia") or "")}{link}</small></li>')
+    if not li:
+        return ""
     return ('<h3>Com o crescimento do patrimônio no período mais recente daria para comprar</h3>'
             f'<ul class="nt">{"".join(li)}</ul><p><small>Preços de referência de {e(bens.get("atualizado_em") or "")}; '
             f'podem mudar. {e(bens.get("aviso") or "")}</small></p>')

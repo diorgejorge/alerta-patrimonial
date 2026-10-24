@@ -1,7 +1,7 @@
 """#59 Meus representantes: arquivos por estado (unitario) e o bloco do painel no navegador (integracao).
 O site de demonstracao vem das fixtures de test_painel (pipeline --demo, dados mockados, sem rede)."""
 import datetime as dt
-import json, sys
+import json, re, sys
 from pathlib import Path
 import pandas as pd
 import pytest
@@ -108,6 +108,10 @@ def test_gravar_um_arquivo_por_estado_sem_cpf(tmp_path):
 
 # ---------- navegador ----------
 
+# numero com ponto no decimal (padrao americano): no Brasil e virgula, 43,5%
+SEM_VIRGULA = re.compile(r"(?<![\d.,])\d+\.\d{1,2}(?![\d.])")
+
+
 @pytest.fixture
 def pagina(servidor):  # noqa: F811
     nav, url = servidor
@@ -128,6 +132,7 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     txt = pagina.locator("#meus-corpo").inner_text()
     assert "1 governador, 2 senadores, 3 deputados federais e 8 deputados estaduais" in txt
     assert "Parlamentar exemplar" in txt and "Mão na massa" in txt and "60% abaixo da média" in txt and "R$" not in txt
+    assert not SEM_VIRGULA.search(txt), SEM_VIRGULA.findall(txt)  # 43,5%, nunca 43.5%
     assert pagina.locator('a[href="estado/SP.html"]').count() == 1
     assert pagina.locator('a[href="feed/uf-SP.xml"]').count() == 1
     assert pagina.locator('.rep a[href^="mailto:"]').count() == 1 and "Cobre direto" in txt
