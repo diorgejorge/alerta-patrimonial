@@ -846,7 +846,8 @@ def main():
             print(f"Dossie por estado (demo): {estados.gerar(docs, uf_pag, uf_extra, dados['gerado_em'])} paginas.")
         else:
             dados_dir.mkdir(parents=True, exist_ok=True)
-            (dados_dir / estados.BASE.name).write_text(json.dumps(estados.base(parl, serie, pag, link_tse),
+            (dados_dir / estados.BASE.name).write_text(json.dumps(estados.base(parl, serie, pag, link_tse,
+                                                                              eleitos=em_mandato(serie)),
                                                                   ensure_ascii=False), encoding="utf-8")
     except Exception as ex:
         print(f"[aviso] base do dossie por estado falhou ({ex!r})", file=sys.stderr)
