@@ -108,16 +108,40 @@ def contar_camara(anos, cache):
 _LISTA_SENADO = []
 
 
-def lista_senado():
+ULTIMA_LISTA_SENADO = Path(__file__).resolve().parent.parent / "data" / "cache" / "senado_lista.json"
+
+
+def _guardar_lista(out, arq):
+    try:
+        arq.parent.mkdir(parents=True, exist_ok=True)
+        arq.write_text(json.dumps([dict(s, nomes=sorted(s["nomes"])) for s in out], ensure_ascii=False), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _ultima_lista(arq):
+    """Ultima lista boa do Senado (so dados publicos), para a API fora do ar nao apagar os senadores do site."""
+    try:
+        return [dict(s, nomes=set(s["nomes"])) for s in json.loads(arq.read_text(encoding="utf-8"))] or None
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
+def lista_senado(arq=None):
     """[dict(cod, nome, nome_completo, partido, uf, nomes)] dos senadores em exercicio, lida uma vez por execucao;
-    None se a API nao respondeu."""
+    se a API nao responder, a ultima lista boa guardada; None se nem isso houver."""
     if _LISTA_SENADO:
         return _LISTA_SENADO[0]
+    arq = arq or ULTIMA_LISTA_SENADO
     d = _json(SENADO_LISTA)
     try:
         lista = d["ListaParlamentarEmExercicio"]["Parlamentares"]["Parlamentar"]
     except (TypeError, KeyError):
-        return None
+        guardada = _ultima_lista(arq)
+        if guardada:
+            print(f"[aviso] Senado fora do ar: usando a ultima lista boa ({len(guardada)} senadores).", file=sys.stderr)
+            _LISTA_SENADO.append(guardada)
+        return guardada
     out = []
     for p in lista if isinstance(lista, list) else [lista]:
         i = p.get("IdentificacaoParlamentar") or {}
@@ -126,6 +150,8 @@ def lista_senado():
                             nome_completo=i.get("NomeCompletoParlamentar") or "",
                             partido=i.get("SiglaPartidoParlamentar") or "", uf=i.get("UfParlamentar") or "",
                             nomes={cota.norm(i.get("NomeParlamentar")), cota.norm(i.get("NomeCompletoParlamentar"))} - {""}))
+    if out:
+        _guardar_lista(out, arq)
     _LISTA_SENADO.append(out)
     return out
 

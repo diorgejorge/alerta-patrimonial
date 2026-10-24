@@ -64,3 +64,20 @@ def test_coleta_e_secao(tmp_path, monkeypatch):
     assert "Pata na massa" in h and "<b>30</b>" in h and "<b>6</b>" in h and CPF not in h
     assert "Não informado" in projetos.secao(None, " GOVERNADOR", r["_fontes"])
     assert "Fonte não encontrada" in projetos.secao(None, " SENADOR", {"camara": True, "senado": False})
+
+
+def test_lista_do_senado_fora_do_ar_usa_a_ultima_boa(tmp_path, monkeypatch):
+    arq = tmp_path / "senado_lista.json"
+    resp = {"ListaParlamentarEmExercicio": {"Parlamentares": {"Parlamentar": [
+        {"IdentificacaoParlamentar": {"CodigoParlamentar": 1, "NomeParlamentar": "Fulana", "NomeCompletoParlamentar": "Fulana de Tal",
+                                      "SiglaPartidoParlamentar": "PX", "UfParlamentar": "SP"}}]}}}
+    monkeypatch.setattr(projetos, "_LISTA_SENADO", [])
+    monkeypatch.setattr(projetos, "_json", lambda url, **k: resp)
+    boa = projetos.lista_senado(arq)
+    assert [s["cod"] for s in boa] == ["1"] and arq.exists()
+    monkeypatch.setattr(projetos, "_LISTA_SENADO", [])
+    monkeypatch.setattr(projetos, "_json", lambda url, **k: None)
+    fora = projetos.lista_senado(arq)
+    assert fora == boa and fora[0]["nomes"] == {"FULANA", "FULANA DE TAL"}
+    monkeypatch.setattr(projetos, "_LISTA_SENADO", [])
+    assert projetos.lista_senado(tmp_path / "nada.json") is None
