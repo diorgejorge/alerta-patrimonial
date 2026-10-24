@@ -486,3 +486,25 @@ def test_eleito_um_carimbo_por_eleicao_com_o_ano_dentro():
 def test_eleito_sem_ano_nao_ganha_carimbo():
     assert estados.ano_eleito({"cpf:1"}, "cpf:1") is False
     assert estados.marcas_de(dict(eleito=True, selo=True)) == ("selo",)
+
+
+class CacheFalso(dict):
+    def set(self, k, v):
+        self[k] = v
+
+
+def test_assembleias_checadas_juntas_e_guardadas():
+    chamadas = []
+
+    def checar(url):
+        chamadas.append(url)
+        return "fora" not in url
+    ass = {"SP": dict(nome="Alesp", site="https://alesp"), "RJ": dict(nome="Alerj", site="https://fora"),
+           "AC": dict(nome="Aleac", site="")}
+    cache = CacheFalso()
+    estados.checar_assembleias(ass, checar, cache, agora=1_000_000)
+    assert ass["SP"]["ok"] and not ass["RJ"]["ok"] and not ass["AC"]["ok"] and sorted(chamadas) == ["https://alesp", "https://fora"]
+    estados.checar_assembleias(ass, checar, cache, agora=1_000_000 + 86400)  # dentro do prazo: so o que falhou
+    assert chamadas[2:] == ["https://fora"] and ass["SP"]["ok"]
+    estados.checar_assembleias(ass, checar, cache, agora=1_000_000 + 31 * 86400)  # passou o prazo: checa de novo
+    assert "https://alesp" in chamadas[3:]

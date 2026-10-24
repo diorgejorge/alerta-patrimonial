@@ -8,7 +8,9 @@ O unico elo oficial entre parlamentar e gasto e a autoria da emenda: o texto diz
 Pagina leve por UF (docs/estado/UF.html); municipios e deputados estaduais vao em docs/estado/UF.json, baixado so
 quando o leitor abre a secao. Sem CPF/CNPJ em nenhum arquivo."""
 import csv, datetime as dt, html, json, os, re, sys, time, unicodedata, urllib.error, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+import recarga
 import transparencia
 
 SRC = Path(__file__).resolve().parent
@@ -552,6 +554,27 @@ def abre(url, timeout=20):
     return False
 
 
+def checar_assembleias(assembleias, checar=None, cache=None, agora=None):
+    """Marca `ok` em cada Assembleia: link que nao abre no Actions vira "Fonte nao encontrada". Os 27 sites sao
+    checados ao mesmo tempo; o que abriu fica guardado por `assembleias_dias` (config/recarga.json, #71)."""
+    agora = agora or time.time()
+    pendentes = []
+    for a in assembleias.values():
+        guardado = cache.get(("assembleia", a["site"])) if cache is not None and a["site"] else None
+        if not a["site"] or not checar:
+            a["ok"] = bool(a["site"])
+        elif guardado and not recarga.vencido(guardado, "assembleias_dias", 30, agora):
+            a["ok"] = True
+        else:
+            pendentes.append(a)
+    if pendentes:
+        with ThreadPoolExecutor(min(len(pendentes), 16)) as ex:
+            for a, ok in zip(pendentes, ex.map(lambda a: checar(a["site"]), pendentes)):
+                a["ok"] = bool(ok)
+                if ok and cache is not None:
+                    cache.set(("assembleia", a["site"]), agora)
+
+
 def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=None, checar=None,
             prog=None):
     """Dados de todas as UFs para gerar(). Cada fonte que falha vira NAO_ACHOU na sua secao, sem derrubar o resto.
@@ -577,11 +600,10 @@ def coletar(buscar, api, parl, estaduais=None, ano_est=None, cache=None, hoje=No
     if hasattr(buscar, "req"):
         print(f"SICONFI: {buscar.req} consultas, {buscar.falhas} sem resposta.")
     prog.etapa("Páginas")
+    assembleias = carregar_assembleias()
+    checar_assembleias(assembleias, checar, cache)
     if cache:
         cache.salvar()
-    assembleias = carregar_assembleias()
-    for a in assembleias.values():  # link que nao abre no Actions vira "Fonte nao encontrada"
-        a["ok"] = bool(a["site"]) and (checar(a["site"]) if checar else True)
     return montar(fin, agregar(lista), parl, entes, mun, estaduais or {}, assembleias,
                   dict(anos=anos, faltou=faltou, hoje=hoje.isoformat(), ano_estadual=ano, eleicao_estadual=ano_est,
                        falhou_emendas=len(faltou) == len(anos)), paradas(lista, hoje))
