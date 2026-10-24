@@ -253,11 +253,12 @@ def gerar(alertas, pessoas, hist, secoes, docs, gerado, noticias=None, cobranca=
         for i in q["idx"]:
             alertas[i]["pagina"] = f"pessoa/{pid}.html"
             alertas[i]["cobrar"] = 1  # a pagina ja tem a aba "Como cobrar": o card mostra o atalho (#60)
-        itens.append((max(ORDEM.get(a.get("nivel"), 0) for a in linhas), max(a.get("cresc") or 0 for a in linhas),
-                      cartao(pid, linhas, h)))
+        if not linhas[0].get("so_pagina"):  # fora dos destaques: so a pagina, sem card no painel
+            itens.append((max(ORDEM.get(a.get("nivel"), 0) for a in linhas), max(a.get("cresc") or 0 for a in linhas),
+                          cartao(pid, linhas, h)))
     itens.sort(key=lambda t: (t[0], t[1]), reverse=True)
     cartoes = '<ul class="pessoas">' + "".join(t[2] for t in itens) + "</ul>" if itens else ""
-    cont = {n: sum(1 for a in alertas if a.get("nivel") == n) for n in graficos.ROTULO_NIVEL}
+    cont = {n: sum(1 for a in alertas if a.get("nivel") == n and not a.get("so_pagina")) for n in graficos.ROTULO_NIVEL}
     series = temas.por_mes(n for v in noticias.values() if isinstance(v, list) for n in v)
     graf = dict(GRAFICO_NIVEIS=graficos.barras_niveis(cont, uid="pn") + _alt(graficos.tabela_niveis(cont)),
                 GRAFICO_TEMAS=graficos.noticias_por_tema(series, uid="pt")

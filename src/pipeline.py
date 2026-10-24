@@ -486,6 +486,18 @@ def gravar_todos(docs, df, paginas_pessoa, gerado, marcas=None):
     return dict(pessoas=t["pessoas"], comparacoes=t["comparacoes"], kb=kb, exemplar=conta("e"), selo=conta("s"))
 
 
+def so_paginas(df, chaves, pid=None):
+    """Periodo mais recente de cada chave em `chaves` (parlamentares em exercicio fora dos destaques), no formato
+    das linhas de alerta, marcado `so_pagina`: ganha pagina propria e dossie, mas nao vira card do painel."""
+    if not chaves:
+        return df.iloc[0:0]
+    x = df[df.chave.isin(chaves)].sort_values(["ano_fim", "ano_ini"]).drop_duplicates("chave", keep="last").copy()
+    x["pessoa"] = x.chave.map(pid) if pid else None
+    x["id"] = x.pessoa.astype(str) + "|" + x.ano_ini.astype(str) + "-" + x.ano_fim.astype(str) if pid else None
+    x["novo"], x["topo"], x["so_pagina"] = False, 0, True
+    return x
+
+
 def montar_cobranca(pessoas, parl, ceap, proj, cache=None, demo=False):
     """{indice da primeira linha: contexto da aba "Como cobrar"} (#60). "contato" so existe para parlamentar federal
     em exercicio (None = fonte fora do ar); os demais cargos recebem o site da Assembleia (estadual) ou o aviso."""
@@ -585,7 +597,21 @@ def main():
     vis = vis.assign(o=vis.nivel.map(ORDEM).fillna(0)).sort_values(["topo", "novo", "o", "cresc"],
                                                                      ascending=False).drop(columns="o")
 
-    pub = vis.drop(columns=["chave", "id", "cargo_ini", "empresas_cnpj"])  # CPF/CNPJ nunca vao para o site
+    # todos os deputados federais e senadores em exercicio: cota, projetos, selo e estrela de exemplar (#44, #45)
+    hoje = dt.date.today().year
+    try:
+        parl, parl_ctx = ([], {}) if args.demo else parlamentares.montar(
+            df, range(hoje - 3, hoje + 1), CACHE, os.getenv("TRANSPARENCIA_TOKEN"))
+    except Exception as ex:
+        print(f"[aviso] lista de parlamentares indisponivel ({ex!r})", file=sys.stderr)
+        parl, parl_ctx = [], {}
+    # pagina propria tambem para quem esta em exercicio e nao e destaque (mesmo tratamento para todos): entram
+    # depois dos destaques, marcados `so_pagina`, e saem do painel antes de grava-lo
+    extras = set() if so_lista else {x["_chave"] for x in parl if x["_chave"]} - set(vis.chave)  # trava vale aqui tambem
+    todas = pd.concat([vis, so_paginas(df, extras, pid)])
+    print(f"Paginas: {len(vis)} destaques + {len(todas) - len(vis)} parlamentares em exercicio fora dos destaques.")
+
+    pub = todas.drop(columns=["chave", "id", "cargo_ini", "empresas_cnpj"])  # CPF/CNPJ nunca vao para o site
     pub = pub.astype(object).where(pub.notna(), None)
     dados = dict(gerado_em=dt.datetime.now().strftime("%Y-%m-%d %H:%M"), universo=int(len(df)),
                  alertas=json.loads(pub.to_json(orient="records")))
@@ -599,7 +625,7 @@ def main():
     dados["fontes"] = [dict(nome=f["nome"], uf=f["uf"]) for f in fontes]
     # Portal da Transparencia: uma consulta por pessoa (nome+UF), na ordem do painel; CPF/CNPJ ficam so aqui
     pessoas = {}
-    for i, r in enumerate(vis.to_dict("records")):
+    for i, r in enumerate(todas.to_dict("records")):
         q = pessoas.setdefault((norm(r["nome"]), str(r["uf"]).upper()), dict(
             nome=r["nome"], nome_urna=txt(r.get("nome_urna")), cargo="", idx=[], chave=r["chave"],
             cpf=r["chave"][4:] if str(r["chave"]).startswith("cpf:") else "", empresas=r.get("empresas_cnpj") or []))
@@ -620,7 +646,6 @@ def main():
             html_sec = transparencia.NAO_DEU
         secoes.update({i: html_sec for i in q["idx"]})
     # cota parlamentar (Camara/Senado, arquivos abertos anuais); o CPF so liga as bases, nao sai daqui
-    hoje = dt.date.today().year
     try:
         ceap = {} if args.demo else cota.coletar(pessoas, range(hoje - 3, hoje + 1), CACHE)
     except Exception as ex:
@@ -634,13 +659,6 @@ def main():
             print(f"[aviso] secao da cota falhou para {q['nome']} ({ex!r})", file=sys.stderr)
             html_cota = '<p class="vazio"><b>Não informado</b>.</p>'
         secoes_cota.update({i: html_cota for i in q["idx"]})
-    # todos os deputados federais e senadores em exercicio: cota, projetos, selo e estrela de exemplar (#44, #45)
-    try:
-        parl, parl_ctx = ([], {}) if args.demo else parlamentares.montar(
-            df, range(hoje - 3, hoje + 1), CACHE, os.getenv("TRANSPARENCIA_TOKEN"))
-    except Exception as ex:
-        print(f"[aviso] lista de parlamentares indisponivel ({ex!r})", file=sys.stderr)
-        parl, parl_ctx = [], {}
     # projetos apresentados e aprovados (Camara: arquivos abertos; Senado: API) e o selo "Mao na massa";
     # as contagens e o corte do selo sao os mesmos da lista de parlamentares
     try:
@@ -705,7 +723,7 @@ def main():
     dados["exemplares"] = parlamentares.lista_exemplares(parl) if parl else None
     estrelas = {p["_chave"] for p in parl if p.get("exemplar") and p["_chave"]}
     selos = {ch for ch, x in parl_chave.items() if x.get("selo")}  # selo so com os projetos no card
-    for i, ch in enumerate(vis["chave"]):
+    for i, ch in enumerate(todas["chave"]):
         if ch in estrelas:
             dados["alertas"][i]["exemplar"] = True
         if ch in selos:
@@ -770,7 +788,7 @@ def main():
                                 de=r["de"], ate=r["ate"], link=r["link"], dossie=a.get("dossie")))
     dados["projetos"] = sorted(ranking, key=lambda x: (-x["aprovados"], -x["apresentados"]))[:10]
     if parl:  # com a lista de todos os parlamentares em exercicio, os rankings comparam a casa inteira
-        dossies = {ch: dados["alertas"][i].get("dossie") for i, ch in enumerate(vis["chave"])}
+        dossies = {ch: dados["alertas"][i].get("dossie") for i, ch in enumerate(todas["chave"])}
         for p in parl:
             p["dossie"] = dossies.get(p["_chave"])
         dados["cota"] = parlamentares.ranking_cota(parl) or dados["cota"]
@@ -795,7 +813,7 @@ def main():
     cartoes, graficos_painel = "", {}
     if pid:  # uma pagina por pessoa (docs/pessoa/<id>.html), so com o id interno
         hist = {c: sorted((int(a), float(v)) for a, v in zip(g.ano, g.patrimonio))
-                for c, g in serie[serie.chave.isin(set(vis.chave))].groupby("chave")}
+                for c, g in serie[serie.chave.isin(set(todas.chave))].groupby("chave")}
         try:
             cartoes, graficos_painel = paginas.gerar(dados["alertas"], pessoas, hist, secoes, docs,
                                                      gerado=dados["gerado_em"], noticias=noticias,
@@ -810,7 +828,7 @@ def main():
             print(f"[aviso] feeds de acompanhamento falharam ({ex!r})", file=sys.stderr)
     # lista completa leve (#43): todas as pessoas com duas declaracoes, em arquivo separado (docs/todos.json)
     pag = {}
-    for i, ch in enumerate(vis["chave"]):
+    for i, ch in enumerate(todas["chave"]):
         a = dados["alertas"][i]
         v = a.get("pagina") if REL_OK(a.get("pagina")) else a.get("dossie") if REL_OK(a.get("dossie")) else None
         if v:
@@ -855,6 +873,7 @@ def main():
     except Exception as ex:
         print(f"[aviso] ranking dos estados falhou ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)
+    dados["alertas"] = [a for a in dados["alertas"] if not a.get("so_pagina")]  # extras: so a pagina propria
     # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
     dados["alertas"].sort(key=lambda a: (-(a.get("topo") or 0), -(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
     tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
