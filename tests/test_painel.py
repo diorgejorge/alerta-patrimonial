@@ -55,9 +55,13 @@ def test_icones_flat_sem_emoji(html):
     assert not re.search("[\U0001F300-\U0001FAFF\u2600-\u27BF]", html)  # emojis trocados por SVG (#52)
 
 
-def test_selo_de_cera_so_nas_abas_proprias(html):
+def test_legenda_usa_os_mesmos_carimbos(html):
+    """#72: na legenda da principal, Eleito, Exemplar e Pata na massa mostram o mesmo carimbo (pegada de cera, pequeno);
+    fora da legenda o HTML fixo nao tem carimbo (os dos cards vem do JS, #67)."""
     destaques = re.search(r'<section id="destaques".*?</section>', html, re.S).group(0)
-    assert "selo-cera" not in destaques  # na principal, Exemplar e Mao na massa sao tags coloridas (o Eleito vem do JS, #67)
+    for v, cor in (("eleito", "verde"), ("exemplar", "ouro"), ("selo", "caramelo")):
+        assert re.search(rf'data-v="{v}"><span class="selo-cera mini {cor}" aria-hidden="true">', destaques), v
+    assert destaques.count("selo-cera") == 3
 
 
 def test_selo_js_publicado_junto(site, html):

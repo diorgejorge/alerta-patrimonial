@@ -288,6 +288,7 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 @keyframes pata-pisa{0%{opacity:1;transform:translateY(-170%) scale(1.15)}40%{opacity:1;transform:translateY(0) scale(1.05)}
   50%{opacity:1;transform:translateY(3%) scale(1.1,.9)}65%{opacity:1;transform:translateY(-20%) scale(1.05)}100%{opacity:0;transform:translateY(-170%) scale(1.15)}}
 @keyframes cera-espalha{0%,45%{opacity:0;transform:scale(.55)}62%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:none}}
+.selo-cera.mini{min-height:0;padding:0;cursor:inherit}.selo-cera.mini .cera,.selo-cera.mini.com-ano .cera{width:30px;height:30px}.selo-cera.mini .cera .ico{width:11px;height:11px}  /* legenda: o mesmo carimbo, pequeno */
 .selo-cera:is(.ouro,.verde,.caramelo).canto{top:-22px;left:-18px}.carimbos.canto{top:-26px;left:-18px}
 /* faixas (#72): so a cor e 3, 2 ou 1 pegada brancas; o rotulo ("3 pegadas") fica no texto do chip, so para leitor de tela e titulo */
 .chip[class*="nv-"]{--n:1;gap:0;padding:4px 10px;border:0;font-size:0!important;color:#fff;background:var(--nv-cor);min-height:1.6rem}
