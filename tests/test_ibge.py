@@ -147,3 +147,21 @@ def test_classificacao_com_varias_categorias_fica_no_total_e_projecao_ate_o_ano_
     linhas = [cab7113] + [dict(NC="1", V=v, D1C="1", D2C="2024", D3N="Taxa de analfabetismo", D4N=g)
                           for g, v in (("15 a 19 anos", "1.0"), ("15 anos ou mais", "5.3"), ("60 anos ou mais", "15.0"))]
     assert ibge.ler_sidra(linhas, dict(variavel="analfabetismo", preferir=["15 anos ou mais"]))[0] == {"BR": {"2024": 5.3}}
+
+
+def test_descricao_com_403_usa_os_metadados_do_site():
+    import urllib.error
+    meta = {"Id": 6805, "Classificacoes": [{"Id": 1, "Nome": "Situação", "Categorias": [{"Id": 6795, "Nome": "Total"}]},
+                                           {"Id": 11558, "Nome": "Esgotamento sanitário",
+                                            "Categorias": [{"Id": 46289, "Nome": "Total"}, {"Id": 46290, "Nome": "Rede geral ou fossa"}]}]}
+    assert ibge.classif_json(meta, ESG["categorias"]) == "/c11558/46290"
+    assert ibge.classif_json(meta, {"esgot": "poco"}) is None
+    urls = []
+
+    def obter(url):
+        urls.append(url)
+        if "desctabapi" in url:
+            raise urllib.error.HTTPError(url, 403, "Forbidden", None, None)
+        return meta if "/Ajax/" in url else obter_falso(url)
+    d = ibge.coletar(None, dict(indicadores=[dict(ESG, variavel="desocupacao")]), obter, lambda u: b"")
+    assert [i["id"] for i in d["indicadores"]] == ["esgoto"] and urls[-1].endswith("/c11558/46290")

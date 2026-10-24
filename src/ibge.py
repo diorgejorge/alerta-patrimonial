@@ -9,6 +9,7 @@ from estados import UFS, norm
 CONFIG = Path(__file__).resolve().parent.parent / "config" / "ibge.json"
 VALORES = "https://apisidra.ibge.gov.br/values"  # 24/10: o runner do GitHub alcanca o apisidra; servicodados da timeout
 DESC = "https://apisidra.ibge.gov.br/desctabapi.aspx?c={t}"
+META = "https://sidra.ibge.gov.br/Ajax/JSon/Tabela/1/{t}?versao=-1"  # metadados do site, plano B quando a DESC da 403
 SIDRA = "https://sidra.ibge.gov.br/tabela/{t}"
 UA = {"User-Agent": "alerta-patrimonial/1.0"}
 # a pagina de descricao do SIDRA (desctabapi) respondeu 403 ao agente do robo em 24/10; ela e HTML para navegador
@@ -31,7 +32,7 @@ def ler_config(arq=CONFIG):
 def _baixar(url, tentativas=2, pausa=2):
     for i in range(tentativas):
         try:
-            cab = UA_NAVEGADOR if "desctabapi" in url else UA
+            cab = UA_NAVEGADOR if "desctabapi" in url or "/Ajax/" in url else UA
             with urllib.request.urlopen(urllib.request.Request(url, headers=cab), timeout=20) as r:
                 return r.read()
         except Exception:
@@ -136,6 +137,40 @@ def classif_desc(html, categorias):
             cat = next((c for c in re.finditer(r"\b(\d{2,7})\b[\s:-]*([^\n\d]{3,120})", bloco) if _tem(c.group(2), alvo)), None)
             if cat:
                 achou = f"/c{m.group(1)}/{cat.group(1)}"
+                break
+        if not achou:
+            return None
+        partes.append(achou)
+    return "".join(partes)
+
+
+def _id_nome(d):
+    i = next((d[k] for k in ("Id", "id", "Codigo", "codigo") if k in d), None)
+    n = next((d[k] for k in ("Nome", "nome", "Descricao", "descricao") if k in d), None)
+    return (str(i), str(n)) if i is not None and n is not None else None
+
+
+def classif_json(dados, categorias):
+    """Mesma saida de classif_desc, lendo os metadados em JSON do site do SIDRA: acha qualquer objeto com id e nome
+    da classificacao que tenha uma lista de categorias (objetos com id e nome). None se nao achar."""
+    def objetos(x):
+        if isinstance(x, dict):
+            yield x
+            x = list(x.values())
+        if isinstance(x, list):
+            for y in x:
+                yield from objetos(y)
+    partes = []
+    for chave, alvo in (categorias or {}).items():
+        achou = None
+        for o in objetos(dados):
+            cl = _id_nome(o)
+            if not cl or not _tem(cl[1], chave):
+                continue
+            cats = (_id_nome(c) for v in o.values() if isinstance(v, list) for c in v if isinstance(c, dict))
+            cat = next((c for c in cats if c and _tem(c[1], alvo)), None)
+            if cat:
+                achou = f"/c{cl[0]}/{cat[0]}"
                 break
         if not achou:
             return None
@@ -248,7 +283,13 @@ def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None, sonda
             try:
                 cl = ind.get("classificacao") or ""
                 if ind.get("categorias") and not cl:
-                    cl = classif_desc(seguro(DESC.format(t=t)), ind["categorias"])
+                    try:
+                        cl = classif_desc(seguro(DESC.format(t=t)), ind["categorias"])
+                    except urllib.error.HTTPError:  # 24/10: a DESC deu 403 ao runner
+                        meta = seguro(META.format(t=t))
+                        cl = classif_json(meta, ind["categorias"])
+                        if cl is None:
+                            print(f"[aviso] IBGE: {ind['id']}, tabela {t}: metadados do site sem a categoria ({str(meta)[:600]!r})")
                     if cl is None:
                         print(f"[aviso] IBGE: {ind['id']}, tabela {t}: categoria {ind['categorias']} nao achada na descricao")
                         continue
