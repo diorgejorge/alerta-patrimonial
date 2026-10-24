@@ -556,6 +556,9 @@ def pagina_ou_dossie(a):
     return a.get("dossie") or (f"pessoa/{pid}.html" if re.fullmatch(r"p\d+", pid) else None)
 
 
+NAO_INFORMADO = '<p class="vazio"><b>Não informado</b>.</p>'
+FALHOU = object()  # sem_derrubar: a fonte falhou e o campo fica de fora dos dados
+
 # campos que so as paginas da pessoa usam; o painel (index.html) nao precisa baixa-los (#73)
 CAMPOS_FORA_DO_CARD = frozenset({"link_tse_ini", "razao_salario", "monitorado", "so_pagina", "unica"})
 
@@ -614,11 +617,155 @@ def montar_equipe(pessoas, parl, cache=None, demo=False):
     return out
 
 
-def main():
+def sem_derrubar(aviso, padrao, coletar):
+    """Roda `coletar()`; se a fonte falhar, avisa no log e devolve `padrao`: nenhuma fonte derruba a atualizacao."""
+    try:
+        return coletar()
+    except Exception as ex:
+        print(f"[aviso] {aviso} ({ex!r})", file=sys.stderr)
+        return padrao
+
+
+def secao_de_cada(pessoas, montar, vazio, nome):
+    """{indice do alerta: html da secao `nome`} para cada pessoa; a secao que falha vira `vazio`."""
+    secoes = {}
+    for k, q in pessoas.items():
+        html_sec = sem_derrubar(f"secao {nome} falhou para {q['nome']}", vazio, lambda: montar(k, q))
+        secoes.update({i: html_sec for i in q["idx"]})
+    return secoes
+
+
+def ler_argumentos():
     ap = argparse.ArgumentParser()
     ap.add_argument("--demo", action="store_true", help="dados sinteticos para testar sem internet")
     ap.add_argument("--saida", help="pasta de saida (docs/ e data/ ficam dentro dela); padrao: o proprio repositorio")
-    args = ap.parse_args()
+    return ap.parse_args()
+
+
+def abrir_caches(segredo):
+    """Cache incremental entre execucoes (data/cache, actions/cache): so com ID_SEGREDO, que assina e cifra."""
+    if not segredo:
+        return {}
+    cifra.limpar_puros(CACHE)  # tudo que fica salvo e cifrado (cifra.py): sobras em texto puro de execucoes antigas saem
+    return dict(tse=Cache(CACHE / "tse_lido.cache", 400 * 86400, segredo, cifrar=True),
+                portal=Cache(CACHE / "portal.cache", recarga.segundos("portal_dias", 30), segredo, cifrar=True),  # #71
+                portal_bom=Cache(CACHE / "portal_bom.cache", 400 * 86400, segredo),  # ultima resposta completa
+                noticias=Cache(CACHE / "noticias.cache", 3 * 86400, segredo),
+                pares=Cache(CACHE / "pares.cache", 400 * 86400, segredo),
+                contatos=Cache(CACHE / "contatos.cache", contatos.VALIDADE_S, segredo),
+                gabinete=Cache(CACHE / "gabinete.cache", gabinete.VALIDADE_S, segredo))
+
+
+def marcar_topo_e_eleitos(df, serie):
+    """Presidente e vice em exercicio (topo: 2 e 1, sempre nos destaques, #63) e carimbos de eleito (#67).
+    Devolve {chave: anos das eleicoes vencidas}."""
+    for campo, cargo in (("presidente_atual", "PRESIDENTE"), ("vice_atual", "VICE-PRESIDENTE")):
+        chave = em_exercicio(serie, cargo)
+        df[campo] = df["chave"].eq(chave) if chave else False
+    df["topo"] = df.presidente_atual * 2 + df.vice_atual
+    mandato = em_mandato(serie)  # carimbo verde "Eleito <ano>" nos cards
+    df["eleito_atual"] = df["chave"].isin(list(mandato))
+    df["eleito_ano"] = df["chave"].map(mandato).astype("Int64")
+    anos = anos_eleito(serie)  # um carimbo por eleicao vencida
+    df["eleito_anos"] = df["chave"].map(lambda k: anos.get(k, []))
+    return anos
+
+
+def ler_estado(estado_arq, segredo):
+    """Memoria de alertas por id interno (versoes antigas usavam o CPF na chave: sao descartadas). Cifrado (cifra.py);
+    o arquivo antigo em texto puro e lido uma vez e regravado cifrado no fim."""
+    try:
+        bruto = cifra.ler(estado_arq, segredo, aceitar_puro=True) if segredo else None
+        return {k: v for k, v in json.loads(bruto or b"{}").items() if re.match(r"p\d+\|", k)}
+    except (OSError, ValueError):
+        return {}
+
+
+def escolher_destaques(alertas, p, so_lista):
+    """Destaques do painel: so os monitorados (trava) ou os de nivel mais alto ate o limite de linhas, que nunca tira
+    presidente nem vice. Ordem: topo, novos, nivel, crescimento."""
+    if so_lista:
+        vis = alertas[alertas.monitorado]
+    else:
+        vis = alertas.assign(o=alertas.nivel.map(ORDEM).fillna(0)).sort_values(["o", "percentil"], ascending=False) \
+                     .head(p["max_linhas_sem_lista"]).drop(columns="o")
+        vis = pd.concat([vis, alertas[alertas.topo.gt(0) & ~alertas.index.isin(vis.index)]])
+    return vis.assign(o=vis.nivel.map(ORDEM).fillna(0)).sort_values(["topo", "novo", "o", "cresc"],
+                                                                    ascending=False).drop(columns="o")
+
+
+def agrupar_pessoas(todas):
+    """{(nome normalizado, UF): pessoa} com os indices das suas linhas; CPF/CNPJ ficam so aqui (consultas as fontes)."""
+    pessoas = {}
+    for i, r in enumerate(todas.to_dict("records")):
+        q = pessoas.setdefault((norm(r["nome"]), str(r["uf"]).upper()), dict(
+            nome=r["nome"], nome_urna=txt(r.get("nome_urna")), cargo="", idx=[], chave=r["chave"],
+            cpf=r["chave"][4:] if str(r["chave"]).startswith("cpf:") else "", empresas=r.get("empresas_cnpj") or []))
+        q["cargo"] += " " + str(r["cargo"])
+        q["idx"].append(i)
+    return pessoas
+
+
+def _linha_ranking(q, uf, alerta, **numeros):
+    return dict(nome=q["nome_urna"] or q["nome"], cargo=alerta.get("cargo"), partido=alerta.get("partido"), uf=uf,
+                dossie=alerta.get("dossie"), **numeros)
+
+
+def ranking_cota_destaques(pessoas, ceap, alertas):
+    """Quem mais gastou da cota parlamentar entre as pessoas em destaque, e com o que (10 primeiros)."""
+    ranking = [_linha_ranking(q, k[1], alertas[q["idx"][0]], total=round(r["total"], 2), de=r["anos"][0][0],
+                              ate=r["anos"][-1][0], tipos=[dict(tipo=t, valor=round(v, 2)) for t, v in r["tipos"][:3]],
+                              link=r["link"])
+               for k, q in pessoas.items() if (r := ceap.get(k))]
+    return sorted(ranking, key=lambda x: -x["total"])[:10]
+
+
+def ranking_projetos_destaques(pessoas, proj, alertas):
+    """Quem mais apresentou e aprovou projetos entre as pessoas em destaque (10 primeiros)."""
+    ranking = [_linha_ranking(q, k[1], alertas[q["idx"][0]], apresentados=r["apresentados"], aprovados=r["aprovados"],
+                              selo=r["selo"], de=r["de"], ate=r["ate"], link=r["link"])
+               for k, q in pessoas.items() if (r := proj.get(k)) and r["apresentados"]]
+    return sorted(ranking, key=lambda x: (-x["aprovados"], -x["apresentados"]))[:10]
+
+
+def paginas_por_chave(todas, alertas):
+    """{chave: link relativo da pagina ou do Raio-X} da primeira linha de cada pessoa que tem um."""
+    pag = {}
+    for i, ch in enumerate(todas["chave"]):
+        a = alertas[i]
+        v = a.get("pagina") if REL_OK(a.get("pagina")) else a.get("dossie") if REL_OK(a.get("dossie")) else None
+        if v:
+            pag.setdefault(ch, v)
+    return pag
+
+
+def gravar_painel(docs, dados, bens, blocos):
+    """docs/index.html (template + dados so com os campos do card) e docs/blocos.json; o workflow
+    "3 · Publicar site" remonta o index com o template atual usando os dois."""
+    dados["alertas"] = [a for a in dados["alertas"] if not a.get("so_pagina")]  # extras: so a pagina propria
+    # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
+    dados["alertas"].sort(key=lambda a: (-(a.get("topo") or 0), -(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
+    painel = dict(dados, alertas=[so_campos_do_card(a) for a in dados["alertas"]])
+    html_painel = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
+    html_painel = html_painel.replace("/*DADOS*/null", json.dumps(arredonda(painel), ensure_ascii=False))
+    html_painel = html_painel.replace("/*BENS*/null", json.dumps(bens, ensure_ascii=False))
+    for marca, conteudo in blocos.items():
+        html_painel = html_painel.replace(f"<!--{marca}-->", conteudo)
+    (docs / "blocos.json").write_text(json.dumps(blocos, ensure_ascii=False), encoding="utf-8")
+    (docs / "index.html").write_text(html_painel, encoding="utf-8")
+
+
+def resumo_do_dia(vis, gerado):
+    """Texto do digest.txt e do aviso no Telegram: destaques e ate 15 novos."""
+    novos = vis[vis.novo]
+    resumo = f"Caramelo Vasculha {gerado}: {len(vis)} destaques, {len(novos)} novos."
+    for r in novos.head(15).itertuples():
+        resumo += f"\n- [{r.nivel}] {r.nome} ({r.cargo}/{r.uf}) {r.ano_ini}->{r.ano_fim}: +R$ {r.cresc:,.0f}"
+    return resumo, len(novos)
+
+
+def main():
+    args = ler_argumentos()
     docs, dados_dir = (Path(args.saida) / "docs", Path(args.saida) / "data") if args.saida else (DOCS, ROOT / "data")
     estado_arq, ids_arq = dados_dir / "estado.json", dados_dir / "ids.json"
     p = json.loads((CFG / "parametros.json").read_text())
@@ -630,17 +777,8 @@ def main():
     if not pid:
         print("[aviso] sem ID_SEGREDO: paginas por pessoa e memoria de alertas novos desativadas", file=sys.stderr)
 
-    # cache incremental entre execucoes (data/cache, actions/cache): so com ID_SEGREDO, que assina e cifra
     seg_cache = None if args.demo else os.getenv("ID_SEGREDO")
-    if seg_cache:  # tudo que fica salvo e cifrado (cifra.py): sobras em texto puro de execucoes antigas saem
-        cifra.limpar_puros(CACHE)
-    caches = dict(tse=Cache(CACHE / "tse_lido.cache", 400 * 86400, seg_cache, cifrar=True),
-                  portal=Cache(CACHE / "portal.cache", recarga.segundos("portal_dias", 30), seg_cache, cifrar=True),  # #71
-                  portal_bom=Cache(CACHE / "portal_bom.cache", 400 * 86400, seg_cache),  # ultima resposta completa
-                  noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache),
-                  pares=Cache(CACHE / "pares.cache", 400 * 86400, seg_cache),
-                  contatos=Cache(CACHE / "contatos.cache", contatos.VALIDADE_S, seg_cache),
-                  gabinete=Cache(CACHE / "gabinete.cache", gabinete.VALIDADE_S, seg_cache)) if seg_cache else {}
+    caches = abrir_caches(seg_cache)
     serie = serie_demo() if args.demo else serie_tse(p["anos"], caches.get("tse"))
     extras = {r.chave: extras_cfg.get(r.chave, extras_cfg.get("nome:" + norm(r.nome), 0.0))
               for r in serie.drop_duplicates("chave").itertuples()}
@@ -648,48 +786,21 @@ def main():
     if df.empty:
         sys.exit("Nenhuma pessoa com duas declaracoes consecutivas.")
     df["monitorado"] = df.apply(lambda r: r.chave in cpfs or norm(r.nome) in nomes, axis=1)
-    # presidente e vice em exercicio sempre entram nos destaques, mesmo sem nivel; topo ordena (2 presidente, 1 vice) (#63)
-    for campo, cargo in (("presidente_atual", "PRESIDENTE"), ("vice_atual", "VICE-PRESIDENTE")):
-        chave = em_exercicio(serie, cargo)
-        df[campo] = df["chave"].eq(chave) if chave else False
-    df["topo"] = df.presidente_atual * 2 + df.vice_atual
-    mandato = em_mandato(serie)  # carimbo verde "Eleito <ano>" nos cards (#67)
-    df["eleito_atual"] = df["chave"].isin(list(mandato))
-    df["eleito_ano"] = df["chave"].map(mandato).astype("Int64")
-    anos = anos_eleito(serie)  # um carimbo por eleicao vencida
-    df["eleito_anos"] = df["chave"].map(lambda k: anos.get(k, []))
+    anos = marcar_topo_e_eleitos(df, serie)
     alertas = df[df.nivel.notna() | df.topo.gt(0)].copy()
-
-    # memoria de alertas por id interno (versoes antigas usavam o CPF na chave: sao descartadas)
-    try:  # cifrado (cifra.py); o arquivo antigo em texto puro e lido uma vez e regravado cifrado no fim
-        bruto = cifra.ler(estado_arq, segredo, aceitar_puro=True) if segredo else None
-        estado = {k: v for k, v in json.loads(bruto or b"{}").items() if re.match(r"p\d+\|", k)}
-    except (OSError, ValueError):
-        estado = {}
+    estado = ler_estado(estado_arq, segredo)
     alertas["pessoa"] = alertas.chave.map(pid) if pid else None
     alertas["id"] = (alertas.pessoa.astype(str) + "|" + alertas.ano_ini.astype(str) + "-" + alertas.ano_fim.astype(str)
                      if pid else None)
     alertas["novo"] = alertas.apply(lambda r: ORDEM.get(r.nivel, 0) > ORDEM.get(estado.get(r.id, ""), 0), axis=1)
 
     so_lista = bool(p["publicar_somente_monitorados"] and (cpfs or nomes))  # trava: so quem esta na lista
-    if so_lista:
-        vis = alertas[alertas.monitorado]
-    else:
-        vis = alertas.assign(o=alertas.nivel.map(ORDEM).fillna(0)).sort_values(["o", "percentil"], ascending=False) \
-                     .head(p["max_linhas_sem_lista"]).drop(columns="o")
-        # o limite de linhas nao tira presidente nem vice; a trava da lista de monitorados vale para todos
-        vis = pd.concat([vis, alertas[alertas.topo.gt(0) & ~alertas.index.isin(vis.index)]])
-    vis = vis.assign(o=vis.nivel.map(ORDEM).fillna(0)).sort_values(["topo", "novo", "o", "cresc"],
-                                                                     ascending=False).drop(columns="o")
+    vis = escolher_destaques(alertas, p, so_lista)
 
     # todos os deputados federais e senadores em exercicio: cota, projetos, selo e estrela de exemplar (#44, #45)
     hoje = dt.date.today().year
-    try:
-        parl, parl_ctx = ([], {}) if args.demo else parlamentares.montar(
-            df, range(hoje - 3, hoje + 1), CACHE, os.getenv("TRANSPARENCIA_TOKEN"))
-    except Exception as ex:
-        print(f"[aviso] lista de parlamentares indisponivel ({ex!r})", file=sys.stderr)
-        parl, parl_ctx = [], {}
+    parl, parl_ctx = ([], {}) if args.demo else sem_derrubar("lista de parlamentares indisponivel", ([], {}),
+        lambda: parlamentares.montar(df, range(hoje - 3, hoje + 1), CACHE, os.getenv("TRANSPARENCIA_TOKEN")))
     # pagina propria tambem para quem esta em exercicio e nao e destaque (mesmo tratamento para todos): entram
     # depois dos destaques, marcados `so_pagina`, e saem do painel antes de grava-lo
     ligar_ao_tse(parl, serie)  # senador sem par no TSE (suplente, primeiro mandato): liga pela declaracao unica
@@ -713,50 +824,23 @@ def main():
                            formula="vezes")  # texto "Como ler"; "vezes" (#62) avisa a tela que as faixas ja usam a conta nova
     dados["fontes"] = [dict(nome=f["nome"], uf=f["uf"]) for f in fontes]
     # Portal da Transparencia: uma consulta por pessoa (nome+UF), na ordem do painel; CPF/CNPJ ficam so aqui
-    pessoas = {}
-    for i, r in enumerate(todas.to_dict("records")):
-        q = pessoas.setdefault((norm(r["nome"]), str(r["uf"]).upper()), dict(
-            nome=r["nome"], nome_urna=txt(r.get("nome_urna")), cargo="", idx=[], chave=r["chave"],
-            cpf=r["chave"][4:] if str(r["chave"]).startswith("cpf:") else "", empresas=r.get("empresas_cnpj") or []))
-        q["cargo"] += " " + str(r["cargo"])
-        q["idx"].append(i)
-    try:  # o Portal nunca derruba a atualizacao: se falhar, a secao sai "Fonte nao encontrada"
-        info = {} if args.demo else transparencia.coletar(pessoas, chave_api=os.getenv("TRANSPARENCIA_TOKEN"),
-                                                          cache=caches.get("portal"), bom=caches.get("portal_bom"))
-    except Exception as ex:
-        print(f"[aviso] Portal da Transparencia indisponivel ({ex!r})", file=sys.stderr)
-        info = {k: {"pendente": "falha"} for k in pessoas}
-    secoes = {}
-    for k, q in pessoas.items():
-        try:
-            html_sec = transparencia.secao(info.get(k), q["nome_urna"] or q["nome"])
-        except Exception as ex:
-            print(f"[aviso] secao do Portal falhou para {q['nome']} ({ex!r})", file=sys.stderr)
-            html_sec = transparencia.NAO_DEU
-        secoes.update({i: html_sec for i in q["idx"]})
+    pessoas = agrupar_pessoas(todas)
+    # o Portal nunca derruba a atualizacao: se falhar, a secao sai "Fonte nao encontrada"
+    info = {} if args.demo else sem_derrubar("Portal da Transparencia indisponivel", {k: {"pendente": "falha"} for k in pessoas},
+        lambda: transparencia.coletar(pessoas, chave_api=os.getenv("TRANSPARENCIA_TOKEN"),
+                                      cache=caches.get("portal"), bom=caches.get("portal_bom")))
+    secoes = secao_de_cada(pessoas, lambda k, q: transparencia.secao(info.get(k), q["nome_urna"] or q["nome"]),
+                           transparencia.NAO_DEU, "do Portal")
     # cota parlamentar (Camara/Senado, arquivos abertos anuais); o CPF so liga as bases, nao sai daqui
-    try:
-        ceap = {} if args.demo else cota.coletar(pessoas, range(hoje - 3, hoje + 1), CACHE)
-    except Exception as ex:
-        print(f"[aviso] cota parlamentar indisponivel ({ex!r})", file=sys.stderr)
-        ceap = {}
-    secoes_cota = {}
-    for k, q in pessoas.items():
-        try:
-            html_cota = cota.secao(ceap.get(k), q["cargo"], ceap.get("_fontes"))
-        except Exception as ex:
-            print(f"[aviso] secao da cota falhou para {q['nome']} ({ex!r})", file=sys.stderr)
-            html_cota = '<p class="vazio"><b>Não informado</b>.</p>'
-        secoes_cota.update({i: html_cota for i in q["idx"]})
+    ceap = {} if args.demo else sem_derrubar("cota parlamentar indisponivel", {},
+                                             lambda: cota.coletar(pessoas, range(hoje - 3, hoje + 1), CACHE))
+    secoes_cota = secao_de_cada(pessoas, lambda k, q: cota.secao(ceap.get(k), q["cargo"], ceap.get("_fontes")),
+                                NAO_INFORMADO, "da cota")
     # projetos apresentados e aprovados (Camara: arquivos abertos; Senado: API) e o selo "Mao na massa";
     # as contagens e o corte do selo sao os mesmos da lista de parlamentares
-    try:
-        proj = {} if args.demo else projetos.coletar(pessoas, range(hoje - 3, hoje + 1), CACHE,
-                                                     camara=parl_ctx.get("camara"), senado=parl_ctx.get("senado"),
-                                                     membros=parl_ctx.get("membros"))
-    except Exception as ex:
-        print(f"[aviso] projetos de lei indisponiveis ({ex!r})", file=sys.stderr)
-        proj = {}
+    proj = {} if args.demo else sem_derrubar("projetos de lei indisponiveis", {},
+        lambda: projetos.coletar(pessoas, range(hoje - 3, hoje + 1), CACHE, camara=parl_ctx.get("camara"),
+                                 senado=parl_ctx.get("senado"), membros=parl_ctx.get("membros")))
     # quem esta em exercicio (parlamentares.py, ligado pelo CPF ou por nome e UF) usa as contagens da sua casa, mesmo
     # que o cargo do periodo no TSE seja outro (deputado candidato a senador ou a prefeito): selo e projetos juntos
     parl_chave = {x["_chave"]: x for x in parl if x["_chave"] and x.get("apresentados") is not None}
@@ -769,14 +853,9 @@ def main():
     print(f"Projetos de lei nos destaques: {len(n_proj)} pessoas com contagem "
           f"({sum(q['chave'] in parl_chave for q in pessoas.values())} pela lista de parlamentares em exercicio), "
           f"{sum(bool(v['selo']) for v in n_proj)} com o selo {projetos.SELO}.")
-    secoes_proj = {}
+    secoes_proj = secao_de_cada(pessoas, lambda k, q: projetos.secao(proj.get(k), q["cargo"], proj.get("_fontes")),
+                                NAO_INFORMADO, "de projetos")
     for k, q in pessoas.items():
-        try:
-            html_proj = projetos.secao(proj.get(k), q["cargo"], proj.get("_fontes"))
-        except Exception as ex:
-            print(f"[aviso] secao de projetos falhou para {q['nome']} ({ex!r})", file=sys.stderr)
-            html_proj = '<p class="vazio"><b>Não informado</b>.</p>'
-        secoes_proj.update({i: html_proj for i in q["idx"]})
         r = proj.get(k)
         for i in q["idx"] if r else ():  # contagem no card: projetos apresentados e aprovados (deputado/senador)
             dados["alertas"][i]["projetos"] = dict(apresentados=r["apresentados"], aprovados=r["aprovados"],
@@ -820,11 +899,8 @@ def main():
     # empresas declaradas: atividade, fundacao, capital e situacao nos dados abertos do CNPJ (Receita);
     # o CNPJ so cruza as bases aqui dentro e nunca vai para o site
     cnpjs = {c for q in pessoas.values() for _, c in q["empresas"]}
-    try:
-        receita = {} if args.demo or not cnpjs else empresas.coletar(cnpjs, CACHE)
-    except Exception as ex:
-        print(f"[aviso] dados do CNPJ indisponiveis ({ex!r})", file=sys.stderr)
-        receita = {}
+    receita = {} if args.demo or not cnpjs else sem_derrubar("dados do CNPJ indisponiveis", {},
+                                                              lambda: empresas.coletar(cnpjs, CACHE))
     secoes_receita = {}
     for q in pessoas.values():
         if not q["empresas"]:
@@ -855,27 +931,8 @@ def main():
         dados["alertas"][i]["dossie"] = cam
     if args.demo:  # noticias ficticias para ver a aba sem internet
         noticias = {i: temas.demo(i) for i in noticias}
-    # painel: quem mais gastou da cota parlamentar (entre as pessoas em destaque) e com o que
-    ranking = []
-    for k, q in pessoas.items():
-        r = ceap.get(k)
-        if r:
-            a = dados["alertas"][q["idx"][0]]
-            ranking.append(dict(nome=q["nome_urna"] or q["nome"], cargo=a.get("cargo"), partido=a.get("partido"),
-                                uf=k[1], total=round(r["total"], 2), de=r["anos"][0][0], ate=r["anos"][-1][0],
-                                tipos=[dict(tipo=t, valor=round(v, 2)) for t, v in r["tipos"][:3]],
-                                link=r["link"], dossie=a.get("dossie")))
-    dados["cota"] = sorted(ranking, key=lambda x: -x["total"])[:10]
-    # painel: quem mais apresentou e aprovou projetos (entre as pessoas em destaque)
-    ranking = []
-    for k, q in pessoas.items():
-        r = proj.get(k)
-        if r and r["apresentados"]:
-            a = dados["alertas"][q["idx"][0]]
-            ranking.append(dict(nome=q["nome_urna"] or q["nome"], cargo=a.get("cargo"), partido=a.get("partido"),
-                                uf=k[1], apresentados=r["apresentados"], aprovados=r["aprovados"], selo=r["selo"],
-                                de=r["de"], ate=r["ate"], link=r["link"], dossie=a.get("dossie")))
-    dados["projetos"] = sorted(ranking, key=lambda x: (-x["aprovados"], -x["apresentados"]))[:10]
+    dados["cota"] = ranking_cota_destaques(pessoas, ceap, dados["alertas"])
+    dados["projetos"] = ranking_projetos_destaques(pessoas, proj, dados["alertas"])
     if parl:  # com a lista de todos os parlamentares em exercicio, os rankings comparam a casa inteira
         dossies = {ch: pagina_ou_dossie(dados["alertas"][i]) for i, ch in enumerate(todas["chave"])}
         for p in parl:
@@ -884,17 +941,12 @@ def main():
         dados["projetos"] = parlamentares.ranking_projetos(parl) or dados["projetos"]
 
     # como cobrar (#60): canais oficiais do gabinete (so de quem tem pagina), cota e projetos para o texto sugerido
-    cobranca = {}
-    try:
-        cobranca = montar_cobranca(pessoas, parl, ceap, proj, caches.get("contatos"), args.demo)
-    except Exception as ex:  # sem contatos a aba sai com "Fonte nao encontrada"; nunca derruba o painel
-        print(f"[aviso] contatos de gabinete indisponiveis ({ex!r})", file=sys.stderr)
-    # equipe do gabinete (#66): so o numero de pessoas; nomes e salarios ficam na fonte oficial
-    equipe = {}
-    try:
-        equipe = montar_equipe(pessoas, parl, caches.get("gabinete"), args.demo)
-    except Exception as ex:  # sem a contagem o bloco nao aparece; nunca derruba o painel
-        print(f"[aviso] equipe de gabinete indisponivel ({ex!r})", file=sys.stderr)
+    # sem contatos a aba sai com "Fonte nao encontrada"
+    cobranca = sem_derrubar("contatos de gabinete indisponiveis", {},
+                            lambda: montar_cobranca(pessoas, parl, ceap, proj, caches.get("contatos"), args.demo))
+    # equipe do gabinete (#66): so o numero de pessoas; nomes e salarios ficam na fonte oficial; sem ela o bloco some
+    equipe = sem_derrubar("equipe de gabinete indisponivel", {},
+                          lambda: montar_equipe(pessoas, parl, caches.get("gabinete"), args.demo))
     for q in pessoas.values():  # card: so o numero, em "Ver detalhes"
         r = equipe.get(q["idx"][0])
         for i in q["idx"] if r and r.get("pessoas") else ():
@@ -916,12 +968,7 @@ def main():
         except Exception as ex:
             print(f"[aviso] feeds de acompanhamento falharam ({ex!r})", file=sys.stderr)
     # lista completa leve (#43): todas as pessoas com duas declaracoes, em arquivo separado (docs/todos.json)
-    pag = {}
-    for i, ch in enumerate(todas["chave"]):
-        a = dados["alertas"][i]
-        v = a.get("pagina") if REL_OK(a.get("pagina")) else a.get("dossie") if REL_OK(a.get("dossie")) else None
-        if v:
-            pag.setdefault(ch, v)
+    pag = paginas_por_chave(todas, dados["alertas"])
     try:
         marcas = {p["_chave"]: ("e" if p.get("exemplar") else "") + ("s" if p.get("selo") else "") for p in parl if p["_chave"]}
         dados["todos"] = gravar_todos(docs, df[df.monitorado] if so_lista else df, pag, dados["gerado_em"], {k: v for k, v in marcas.items() if v})
@@ -957,41 +1004,24 @@ def main():
     except Exception as ex:  # nunca derruba o painel: sem os arquivos, o bloco mostra "Fonte não encontrada"
         print(f"[aviso] meus representantes falhou ({ex!r})", file=sys.stderr)
     # aba Estados (#68): ranking dos estados pelos parlamentares em exercicio; sem lista, a aba fica em ordem alfabetica
-    try:
-        dados["estados_rank"] = ranking_uf.montar(representantes.demo()[0] if args.demo else parl,
-                                                  ranking_uf.ultimo_periodo(df))
-    except Exception as ex:
-        print(f"[aviso] ranking dos estados falhou ({ex!r})", file=sys.stderr)
+    rank = sem_derrubar("ranking dos estados falhou", FALHOU, lambda: ranking_uf.montar(
+        representantes.demo()[0] if args.demo else parl, ranking_uf.ultimo_periodo(df)))
+    if rank is not FALHOU:
+        dados["estados_rank"] = rank
     # indicadores do IBGE na aba Estados (#68): Brasil e estados; sem dado, o bloco fica escondido
-    try:
-        dados["ibge"] = ibge.demo() if args.demo else ibge.coletar(
-            Cache(CACHE / "ibge.cache", 400 * 86400, seg_cache) if seg_cache else None, sondar=ibge.sondar)
-    except Exception as ex:
-        print(f"[aviso] indicadores do IBGE falharam ({ex!r})", file=sys.stderr)
+    ind = sem_derrubar("indicadores do IBGE falharam", FALHOU, lambda: ibge.demo() if args.demo else ibge.coletar(
+        Cache(CACHE / "ibge.cache", 400 * 86400, seg_cache) if seg_cache else None, sondar=ibge.sondar))
+    if ind is not FALHOU:
+        dados["ibge"] = ind
     paginas.copiar_estilo(docs)
-    dados["alertas"] = [a for a in dados["alertas"] if not a.get("so_pagina")]  # extras: so a pagina propria
-    # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
-    dados["alertas"].sort(key=lambda a: (-(a.get("topo") or 0), -(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
-    tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
-    painel = dict(dados, alertas=[so_campos_do_card(a) for a in dados["alertas"]])
-    html_painel = tpl.replace("/*DADOS*/null", json.dumps(arredonda(painel), ensure_ascii=False))
-    html_painel = html_painel.replace("/*BENS*/null", json.dumps(bens, ensure_ascii=False))
-    blocos = dict(CARTOES=cartoes, **graficos_painel)
-    for marca, conteudo in blocos.items():
-        html_painel = html_painel.replace(f"<!--{marca}-->", conteudo)
-    # blocos gerados a parte: o workflow "3 · Publicar site" remonta o index com o template atual
-    (docs / "blocos.json").write_text(json.dumps(blocos, ensure_ascii=False), encoding="utf-8")
-    (docs / "index.html").write_text(html_painel, encoding="utf-8")
+    gravar_painel(docs, dados, bens, dict(CARTOES=cartoes, **graficos_painel))
     if pid:
         dados_dir.mkdir(parents=True, exist_ok=True)
         cifra.gravar(estado_arq, json.dumps({r.id: r.nivel for r in alertas.itertuples()}, ensure_ascii=False).encode(), segredo)
         pid.salvar()
     salvar_resultados()  # resumos dos anos fechados (cota, projetos; #48), cifrados em data/cache
 
-    novos = vis[vis.novo]
-    resumo = f"Caramelo Vasculha {dados['gerado_em']}: {len(vis)} destaques, {len(novos)} novos."
-    for r in novos.head(15).itertuples():
-        resumo += f"\n- [{r.nivel}] {r.nome} ({r.cargo}/{r.uf}) {r.ano_ini}->{r.ano_fim}: +R$ {r.cresc:,.0f}"
+    resumo, n_novos = resumo_do_dia(vis, dados["gerado_em"])
     (docs / "digest.txt").write_text(resumo, encoding="utf-8")
     # ultima barreira: nenhum CPF/CNPJ sai no site, mesmo que venha dentro de um texto de fonte externa
     n = varrer(docs, cpfs=[q["cpf"] for q in pessoas.values() if q.get("cpf")] + [p["_cpf"] for p in parl if p["_cpf"]])
@@ -999,7 +1029,7 @@ def main():
         print(f"[aviso] CPF/CNPJ removido de {n} arquivo(s) antes de publicar", file=sys.stderr)
     print(resumo)
     if not args.demo:
-        avisar(resumo if len(novos) else None)
+        avisar(resumo if n_novos else None)
 
 
 def avisar(texto):
