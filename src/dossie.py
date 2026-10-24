@@ -34,7 +34,7 @@ PROCESSOS_ATIVO = False
 FALHA = "Fonte não encontrada: as fontes de notícias não responderam nesta execução."
 SEM_TEMPO = "Não informado: busca não realizada nesta execução (limite de tempo)."
 TEMAS = '(patrimônio OR bens OR "declaração de bens" OR empresa OR "Tribunal de Contas" OR TCU)'
-NV = {"forte": "Faixa vermelha", "atencao": "Faixa laranja", "informativo": "Faixa azul"}  # mesmos rotulos de graficos.ROTULO_NIVEL (#62)
+NV = {"forte": "3 pegadas", "atencao": "2 pegadas", "informativo": "1 pegada"}  # mesmos rotulos de graficos.ROTULO_NIVEL (#62)
 ONDE = {"titulo": "no título", "resumo": "no resumo", "texto": "no texto"}
 CARGOS = {"DEPUTADO": "deputado OR deputada", "SENADOR": "senador OR senadora",
           "GOVERNADOR": "governador OR governadora", "PREFEITO": "prefeito OR prefeita",

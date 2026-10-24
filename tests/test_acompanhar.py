@@ -49,10 +49,10 @@ def test_sem_mudanca_nao_gera_item():
 
 @pytest.mark.parametrize("antes, agora, tipo, trecho", [
     (dict(), dict(ano_fim=2026, pat_fim=1_500_000), "patrimonio", "Nova declaração de bens em 2026: patrimônio aumentou 50%"),
-    (dict(), dict(nivel="forte"), "nivel", "“Faixa vermelha”"),
+    (dict(), dict(nivel="forte"), "nivel", "“3 pegadas”"),
     (dict(cota=1000), dict(cota=9000), "cota", "subiu 800%"),
     (dict(), dict(exemplar=True), "exemplar", "Ganhou a estrela"),
-    (dict(selo=True), dict(), "selo", "Perdeu o selo Mão na massa"),
+    (dict(selo=True), dict(), "selo", "Perdeu o selo Pata na massa"),
 ])
 def test_cada_mudanca_vira_um_item(antes, agora, tipo, trecho):
     a, b = dict(antes), dict(agora)

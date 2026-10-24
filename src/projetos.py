@@ -22,7 +22,7 @@ LINK_CAMARA = "https://www.camara.leg.br/busca-portal?"
 LINK_SENADO = "https://www25.senado.leg.br/web/atividade/materias/-/materia/autor/{cod}/p/1"
 TIPOS = {"PL", "PLP", "PEC"}
 FATIA = 0.10  # selo: os 10% de cada casa com mais projetos aprovados (desempate: mais apresentados)
-SELO = "Mão na massa"
+SELO = "Pata na massa"
 UA = "alerta-patrimonial/1.0"
 e = html.escape
 

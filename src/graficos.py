@@ -9,7 +9,7 @@ from texto import cap as _cap
 
 e = html.escape
 # so a cor da faixa (#62): o significado e a formula ficam na legenda, sem rotulo que soe como julgamento
-ROTULO_NIVEL = {"forte": "Faixa vermelha", "atencao": "Faixa laranja", "informativo": "Faixa azul"}
+ROTULO_NIVEL = {"forte": "3 pegadas", "atencao": "2 pegadas", "informativo": "1 pegada"}
 # regua dos colegas (#64): mesma marcacao do painel (RG/COL em template.html)
 P_ALTO = 90  # ponto dourado: cresceu mais que 90 de cada 100 colegas
 PARTE = ("a dos que menos cresceram", "a segunda", "a do meio", "a quarta", "a dos que mais cresceram")

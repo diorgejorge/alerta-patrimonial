@@ -250,7 +250,7 @@ def test_autor_liga_ao_dossie_e_mostra_carimbos():
                link="../pessoa/p0001.html", perfil="https://senado/1", marcas=("eleito", "selo"))
     html = estados._autor(com)
     assert '<a href="../pessoa/p0001.html">Fulana</a>' in html and "perfil oficial" not in html
-    assert "selo-cera verde p" in html and "selo-cera caramelo p" in html and "Mão na massa" in html
+    assert "selo-cera verde p" in html and "selo-cera caramelo p" in html and "Pata na massa" in html
     assert "Exemplar" not in html  # carimbo sem dado fica escondido
     sem = estados._autor(dict(com, link=None, marcas=()))
     assert "<a href=\"https://senado/1\"" in sem and "perfil oficial" in sem and "selo-cera" not in sem
@@ -263,7 +263,7 @@ def test_legenda_so_com_os_selos_que_aparecem():
     autores = [dict(marcas=("eleito:2022",), paradas=0), dict(marcas=(), paradas=2)]
     leg = estados.legenda_autores(autores)
     assert "legenda-selos" in leg and "<b>Eleito</b>" in leg and "<b>Emendas paradas</b>" in leg
-    assert "Exemplar" not in leg and "Mão na massa" not in leg
+    assert "Exemplar" not in leg and "Pata na massa" not in leg
     assert '<b class="ano">ANO</b>' in leg and "2022" not in leg  # legenda nao mostra um ano fixo como se fosse dado
     assert estados.legenda_autores([dict(marcas=(), paradas=0)]) == ""
 

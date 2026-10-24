@@ -86,11 +86,9 @@ small,.mut{color:var(--mut)}
 .botao:hover{transform:translateY(-1px);box-shadow:var(--elev-alto)}
 .botao:active{transform:translateY(0);box-shadow:var(--elev)}
 
-/* chips de nivel e de tag: simbolo + texto, nunca so cor */
+/* chips de tag: simbolo + texto, nunca so cor (os de nivel, as faixas, ficam no bloco "faixas (#72)") */
 .chip{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:.875rem;font-weight:600;
   border:1px solid currentColor;line-height:1.6}
-.chip.nv-forte{color:var(--forte)}.chip.nv-atencao{color:var(--atencao)}.chip.nv-informativo{color:var(--info)}
-.chip[class*="nv-"]{background:color-mix(in srgb,currentColor 16%,transparent)}  /* fundo tingido da propria cor do nivel */
 .chip[class*="tag-"]{font-weight:500;color:var(--fg);border-color:var(--tc,var(--line))}
 .chip[class*="tag-"]::before{content:"";width:.6em;height:.6em;border-radius:50%;background:var(--tc,var(--mut))}  /* cor so como marcador; texto em --fg (AA) */
 .tag-politico{--tc:var(--t-politico)}.tag-eleitoral{--tc:var(--t-eleitoral)}.tag-legislativo{--tc:var(--t-legislativo)}
@@ -241,7 +239,7 @@ html button.tag.reu:hover{background:var(--realce);border-color:var(--atencao)}
   h1{font-size:1.75rem}
 }
 /* selo de cera (#52): borda recortada, relevo de cera e animacao de carimbo (selo.js marca .carimbado ao entrar na tela).
-   Cor em --cera; variantes: .ouro (exemplar), .caramelo (Mao na massa), .alerta-cera (carimbo de alerta). */
+   Cor em --cera; variantes: .ouro (exemplar), .caramelo (Pata na massa), .alerta-cera (carimbo de alerta). */
 .selo-cera{--cera:#a8322a;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 4px 0 0;border:0;background:none;
   color:inherit;font:inherit;font-size:.8125rem;font-weight:700;line-height:1.2;text-align:left;cursor:pointer}
 .selo-cera.ouro{--cera:#c98a0c}.selo-cera.verde{--cera:#2e7d32}.selo-cera.caramelo{--cera:#b4561f}.selo-cera.alerta-cera{--cera:#b3261e}
@@ -272,6 +270,12 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 /* ano da eleicao dentro do selo (#67): sem texto ao lado; o significado fica na legenda da tela */
 .selo-cera.com-ano .cera{width:50px;height:50px}.selo-cera .cera .ano{display:block;font-size:.72rem;font-weight:800;letter-spacing:-.01em}
 @media print{.selo-cera .cera{filter:none}}
+/* faixas (#72): so a cor e 3, 2 ou 1 pegada brancas; o rotulo ("3 pegadas") fica no texto do chip, so para leitor de tela e titulo */
+.chip[class*="nv-"]{--n:1;gap:0;padding:4px 10px;border:0;font-size:0;color:#fff;background:var(--nv-cor);min-height:1.6rem}
+.chip.nv-forte{--n:3;--nv-cor:#b3261e}.chip.nv-atencao{--n:2;--nv-cor:#b45309}.chip.nv-informativo{--nv-cor:#2a63a8}
+.chip[class*="nv-"]::before{content:"";flex:none;width:calc(var(--n)*1.16rem);height:1rem;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 116 100'%3E%3Cg transform='translate%288 4%29 scale%28.92%29'%3E%3Cellipse cx='50' cy='67' rx='31' ry='27'/%3E%3Cellipse cx='15' cy='40' rx='10.5' ry='13.5' transform='rotate%28-25 15 40%29'/%3E%3Cellipse cx='36' cy='19' rx='11' ry='14' transform='rotate%28-8 36 19%29'/%3E%3Cellipse cx='64' cy='19' rx='11' ry='14' transform='rotate%288 64 19%29'/%3E%3Cellipse cx='85' cy='40' rx='10.5' ry='13.5' transform='rotate%2825 85 40%29'/%3E%3C/g%3E%3C/svg%3E") 0 50%/1.16rem 1rem repeat-x;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 116 100'%3E%3Cg transform='translate%288 4%29 scale%28.92%29'%3E%3Cellipse cx='50' cy='67' rx='31' ry='27'/%3E%3Cellipse cx='15' cy='40' rx='10.5' ry='13.5' transform='rotate%28-25 15 40%29'/%3E%3Cellipse cx='36' cy='19' rx='11' ry='14' transform='rotate%28-8 36 19%29'/%3E%3Cellipse cx='64' cy='19' rx='11' ry='14' transform='rotate%288 64 19%29'/%3E%3Cellipse cx='85' cy='40' rx='10.5' ry='13.5' transform='rotate%2825 85 40%29'/%3E%3C/g%3E%3C/svg%3E") 0 50%/1.16rem 1rem repeat-x}
+@media print{.chip[class*="nv-"]{font-size:.75rem;gap:4px;color:#000;background:none;border:1px solid #000}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{
   :root{color-scheme:light}

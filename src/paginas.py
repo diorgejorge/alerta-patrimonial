@@ -8,7 +8,6 @@ from texto import cap
 SRC = Path(__file__).resolve().parent
 ROOT = SRC.parent
 ORDEM = {"forte": 3, "atencao": 2, "informativo": 1}
-SIMBOLO = {"forte": "▲", "atencao": "◆", "informativo": "●"}  # forma alem da cor
 NUM = ' class="n"'  # colunas numericas (alinhadas a direita)
 e = html.escape
 
@@ -16,8 +15,7 @@ e = html.escape
 def chip_nivel(nv):
     if not nv:
         return ""
-    return (f'<span class="chip nv-{e(nv)}"><span aria-hidden="true">{SIMBOLO.get(nv, "")}</span>'
-            f'{e(graficos.ROTULO_NIVEL.get(nv, nv))}</span>')
+    return f'<span class="chip nv-{e(nv)}">{e(graficos.ROTULO_NIVEL.get(nv, nv))}</span>'  # pegadas no CSS (#72)
 
 
 def iniciais(nome):

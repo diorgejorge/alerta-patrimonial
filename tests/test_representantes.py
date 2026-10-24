@@ -151,7 +151,7 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     assert verdes.count() > 0 and verdes.count() == pagina.locator("#meus-corpo .rep-selos .selo-cera.verde .ano").count()
     assert pagina.locator("#meus-corpo .selo-cera.ouro").count() == 1 and pagina.locator("#meus-corpo .selo-cera.caramelo").count() == 1
     gov = pagina.locator('.rep-grupo[data-g="governador"] .rep')
-    assert "Faixa laranja" in gov.inner_text() and gov.locator(".rep-lista-bt").count() == 1
+    assert "2 pegadas" in gov.inner_text() and gov.locator(".rep-lista-bt").count() == 1
     # um carimbo por eleicao vencida, em ordem
     assert gov.locator(".rep-selos .ano").all_text_contents() == ["2018", "2022"] and "borda-eleito" in gov.get_attribute("class")
     # aba propria, com a bandeira no topo e a legenda dos selos

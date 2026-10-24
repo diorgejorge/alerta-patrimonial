@@ -61,6 +61,6 @@ def test_coleta_e_secao(tmp_path, monkeypatch):
     assert r["sen"]["selo"] and r["sen"]["link"].endswith("/autor/5012/p/1")
     assert "gov" not in r
     h = projetos.secao(r["dep"], pessoas["dep"]["cargo"], r["_fontes"])
-    assert "Mão na massa" in h and "<b>30</b>" in h and "<b>6</b>" in h and CPF not in h
+    assert "Pata na massa" in h and "<b>30</b>" in h and "<b>6</b>" in h and CPF not in h
     assert "Não informado" in projetos.secao(None, " GOVERNADOR", r["_fontes"])
     assert "Fonte não encontrada" in projetos.secao(None, " SENADOR", {"camara": True, "senado": False})

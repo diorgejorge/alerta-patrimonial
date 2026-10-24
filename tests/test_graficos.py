@@ -118,19 +118,19 @@ def test_barras_niveis():
     s = g.barras_niveis(NIV, "n")
     raiz = acessivel(s)
     tx = textos(raiz)
-    assert tx == ["Faixa vermelha", "3", "Faixa laranja", "0", "Faixa azul", "12"]
+    assert tx == ["3 pegadas", "3", "2 pegadas", "0", "1 pegada", "12"]
     for k in ("forte", "atencao", "informativo"):
         assert f'class="g-barra nv-{k}"' in s
         assert f'fill="url(#g-n-niv-{k})"' in s
     assert s.count('class="g-padrao"') == 3
     zero = [el for el in raiz.iter(NS + "text") if el.text == "0"][0]
     assert zero.get("x") == "184"  # barra minima de 2 px + 6 de folga a partir de x=176
-    assert "Faixa laranja: 0" in raiz.find(NS + "desc").text
+    assert "2 pegadas: 0" in raiz.find(NS + "desc").text
 
 
 def test_barras_niveis_vazio_e_grande():
     raiz = acessivel(g.barras_niveis({}, "v"))
-    assert textos(raiz) == ["Faixa vermelha", "0", "Faixa laranja", "0", "Faixa azul", "0"]
+    assert textos(raiz) == ["3 pegadas", "0", "2 pegadas", "0", "1 pegada", "0"]
     raiz = acessivel(g.barras_niveis({"forte": 12345, "atencao": None}, "w"))
     assert "12.345" in textos(raiz)
 
@@ -138,7 +138,7 @@ def test_barras_niveis_vazio_e_grande():
 def test_tabela_niveis():
     t = ET.fromstring(g.tabela_niveis(NIV))
     assert t.find("caption").text == "Destaques por nível"
-    assert [th.text for th in t.iter("th")] == ["Faixa", "Destaques", "Faixa vermelha", "Faixa laranja", "Faixa azul", "Total"]
+    assert [th.text for th in t.iter("th")] == ["Faixa", "Destaques", "3 pegadas", "2 pegadas", "1 pegada", "Total"]
     assert t.find("tfoot").find("tr").find("td").text == "15"
 
 

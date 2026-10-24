@@ -469,7 +469,7 @@ def pagina_de(p):
 MARCAS = (("eleito", "verde", "Eleito", "check", "Venceu a eleição do ano marcado no selo, segundo o TSE"),
           ("exemplar", "ouro", "Exemplar", "estrela",
            "Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções"),
-          ("selo", "caramelo", "Mão na massa", "pata", "Mão na massa: entre os 10% da sua casa com mais projetos aprovados"))
+          ("selo", "caramelo", "Pata na massa", "pata", "Pata na massa: entre os 10% da sua casa com mais projetos aprovados"))
 ICONES = {
     "check": '<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" '
              'stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>',

@@ -174,7 +174,7 @@ def mudancas(antes, agora, pagina, detalhes=None):
                            "Em relação ao último aviso. É dinheiro público para passagens, escritório e "
                            "divulgação do mandato. Fonte: Câmara dos Deputados ou Senado Federal.",
                            agora.get("cota_link") or pagina))
-    for chave, rotulo in (("exemplar", "a estrela de Parlamentar exemplar"), ("selo", "o selo Mão na massa")):
+    for chave, rotulo in (("exemplar", "a estrela de Parlamentar exemplar"), ("selo", "o selo Pata na massa")):
         t = _marca(rotulo, bool(antes.get(chave)), agora[chave])
         if t:
             itens.append(_item(chave, t, "Mesmos critérios para todos; o cálculo está na página. Fontes: Câmara, "

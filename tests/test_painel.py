@@ -159,7 +159,7 @@ def test_card_dois_periodos(abrir):
     assert c.locator(".det .periodo").count() == 2
     assert c.locator(".tag.selo").count() == 1 and c.locator(".selo-cera").count() == 0  # selo de cera so na aba propria
     face = c.locator(".tags").text_content()
-    assert "Mão na massa" in face and "3 empresas" in face
+    assert "Pata na massa" in face and "3 empresas" in face
     assert c.locator(".valor b").text_content() == "+300%"  # soma dos periodos sobre o patrimonio inicial (#62)
     assert "Notícias (3)" in c.locator(".links").text_content()
 
@@ -224,7 +224,7 @@ def test_numeros_com_virgula_no_decimal(abrir, site):
 
 
 def test_tabela_da_pessoa_nao_quebra_palavras_no_computador(servidor, site):
-    """1280px: nada de "Perío do"; "R$ 26.961.420" e "Faixa vermelha" numa linha so; a tabela cabe sem rolar."""
+    """1280px: nada de "Perío do"; "R$ 26.961.420" e "3 pegadas" numa linha so; a tabela cabe sem rolar."""
     nav, url = servidor
     pg = nav.new_page(viewport={"width": 1280, "height": 900})
     pg.goto(url.replace("index.html", f"pessoa/{next((site / 'pessoa').glob('*.html')).name}"))

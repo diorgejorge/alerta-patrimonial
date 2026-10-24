@@ -217,7 +217,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <div class="filtros" id="filtros">
 <select id="cg" aria-label="Cargo"><option value="">Todos os cargos</option></select>
 <select id="rg" aria-label="Região"><option value="">Todas as regiões</option><option>Norte</option><option>Nordeste</option><option>Centro-Oeste</option><option>Sudeste</option><option>Sul</option><option>Nacional</option></select>
-<select id="nv" aria-label="Faixa"><option value="">Todas as faixas</option><option value="forte">Faixa vermelha</option><option value="atencao">Faixa laranja</option><option value="informativo">Faixa azul</option></select>
+<select id="nv" aria-label="Faixa"><option value="">Todas as faixas</option><option value="forte">3 pegadas</option><option value="atencao">2 pegadas</option><option value="informativo">1 pegada</option></select>
 </div>
 </div>
 <div id="chips" class="chips"></div>
@@ -228,7 +228,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <ul class="leg-lista">
 <li data-eleito hidden><button type="button" class="tag eleito" data-f="flag" data-v="eleito"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg> Eleito</button> <span class="expl">Carimbo verde com o ano dentro: venceu a eleição daquele ano, segundo o TSE. Um carimbo para cada eleição vencida. Borda verde: está no mandato agora e pode ser cobrado no cargo.</span></li>
 <li><button type="button" class="tag exemplar" data-f="flag" data-v="exemplar"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg> Exemplar</button> <span class="expl">Ficou mais rico só o que o salário explica, gasta a verba do gabinete abaixo da média e não tem punição registrada.</span></li>
-<li><button type="button" class="tag selo" data-f="flag" data-v="selo"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.2" ry="3.4"/><circle cx="5.8" cy="10.6" r="1.9"/><circle cx="9.4" cy="6.6" r="1.9"/><circle cx="14.6" cy="6.6" r="1.9"/><circle cx="18.2" cy="10.6" r="1.9"/></svg> Mão na massa</button> <span class="expl">Está entre os 10% que mais aprovaram leis na sua casa (Câmara ou Senado) nos últimos 4 anos.</span></li>
+<li><button type="button" class="tag selo" data-f="flag" data-v="selo"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.2" ry="3.4"/><circle cx="5.8" cy="10.6" r="1.9"/><circle cx="9.4" cy="6.6" r="1.9"/><circle cx="14.6" cy="6.6" r="1.9"/><circle cx="18.2" cy="10.6" r="1.9"/></svg> Pata na massa</button> <span class="expl">Está entre os 10% que mais aprovaram leis na sua casa (Câmara ou Senado) nos últimos 4 anos.</span></li>
 <li><button type="button" class="tag renda" data-f="flag" data-v="renda"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M11 21v-3h2v3"/></svg> Empresas</button> <span class="expl">É sócio de empresa: o salário não é a única renda, então o alerta fica um grau mais leve.</span></li>
 <li data-processos hidden><button type="button" class="tag reu" data-f="flag" data-v="reu">Responde a processo?</button> <span class="expl">Nome numa lista revisada por leitores; pode ser outra pessoa com o mesmo nome, confira.</span></li>
 </ul>
@@ -259,7 +259,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <p id="exemplares-qtd"></p>
 <ul class="alertas" id="exemplares-lista" aria-label="Parlamentares exemplares"></ul></section>
 <section id="projetos" class="painel-aba" hidden><h2><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.2" ry="3.4"/><circle cx="5.8" cy="10.6" r="1.9"/><circle cx="9.4" cy="6.6" r="1.9"/><circle cx="14.6" cy="6.6" r="1.9"/><circle cx="18.2" cy="10.6" r="1.9"/></svg> Quem mais propôs e aprovou projetos</h2>
-<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: projetos de lei, de lei complementar e propostas de emenda à Constituição (PL, PLP e PEC) apresentados nos últimos quatro anos como autor ou coautor, e quantos viraram norma jurídica. O selo <b>Mão na massa</b> vai para quem está entre os 10% da sua casa com mais projetos aprovados (no empate, conta quem apresentou mais); a conta inclui todos os parlamentares em exercício. Quantidade não mede a qualidade das propostas. Fontes: dados abertos da <a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener">Câmara dos Deputados</a> e do <a href="https://www12.senado.leg.br/dados-abertos" target="_blank" rel="noopener">Senado Federal</a>.</p>
+<p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: projetos de lei, de lei complementar e propostas de emenda à Constituição (PL, PLP e PEC) apresentados nos últimos quatro anos como autor ou coautor, e quantos viraram norma jurídica. O selo <b>Pata na massa</b> vai para quem está entre os 10% da sua casa com mais projetos aprovados (no empate, conta quem apresentou mais); a conta inclui todos os parlamentares em exercício. Quantidade não mede a qualidade das propostas. Fontes: dados abertos da <a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener">Câmara dos Deputados</a> e do <a href="https://www12.senado.leg.br/dados-abertos" target="_blank" rel="noopener">Senado Federal</a>.</p>
 <ol class="alertas" id="projetos-lista"></ol></section>
 <section id="cota" class="painel-aba" hidden><h2>Quem mais gastou da cota parlamentar</h2>
 <p class="fonte">Entre as pessoas em destaque que são deputados federais ou senadores: total gasto da cota para o exercício da atividade parlamentar (CEAP) nos últimos quatro anos e os maiores tipos de despesa. Usar a cota faz parte do mandato; os dados ajudam a conhecer como ela é usada. Fontes: <a href="https://www.camara.leg.br/transparencia/gastos-parlamentares" target="_blank" rel="noopener">Câmara dos Deputados</a> e <a href="https://www12.senado.leg.br/transparencia/dados-abertos-transparencia/dados-abertos-ceaps" target="_blank" rel="noopener">Senado Federal</a>.</p>
@@ -284,8 +284,8 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <select id="tcg" aria-label="Cargo na lista completa"><option value="">Todos os cargos</option></select>
 <select id="tpt" aria-label="Partido na lista completa"><option value="">Todos os partidos</option></select>
 <select id="tuf" aria-label="Estado na lista completa"><option value="">Todos os estados</option></select>
-<select id="tnv" aria-label="Faixa na lista completa"><option value="">Todas as faixas</option><option value="3">Faixa vermelha</option><option value="2">Faixa laranja</option><option value="1">Faixa azul</option><option value="0">Sem destaque</option></select>
-<select id="tmc" aria-label="Marcação na lista completa"><option value="">Todas as marcações</option><option value="e">Parlamentar exemplar</option><option value="s">Mão na massa</option></select>
+<select id="tnv" aria-label="Faixa na lista completa"><option value="">Todas as faixas</option><option value="3">3 pegadas</option><option value="2">2 pegadas</option><option value="1">1 pegada</option><option value="0">Sem destaque</option></select>
+<select id="tmc" aria-label="Marcação na lista completa"><option value="">Todas as marcações</option><option value="e">Parlamentar exemplar</option><option value="s">Pata na massa</option></select>
 </div>
 <p class="contagem" id="todos-qtd" aria-live="polite"></p>
 <ul class="leves" id="todos-lista" aria-label="Lista completa de pessoas"></ul>
@@ -314,7 +314,7 @@ function COMPRA(v){
 }
 // negativo com o sinal antes do R$: "−R$ 11.973.159"
 const R=v=>v==null?"Não informado":(v<0?"−":"")+"R$ "+Math.round(Math.abs(v)).toLocaleString("pt-BR");
-const NV={forte:"Faixa vermelha",atencao:"Faixa laranja",informativo:"Faixa azul"};  // so a cor (#62); a formula fica na legenda
+const NV={forte:"3 pegadas",atencao:"2 pegadas",informativo:"1 pegada"};  // so a cor (#62); a formula fica na legenda
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
 // link do TSE de um periodo
@@ -341,7 +341,7 @@ const F={partido:"",uf:"",cargo:"",regiao:"",flag:""};
 // marcacoes da pessoa (uniao dos periodos): rotulo, teste e texto do botao da legenda quando ninguem tem a marcacao
 const REU_OBS="Informação de lista revisada por leitores; pode ser homônimo, confira o processo. Ser réu não significa condenação";
 const FLAG={eleito:["Eleito",a=>a.eleito_anos.length>0,"Nenhuma pessoa em destaque venceu eleição nesta atualização"],exemplar:["Parlamentar exemplar",a=>a.exemplar,"Nenhuma pessoa em destaque é parlamentar exemplar nesta atualização"],
-  selo:["Mão na massa",a=>a.selo,"Nenhuma pessoa em destaque tem o selo Mão na massa nesta atualização"],
+  selo:["Pata na massa",a=>a.selo,"Nenhuma pessoa em destaque tem o selo Pata na massa nesta atualização"],
   renda:["Tem empresas declaradas",a=>a.outras_rendas,"Nenhuma pessoa em destaque tem empresas declaradas nesta atualização"],
   reu:["Responde a processo?",a=>(a.processos||[]).length>0,"Nenhuma pessoa em destaque está na lista de processos revisada por leitores nesta atualização"]};
 if(!PROC_ON)delete FLAG.reu;
@@ -480,7 +480,7 @@ const CPU=p=>(p.cargos.length?p.cargos.map(c=>DIM("cargo",c,"cargo",esc(c))).joi
   +p.partidos.map(x=>DIM("partido",x,"partido",PD(x)+esc(x))).join("")+p.ufs.map(u=>DIM("uf",u,"estado",esc(u))).join("");
 const TAGS=p=>{const rd=p.per.find(a=>a.nivel_calculado&&a.nivel_calculado!==a.nivel);
   return(p.exemplar?BT("","data-f=\"flag\" data-v=\"exemplar\"","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções. Clique para ver só os exemplares",`<span class="estrela">${ICO.estrela}</span> exemplar`):"")
-  +(p.selo?BT("selo","data-f=\"flag\" data-v=\"selo\"","Mão na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",`${ICO.pata} Mão na massa`):"")
+  +(p.selo?BT("selo","data-f=\"flag\" data-v=\"selo\"","Pata na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",`${ICO.pata} Pata na massa`):"")
   +PR(p)
   +(p.outras_rendas?BT("renda","data-f=\"flag\" data-v=\"renda\"",`Declarou participação em empresas: tem outra fonte de renda${rd?`; destaque reduzido de ${NV[rd.nivel_calculado]} para ${NV[rd.nivel]}${p.per.length>1?` em ${rd.ano_ini}–${rd.ano_fim}`:""}`:""}. Clique para ver só quem tem empresas`,"Tem empresas declaradas"):"")
   +CPU(p);};
@@ -518,7 +518,7 @@ const RES1=c=>`<p class="resumo">${CPU_RES({cargos:[c.cargo].filter(Boolean),par
 // marcacoes que valem a pena na face do card; zeros e "Não informado" ficam nos detalhes
 const MARCAS=p=>{const ne=p.qtd_empresas||0,rd=p.per.find(a=>a.nivel_calculado&&a.nivel_calculado!==a.nivel);
   const l=[p.exemplar&&MARCA("exemplar","Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções. Clique para ver só os exemplares",ICO.estrela,"Exemplar"),
-    p.selo&&MARCA("selo","Mão na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",ICO.pata,"Mão na massa"),
+    p.selo&&MARCA("selo","Pata na massa: entre os 10% da sua casa (Câmara ou Senado) com mais projetos aprovados nos últimos 4 anos. Clique para ver só quem tem o selo",ICO.pata,"Pata na massa"),
     PROC_ON&&PR(p),
     (ne||p.outras_rendas)&&BT("renda","data-f=\"flag\" data-v=\"renda\"",`Declarou participação em empresas: tem outra fonte de renda${rd?`; destaque reduzido de ${NV[rd.nivel_calculado]} para ${NV[rd.nivel]}${p.per.length>1?` em ${rd.ano_ini}–${rd.ano_fim}`:""}`:""}. Clique para ver só quem tem empresas`,
       `${ICO.predio} ${ne?`${ne.toLocaleString("pt-BR")} ${ne===1?"empresa":"empresas"}`:"Tem empresas"}`)].filter(Boolean);
@@ -585,7 +585,7 @@ ${RES1(c)}
 }
 function projetos(){
   const l=D.projetos||[];if(!l.length)return;
-  $("projetos-lista").innerHTML=l.map((c,i)=>`<li class="card alerta${c.selo?" com-selo":""}">${c.selo?SELO("caramelo","Mão na massa: entre os 10% da sua casa com mais projetos aprovados",ICO.pata,"Mão na massa"):""}<div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
+  $("projetos-lista").innerHTML=l.map((c,i)=>`<li class="card alerta${c.selo?" com-selo":""}">${c.selo?SELO("caramelo","Pata na massa: entre os 10% da sua casa com mais projetos aprovados",ICO.pata,"Pata na massa"):""}<div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
 ${RES1(c)}
 <dl><div><dt>Projetos apresentados</dt><dd>${c.apresentados.toLocaleString("pt-BR")}</dd></div><div><dt>Aprovados (viraram norma jurídica)</dt><dd>${c.aprovados.toLocaleString("pt-BR")}</dd></div></dl>
 <p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Ver a lista no site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Raio-X</a>`:""}</p></li>`).join("");
@@ -648,7 +648,7 @@ const TLK=s=>/^https:\/\//.test(TD.link_tse||"")&&/^[A-Z]+\/[A-Z]{2}\/\d+\/\d+\/
 // lista completa: so o aumento percentual (#62: sem valores em reais do patrimonio)
 const VAR=(ini,fim)=>ini==null||fim==null?"Não informado":VO({cresc:fim-ini,pat_ini:ini});
 const LEVE=p=>`<li class="leve"><div class="topo"><span><b>${p.m.includes("e")?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(p.n)}</b>${p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:""}${p.c?`<br><small>${esc(p.c)}</small>`:""}</span><span class="chip${p.nv?` nv-${TNC[p.nv]}`:""}">${TN[p.nv]}</span></div>
-<p class="tags">${p.m.includes("s")?`<span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos">${ICO.pata} Mão na massa</span>`:""}${[...p.cg,...p.pt,...p.uf].map(v=>`<span class="tag">${esc(v)}</span>`).join("")}</p>
+<p class="tags">${p.m.includes("s")?`<span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos">${ICO.pata} Pata na massa</span>`:""}${[...p.cg,...p.pt,...p.uf].map(v=>`<span class="tag">${esc(v)}</span>`).join("")}</p>
 <ul>${p.per.map(x=>{const l=TLK(x[8]);return`<li>${x[0]}–${x[1]}${p.per.length>1?` · ${esc(TD.cargos[x[2]])}`:""}: o patrimônio aumentou ${VAR(x[5],x[6])}${l?` · <a href="${esc(l)}" target="_blank" rel="noopener" title="Declaração no DivulgaCandContas (TSE), ${x[0]}–${x[1]}">TSE</a>`:" · TSE: Não informado"}</li>`;}).join("")}</ul>
 ${REL(p.pg)?`<p class="links"><a class="lk" href="${esc(p.pg)}">Raio-X</a></p>`:""}</li>`;
 function todosMais(){
@@ -726,7 +726,7 @@ function legenda(){
     ["atencao",`O patrimônio aumentou ${PCT(m.atencao.razao*100)} ou mais, ou bem mais que os colegas do mesmo cargo.`],
     ["informativo",`Cresceu mais que ${NUM(m.informativo.percentil)} de cada 100 colegas do mesmo cargo.`]]
     .map(([n,t])=>`<li><span class="chip nv-${n}">${NV[n]}</span> <span class="expl">${t}</span></li>`).join("");
-  const tt={eleito:"Clique para ver só quem já venceu eleição",exemplar:"Clique para ver só os parlamentares exemplares",selo:"Clique para ver só quem tem o selo Mão na massa",renda:"Clique para ver só quem tem empresas declaradas",reu:`${REU_OBS}. Clique para ver só quem está na lista`};
+  const tt={eleito:"Clique para ver só quem já venceu eleição",exemplar:"Clique para ver só os parlamentares exemplares",selo:"Clique para ver só quem tem o selo Pata na massa",renda:"Clique para ver só quem tem empresas declaradas",reu:`${REU_OBS}. Clique para ver só quem está na lista`};
   for(const b of $("legenda").querySelectorAll('button[data-f="flag"]')){const f=FLAG[b.dataset.v];if(!f)continue;
     const n=PES.filter(f[1]).length,nt=(D.todos||{})[b.dataset.v]||0;  // nt: na lista completa (exemplar e selo)
     if(n||nt)b.removeAttribute("aria-disabled");else b.setAttribute("aria-disabled","true");
