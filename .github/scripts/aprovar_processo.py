@@ -67,7 +67,7 @@ def main():
                                 incluido_em=dt.date.today().isoformat()))
             ok = True
             msg = (f"Processo **{numero}** ({tribunal}) adicionado para **{nome}** ({uf}). A tag aparece no painel e no "
-                   "dossiê na próxima atualização. Quando o processo terminar, remova a linha de `config/processos.csv`.")
+                   "Raio-X na próxima atualização. Quando o processo terminar, remova a linha de `config/processos.csv`.")
     (ROOT / "resposta.md").write_text(msg, encoding="utf-8")
     with open(os.environ.get("GITHUB_OUTPUT", os.devnull), "a") as f:
         f.write(f"ok={'true' if ok else 'false'}\n")

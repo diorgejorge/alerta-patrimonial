@@ -59,7 +59,7 @@
       +(p.partido?`<span class="tag">${corPartido(p.partido)}${esc(p.partido)}</span>`:"");
     const parl=g==="senadores"||g==="federais";
     const links=[https(p.perfil)?`<a class="lk" href="${esc(p.perfil)}" target="_blank" rel="noopener">${parl?"Perfil oficial":"Candidatura no TSE"}</a>`:"",
-      rel(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Dossiê</a>`:p.lista?`<button type="button" class="lk rep-lista-bt" data-nome="${esc(p.nome)}" title="Abrir em Todas as pessoas, com o patrimônio declarado em cada eleição">Patrimônio</button>`:"",feed(p.dossie)].filter(Boolean).join(" · ");
+      rel(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Raio-X</a>`:p.lista?`<button type="button" class="lk rep-lista-bt" data-nome="${esc(p.nome)}" title="Abrir em Todas as pessoas, com o patrimônio declarado em cada eleição">Patrimônio</button>`:"",feed(p.dossie)].filter(Boolean).join(" · ");
     const c=p.contato||{},tel=(c.telefone||"").replace(/\D/g,"");
     const fale=parl&&(c.email||tel)?`<p class="rep-fale"><b>Cobre direto:</b> ${[c.email?`<a class="lk" href="mailto:${esc(c.email)}">e-mail</a>`:"",
       tel?`<a class="lk" href="tel:+55${esc(tel)}">${esc(c.telefone)}</a>`:"",cobrar(p.dossie)].filter(Boolean).join(" · ")}</p>`:"";

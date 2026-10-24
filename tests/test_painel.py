@@ -404,7 +404,7 @@ def test_como_cobrar_e_dossie_levam_a_lugares_diferentes(abrir):
     pg = abrir()
     links = card(pg, [{**UM_PERIODO[0], "cobrar": 1}]).locator("a.lk")
     hrefs = {a.text_content(): a.get_attribute("href") for a in links.all()}
-    assert hrefs["Dossiê"] == "pessoa/p0001.html" and hrefs["Como cobrar"] == "pessoa/p0001.html#cobrar"
+    assert hrefs["Raio-X"] == "pessoa/p0001.html" and hrefs["Como cobrar"] == "pessoa/p0001.html#cobrar"
     pg.evaluate("document.getElementById('teste').remove()")
     assert "Como cobrar" not in card(pg, UM_PERIODO).text_content()
 

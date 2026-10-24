@@ -1,12 +1,12 @@
 name: Sugerir fonte de notícias
-description: Indique um veículo jornalístico para o dossiê buscar notícias.
+description: Indique um veículo jornalístico para o Raio-X buscar notícias.
 title: "[Fonte de notícias] "
 labels: ["fonte-noticias"]
 body:
   - type: markdown
     attributes:
       value: |
-        Depois de revisada e aprovada, a fonte passa a ser usada nos dossiês na próxima atualização semanal.
+        Depois de revisada e aprovada, a fonte passa a ser usada no Raio-X dos políticos na próxima atualização semanal.
         Só entram notícias que citam a pessoa ou uma empresa ligada a ela pelo nome. Esta sugestão fica pública.
   - type: input
     id: nome

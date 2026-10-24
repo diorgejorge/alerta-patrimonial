@@ -247,7 +247,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
 </section>
 <section id="todos" class="painel-aba" hidden><h2>Todas as pessoas analisadas</h2>
-<p class="fonte">Todas as pessoas com duas declarações de bens ao TSE que dá para comparar, com ou sem destaque. Cada pessoa aparece uma vez, com os períodos dentro. O dossiê completo existe só para quem está entre os destaques. Os números são o que foi declarado ao TSE; confira cada período no link da fonte. Fonte: <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">TSE</a>.</p>
+<p class="fonte">Todas as pessoas com duas declarações de bens ao TSE que dá para comparar, com ou sem destaque. Cada pessoa aparece uma vez, com os períodos dentro. O Raio-X completo existe só para quem está entre os destaques. Os números são o que foi declarado ao TSE; confira cada período no link da fonte. Fonte: <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">TSE</a>.</p>
 <p><button type="button" class="botao" id="todos-abrir" aria-controls="todos-box" aria-expanded="false"></button></p>
 <div id="todos-box" hidden>
 <div class="barra">
@@ -296,7 +296,7 @@ if(PROC_ON)for(const e of document.querySelectorAll("[data-processos]"))e.hidden
 // carimbo Eleito (#67): a legenda so aparece quando a carga ja traz o campo (antes dela, nada muda na tela)
 if((D?.alertas||[]).some(a=>"eleito_atual" in a))for(const e of document.querySelectorAll("[data-eleito]"))e.hidden=false;
 // links da pessoa: TSE (so com um periodo; com varios, cada periodo traz o seu), dossie, noticias e busca de processos
-const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Dossiê</a>`:"",REL(p.pagina)&&p.cobrar?`<a class="lk" href="${esc(p.pagina)}#cobrar" title="Canais oficiais do gabinete e uma sugestão de texto para copiar">Como cobrar</a>`:"",SHARE(p),REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}"${p.mencoes?` title="${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias"`:""}>Notícias${p.mencoes?` (${p.mencoes})`:""}</a>`:"",
+const LK=p=>[p.per.length===1?TSE(p.per[0]):"",REL(p.pagina)?`<a class="lk" href="${esc(p.pagina)}">Raio-X</a>`:"",REL(p.pagina)&&p.cobrar?`<a class="lk" href="${esc(p.pagina)}#cobrar" title="Canais oficiais do gabinete e uma sugestão de texto para copiar">Como cobrar</a>`:"",SHARE(p),REL(p.dossie)?`<a class="lk" href="${esc(p.dossie)}"${p.mencoes?` title="${p.mencoes} ${p.mencoes>1?"menções":"menção"} na imprensa em 30 dias"`:""}>Notícias${p.mencoes?` (${p.mencoes})`:""}</a>`:"",
   PROC_ON&&`<a class="lk" href="${esc(PROC(p))}" target="_blank" rel="noopener" title="Busca pelo nome em sites de tribunais (jus.br), no Jusbrasil, no Escavador e no Processo Rápido; confira se não é outra pessoa com o mesmo nome">Conferir processos</a>`].filter(Boolean).join(" · ");
 // compartilhar (#61): o compartilhar.js desenha o card numa imagem com estes dados (mesmos numeros da face do card)
 const SHARE=p=>{if(!REL(p.pagina))return"";
@@ -471,7 +471,7 @@ const CONT=(p,tag="p",cls="contadores")=>{
     +(p.parlamentar?s(j&&!j.aprovados,j?"Projetos de lei, de lei complementar e PECs como autor ou coautor; aprovados = viraram norma jurídica":"",ICO.pata+" "+(j?`<b>${n(j.aprovados)}</b> ${j.aprovados===1?"projeto aprovado":"projetos aprovados"} de ${n(j.apresentados)} ${j.apresentados===1?"apresentado":"apresentados"}${j.de?` (${j.de}–${j.ate})`:""}${/^https:\/\//.test(j.link||"")?` · <a href="${esc(j.link)}" target="_blank" rel="noopener" aria-label="Ver os projetos no site oficial">ver</a>`:""}`:"Projetos: Não informado")):"")
     +(p.presenca&&p.presenca.pct!=null?" "+s(0,"Presença registrada em sessões do plenário desde o início da legislatura, comparada com a média da casa. Falta pode ter justificativa (licença, missão)",ICO.check+` Presença <b>${PCT(p.presenca.pct)}</b>${p.presenca.media_casa!=null?` (média da casa ${PCT(p.presenca.media_casa)})`:""}`," presenca"):"")
     +(p.gabinete?" "+s(0,"Pessoas que trabalham hoje no gabinete, pagas com dinheiro público, segundo a fonte oficial",ICO.equipe+` <b>${n(p.gabinete.pessoas)}</b> ${p.gabinete.pessoas===1?"pessoa":"pessoas"} no gabinete${/^https:\/\//.test(p.gabinete.link||"")?` · <a href="${esc(p.gabinete.link)}" target="_blank" rel="noopener" aria-label="Ver a equipe no site oficial">ver</a>`:""}`," gabinete"):"")
-    +(p.votos&&p.votos.length?" "+s(0,"Votações de temas importantes no plenário. Veja como votou em cada um no dossiê",ICO.urna+` Votou em <b>${p.votos.filter(v=>v.voto!=="Não votou").length}</b> de ${p.votos.length} temas${/^dossie\//.test(p.dossie||"")?` · <a href="${esc(p.dossie)}#votos">ver votos</a>`:""}`," votos"):"")
+    +(p.votos&&p.votos.length?" "+s(0,"Votações de temas importantes no plenário. Veja como votou em cada um no Raio-X",ICO.urna+` Votou em <b>${p.votos.filter(v=>v.voto!=="Não votou").length}</b> de ${p.votos.length} temas${/^dossie\//.test(p.dossie||"")?` · <a href="${esc(p.dossie)}#votos">ver votos</a>`:""}`," votos"):"")
     +`</${tag}>`;};
 // nome e cargo do TSE em caixa alta viram "Zé da Silva", "Deputado Estadual" (conectivos ficam minusculos)
 const MIN=new Set(["de","da","do","das","dos","e"]);
@@ -545,7 +545,7 @@ function cota(){
 ${RES1(c)}
 <p class="cresc"><small>Total gasto da cota</small><b>${RS(c.total)}</b></p>
 <dl>${(c.tipos||[]).map(t=>`<div><dt>${esc(t.tipo||"Outros")}</dt><dd>${RS(t.valor)}</dd></div>`).join("")}</dl>
-<p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
+<p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Raio-X</a>`:""}</p></li>`).join("");
   $("cota").hidden=false;
 }
 function projetos(){
@@ -553,7 +553,7 @@ function projetos(){
   $("projetos-lista").innerHTML=l.map((c,i)=>`<li class="card alerta${c.selo?" com-selo":""}">${c.selo?SELO("caramelo","Mão na massa: entre os 10% da sua casa com mais projetos aprovados",ICO.pata,"Mão na massa"):""}<div class="topo"><span><b>${i+1}. ${esc(c.nome)}</b><br><small>${c.de}–${c.ate}</small></span></div>
 ${RES1(c)}
 <dl><div><dt>Projetos apresentados</dt><dd>${c.apresentados.toLocaleString("pt-BR")}</dd></div><div><dt>Aprovados (viraram norma jurídica)</dt><dd>${c.aprovados.toLocaleString("pt-BR")}</dd></div></dl>
-<p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Ver a lista no site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Dossiê</a>`:""}</p></li>`).join("");
+<p class="links">${/^https:\/\//.test(c.link||"")?`<a class="lk" href="${esc(c.link)}" target="_blank" rel="noopener">Ver a lista no site oficial</a>`:""}${REL(c.dossie)?` · <a class="lk" href="${esc(c.dossie)}">Raio-X</a>`:""}</p></li>`).join("");
   $("projetos").hidden=false;
 }
 function mais(){
@@ -615,7 +615,7 @@ const VAR=(ini,fim)=>ini==null||fim==null?"Não informado":VO({cresc:fim-ini,pat
 const LEVE=p=>`<li class="leve"><div class="topo"><span><b>${p.m.includes("e")?`<span class="estrela" title="Parlamentar exemplar: patrimônio compatível, cota abaixo da média e sem sanções">${ICO.estrela}</span> `:""}${esc(p.n)}</b>${p.per.length>1?` <span class="multi">${p.per.length} períodos</span>`:""}${p.c?`<br><small>${esc(p.c)}</small>`:""}</span><span class="chip${p.nv?` nv-${TNC[p.nv]}`:""}">${TN[p.nv]}</span></div>
 <p class="tags">${p.m.includes("s")?`<span class="tag selo" title="Entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos">${ICO.pata} Mão na massa</span>`:""}${[...p.cg,...p.pt,...p.uf].map(v=>`<span class="tag">${esc(v)}</span>`).join("")}</p>
 <ul>${p.per.map(x=>{const l=TLK(x[8]);return`<li>${x[0]}–${x[1]}${p.per.length>1?` · ${esc(TD.cargos[x[2]])}`:""}: o patrimônio aumentou ${VAR(x[5],x[6])}${l?` · <a href="${esc(l)}" target="_blank" rel="noopener" title="Declaração no DivulgaCandContas (TSE), ${x[0]}–${x[1]}">TSE</a>`:" · TSE: Não informado"}</li>`;}).join("")}</ul>
-${REL(p.pg)?`<p class="links"><a class="lk" href="${esc(p.pg)}">Dossiê</a></p>`:""}</li>`;
+${REL(p.pg)?`<p class="links"><a class="lk" href="${esc(p.pg)}">Raio-X</a></p>`:""}</li>`;
 function todosMais(){
   const ate=Math.min(TL.length,TV+TPAG);$("todos-lista").insertAdjacentHTML("beforeend",TL.slice(TV,ate).map(LEVE).join(""));TV=ate;
   const r=TL.length-TV;$("todos-mais").hidden=r<=0;$("todos-mais").textContent=`Mostrar mais ${Math.min(r,TPAG)} (faltam ${r.toLocaleString("pt-BR")})`;
@@ -680,7 +680,7 @@ function contrib(){
   $("sug-noticia").href=`${base}/new?template=fonte-noticias.yml`;$("sug-dados").href=`${base}/new?template=fonte-dados.yml`;
   $("sug-lista").href=`${base}?q=is%3Aissue+in%3Atitle+%22Fonte+de%22`;
   const fs=D.fontes||[];
-  $("fontes-uso").textContent="Notícias dos dossiês: Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
+  $("fontes-uso").textContent="Notícias do Raio-X: Google Notícias"+(fs.length?` e ${fs.length} fonte${fs.length>1?"s":""} sugerida${fs.length>1?"s":""} (${fs.map(f=>f.nome+(f.uf?` – ${f.uf}`:"")).join(", ")})`:"")+".";
   $("contrib").hidden=false;
 }
 // legenda: cada marcacao mostra quantas pessoas do painel a tem; sem ninguem, o botao fica desativado e explica

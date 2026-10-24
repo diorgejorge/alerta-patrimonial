@@ -30,11 +30,11 @@ Abra `docs/index.html` (ou `_demo/docs/index.html`) no navegador.
 
 ## Automação (GitHub Actions)
 1. Crie um repositório **privado** e envie estes arquivos.
-2. Em Settings → Secrets and variables → Actions, crie `ID_SEGREDO` (um texto aleatório longo; gera o id interno `p0001`... de cada pessoa sem expor CPF; sem ele não há páginas por pessoa) e `TRANSPARENCIA_TOKEN` com a chave gratuita da API do Portal da Transparência (cadastro em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email). Todas as consultas ao Portal (emendas, benefícios, despesas e sanções) usam só essa API; sem a chave, a seção "Dinheiro público" do dossiê fica sem dados. (Opcional) Crie também `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID`.
+2. Em Settings → Secrets and variables → Actions, crie `ID_SEGREDO` (um texto aleatório longo; gera o id interno `p0001`... de cada pessoa sem expor CPF; sem ele não há páginas por pessoa) e `TRANSPARENCIA_TOKEN` com a chave gratuita da API do Portal da Transparência (cadastro em https://portaldatransparencia.gov.br/api-de-dados/cadastrar-email). Todas as consultas ao Portal (emendas, benefícios, despesas e sanções) usam só essa API; sem a chave, a seção "Dinheiro público" do Raio-X fica sem dados. (Opcional) Crie também `TELEGRAM_TOKEN` e `TELEGRAM_CHAT_ID`.
 3. Painel no GitHub Pages: em Settings → Pages, escolha **Source: GitHub Actions**. Lembre que o site do Pages é **público**, mesmo com repositório privado.
 
 ### Fluxos (aba Actions)
-Os fluxos de dados são separados para o site atualizar rápido: o principal publica o painel em minutos, e o dossiê por estado, que é lento, roda depois, sozinho. Os números indicam a ordem.
+Os fluxos de dados são separados para o site atualizar rápido: o principal publica o painel em minutos, e o Raio-X por estado, que é lento, roda depois, sozinho. Os números indicam a ordem.
 
 | Fluxo | Arquivo | Quando roda | O que faz | Tempo |
 |---|---|---|---|---|
@@ -70,7 +70,7 @@ Para remover uma fonte, apague a linha do CSV.
 - Só renda como eleito em cargos listados em `renda_publica.csv`; demais casos ficam sem razão (só percentil).
 - Empresas ligadas vêm só da descrição dos bens declarados ao TSE (pode faltar empresa ou haver erro de leitura).
 - Notícias são coletadas por nome e podem se referir a homônimos; a curadoria manual corrige casos conhecidos.
-- Partes da API do Portal da Transparência podem recusar consultas numa execução; o dossiê mostra "Indisponível".
+- Partes da API do Portal da Transparência podem recusar consultas numa execução; o Raio-X mostra "Indisponível".
 - Cuidado com LGPD e difamação: ao divulgar, descreva o fato e cite a fonte, sem concluir irregularidade.
 
 ## Fontes

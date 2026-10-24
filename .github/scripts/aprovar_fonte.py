@@ -77,7 +77,7 @@ def main():
                 ok = True
                 onde = f"pessoas de {uf}" if uf else "todas as pessoas"
                 msg = (f"Fonte **{nome}** adicionada (`{feed}`), usada para {onde}. "
-                       "Ela entra nos dossiês na próxima atualização. Obrigado!")
+                       "Ela entra no Raio-X dos políticos na próxima atualização. Obrigado!")
     (ROOT / "resposta.md").write_text(msg, encoding="utf-8")
     with open(os.environ.get("GITHUB_OUTPUT", os.devnull), "a") as f:
         f.write(f"ok={'true' if ok else 'false'}\n")

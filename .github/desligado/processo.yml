@@ -6,7 +6,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Depois de revisado e aprovado, o processo aparece como uma tag no card e no dossiê da pessoa, com link para a consulta.
+        Depois de revisado e aprovado, o processo aparece como uma tag no card e no Raio-X da pessoa, com link para a consulta.
         Só entram processos **públicos** (sem segredo de justiça) em que a pessoa figura como **ré**, identificados pelo número.
         Não informe CPF nem outros dados pessoais. Esta indicação fica pública.
   - type: input
