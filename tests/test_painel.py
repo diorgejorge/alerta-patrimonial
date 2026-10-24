@@ -568,3 +568,25 @@ def test_reserva_some_depois_da_carga(abrir):
     pg = abrir()
     assert pg.locator(".reserva").count() == 0 or not pg.locator(".reserva").first.is_visible()
     assert "abas-prontas" in pg.evaluate("document.documentElement.className")
+
+
+def test_faixa_no_card_so_cor_e_pegadas(abrir):
+    """#72: o chip de faixa mostra so a cor e 2 pegadas (atencao); o rotulo fica so para leitor de tela."""
+    pg = abrir()
+    chip = card(pg, UM_PERIODO).locator(".chip.nv-atencao")
+    assert "2 pegadas" in chip.get_attribute("aria-label")
+    estilo = chip.evaluate("""c=>{const s=getComputedStyle(c),p=getComputedStyle(c,'::before');
+        return {fonte:s.fontSize,cor:s.color,pegadas:p.getPropertyValue('--n').trim(),largura:parseFloat(p.width)}}""")
+    assert estilo["fonte"] == "0px" and estilo["cor"] == "rgb(255, 255, 255)"
+    assert estilo["pegadas"] == "2" and estilo["largura"] > 0
+
+
+def test_carimbo_pegada_de_cera_com_ano_em_texto(abrir):
+    """#72: o carimbo Eleito e uma pegada de cera com o ano em texto branco vindo dos dados (2030 sem desenho novo)."""
+    pg = abrir()
+    pg.evaluate("document.querySelector('main').insertAdjacentHTML('afterbegin',`<div id='t-selo'>${CARIMBO_ELEITO(2030)}</div>`)")
+    selo = pg.locator("#t-selo .selo-cera.verde")
+    assert selo.locator(".ano").inner_text() == "2030"
+    assert selo.locator(".ano").evaluate("e=>getComputedStyle(e).color") == "rgb(255, 255, 255)"
+    mascara = selo.locator(".cera").evaluate("e=>getComputedStyle(e,'::before').maskImage||getComputedStyle(e,'::before').webkitMaskImage")
+    assert "ellipse" in mascara  # pegada (almofada e dedos), nao o selo redondo recortado

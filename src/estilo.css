@@ -86,7 +86,7 @@ small,.mut{color:var(--mut)}
 .botao:hover{transform:translateY(-1px);box-shadow:var(--elev-alto)}
 .botao:active{transform:translateY(0);box-shadow:var(--elev)}
 
-/* chips de tag: simbolo + texto, nunca so cor (os de nivel, as faixas, ficam no bloco "faixas (#72)") */
+/* chips de tag: simbolo + texto, nunca so cor (os de nivel, as faixas, ficam no bloco "faixas (#72)", depois do selo de cera) */
 .chip{display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-size:.875rem;font-weight:600;
   border:1px solid currentColor;line-height:1.6}
 .chip[class*="tag-"]{font-weight:500;color:var(--fg);border-color:var(--tc,var(--line))}
@@ -270,12 +270,30 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 /* ano da eleicao dentro do selo (#67): sem texto ao lado; o significado fica na legenda da tela */
 .selo-cera.com-ano .cera{width:50px;height:50px}.selo-cera .cera .ano{display:block;font-size:.72rem;font-weight:800;letter-spacing:-.01em}
 @media print{.selo-cera .cera{filter:none}}
+/* identidade canina (#72): Exemplar, Pata na massa e Eleito viram uma pegada de cera (poca escorrida + pata em relevo).
+   Um desenho so: icone ou ano (texto dos dados, em branco) dentro da almofada, sem imagem por ano. A animacao "pata carimba"
+   roda uma vez quando selo.js marca .carimbado; com "menos movimento" o selo.js nao anima e a pata (::after) fica escondida. */
+.selo-cera:is(.ouro,.verde,.caramelo) .cera{width:50px;height:50px;container-type:size;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)) drop-shadow(0 4px 6px rgba(0,0,0,.25))}
+.selo-cera:is(.ouro,.verde,.caramelo) .cera::before{-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg transform='scale%281.2%29' fill-opacity='.55'%3E%3Cpath d='M52 6c9 1 13 7 20 6s14 4 16 12-1 12 4 18 6 14 1 21-3 12-9 17-15 3-21 8-16 7-24 3-11-8-18-9-12-6-13-14 4-12 0-19-5-14 1-20 8-5 11-12 9-9 17-10 9 1 15-1z'/%3E%3Ccircle cx='93' cy='30' r='3.5'/%3E%3Ccircle cx='8' cy='76' r='3'/%3E%3Ccircle cx='70' cy='96' r='2.6'/%3E%3C/g%3E%3Cg transform='translate%2810 10%29'%3E%3Cellipse cx='50' cy='67' rx='31' ry='27'/%3E%3Cellipse cx='15' cy='40' rx='10.5' ry='13.5' transform='rotate%28-25 15 40%29'/%3E%3Cellipse cx='36' cy='19' rx='11' ry='14' transform='rotate%28-8 36 19%29'/%3E%3Cellipse cx='64' cy='19' rx='11' ry='14' transform='rotate%288 64 19%29'/%3E%3Cellipse cx='85' cy='40' rx='10.5' ry='13.5' transform='rotate%2825 85 40%29'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'%3E%3Cg transform='scale%281.2%29' fill-opacity='.55'%3E%3Cpath d='M52 6c9 1 13 7 20 6s14 4 16 12-1 12 4 18 6 14 1 21-3 12-9 17-15 3-21 8-16 7-24 3-11-8-18-9-12-6-13-14 4-12 0-19-5-14 1-20 8-5 11-12 9-9 17-10 9 1 15-1z'/%3E%3Ccircle cx='93' cy='30' r='3.5'/%3E%3Ccircle cx='8' cy='76' r='3'/%3E%3Ccircle cx='70' cy='96' r='2.6'/%3E%3C/g%3E%3Cg transform='translate%2810 10%29'%3E%3Cellipse cx='50' cy='67' rx='31' ry='27'/%3E%3Cellipse cx='15' cy='40' rx='10.5' ry='13.5' transform='rotate%28-25 15 40%29'/%3E%3Cellipse cx='36' cy='19' rx='11' ry='14' transform='rotate%28-8 36 19%29'/%3E%3Cellipse cx='64' cy='19' rx='11' ry='14' transform='rotate%288 64 19%29'/%3E%3Cellipse cx='85' cy='40' rx='10.5' ry='13.5' transform='rotate%2825 85 40%29'/%3E%3C/g%3E%3C/svg%3E") center/contain no-repeat}
+.selo-cera:is(.ouro,.verde,.caramelo) .cera::after{inset:0!important;border-radius:0;box-shadow:none;background:#e0a463;opacity:0;pointer-events:none;  /* a pata que carimba; inset vence os ajustes de tamanho do selo redondo */
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cellipse cx='50' cy='67' rx='31' ry='27'/%3E%3Cellipse cx='15' cy='40' rx='10.5' ry='13.5' transform='rotate%28-25 15 40%29'/%3E%3Cellipse cx='36' cy='19' rx='11' ry='14' transform='rotate%28-8 36 19%29'/%3E%3Cellipse cx='64' cy='19' rx='11' ry='14' transform='rotate%288 64 19%29'/%3E%3Cellipse cx='85' cy='40' rx='10.5' ry='13.5' transform='rotate%2825 85 40%29'/%3E%3C/svg%3E") center/83% no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cellipse cx='50' cy='67' rx='31' ry='27'/%3E%3Cellipse cx='15' cy='40' rx='10.5' ry='13.5' transform='rotate%28-25 15 40%29'/%3E%3Cellipse cx='36' cy='19' rx='11' ry='14' transform='rotate%28-8 36 19%29'/%3E%3Cellipse cx='64' cy='19' rx='11' ry='14' transform='rotate%288 64 19%29'/%3E%3Cellipse cx='85' cy='40' rx='10.5' ry='13.5' transform='rotate%2825 85 40%29'/%3E%3C/svg%3E") center/83% no-repeat}
+.selo-cera:is(.ouro,.verde,.caramelo) .cera>span{margin-top:28%;font-size:.95rem}  /* desce ate a almofada da pata */
+.selo-cera:is(.ouro,.verde,.caramelo) .cera .ano{font-size:.6rem;font-size:20cqw;color:#fff}
+.selo-cera.com-ano:is(.ouro,.verde,.caramelo) .cera{width:60px;height:60px}
+.selo-cera:is(.ouro,.verde,.caramelo).carimbado .cera{animation:none}
+.selo-cera:is(.ouro,.verde,.caramelo).carimbado .cera::before{animation:cera-espalha 1s cubic-bezier(.2,.8,.3,1.2) both}
+.selo-cera:is(.ouro,.verde,.caramelo).carimbado .cera>span{animation:cera-espalha 1s cubic-bezier(.2,.8,.3,1.2) both}
+.selo-cera:is(.ouro,.verde,.caramelo).carimbado .cera::after{animation:pata-pisa 1s ease-in-out both}
+@keyframes pata-pisa{0%{opacity:1;transform:translateY(-170%) scale(1.15)}40%{opacity:1;transform:translateY(0) scale(1.05)}
+  50%{opacity:1;transform:translateY(3%) scale(1.1,.9)}65%{opacity:1;transform:translateY(-20%) scale(1.05)}100%{opacity:0;transform:translateY(-170%) scale(1.15)}}
+@keyframes cera-espalha{0%,45%{opacity:0;transform:scale(.55)}62%{opacity:1;transform:scale(1.08)}100%{opacity:1;transform:none}}
+.selo-cera:is(.ouro,.verde,.caramelo).canto{top:-22px;left:-18px}.carimbos.canto{top:-26px;left:-18px}
 /* faixas (#72): so a cor e 3, 2 ou 1 pegada brancas; o rotulo ("3 pegadas") fica no texto do chip, so para leitor de tela e titulo */
-.chip[class*="nv-"]{--n:1;gap:0;padding:4px 10px;border:0;font-size:0;color:#fff;background:var(--nv-cor);min-height:1.6rem}
+.chip[class*="nv-"]{--n:1;gap:0;padding:4px 10px;border:0;font-size:0!important;color:#fff;background:var(--nv-cor);min-height:1.6rem}
 .chip.nv-forte{--n:3;--nv-cor:#b3261e}.chip.nv-atencao{--n:2;--nv-cor:#b45309}.chip.nv-informativo{--nv-cor:#2a63a8}
 .chip[class*="nv-"]::before{content:"";flex:none;width:calc(var(--n)*1.16rem);height:1rem;background:currentColor;
   -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 116 100'%3E%3Cg transform='translate%288 4%29 scale%28.92%29'%3E%3Cellipse cx='50' cy='67' rx='31' ry='27'/%3E%3Cellipse cx='15' cy='40' rx='10.5' ry='13.5' transform='rotate%28-25 15 40%29'/%3E%3Cellipse cx='36' cy='19' rx='11' ry='14' transform='rotate%28-8 36 19%29'/%3E%3Cellipse cx='64' cy='19' rx='11' ry='14' transform='rotate%288 64 19%29'/%3E%3Cellipse cx='85' cy='40' rx='10.5' ry='13.5' transform='rotate%2825 85 40%29'/%3E%3C/g%3E%3C/svg%3E") 0 50%/1.16rem 1rem repeat-x;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 116 100'%3E%3Cg transform='translate%288 4%29 scale%28.92%29'%3E%3Cellipse cx='50' cy='67' rx='31' ry='27'/%3E%3Cellipse cx='15' cy='40' rx='10.5' ry='13.5' transform='rotate%28-25 15 40%29'/%3E%3Cellipse cx='36' cy='19' rx='11' ry='14' transform='rotate%28-8 36 19%29'/%3E%3Cellipse cx='64' cy='19' rx='11' ry='14' transform='rotate%288 64 19%29'/%3E%3Cellipse cx='85' cy='40' rx='10.5' ry='13.5' transform='rotate%2825 85 40%29'/%3E%3C/g%3E%3C/svg%3E") 0 50%/1.16rem 1rem repeat-x}
-@media print{.chip[class*="nv-"]{font-size:.75rem;gap:4px;color:#000;background:none;border:1px solid #000}}
+@media print{.chip[class*="nv-"]{font-size:.75rem!important;gap:4px;color:#000;background:none;border:1px solid #000}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{
   :root{color-scheme:light}
