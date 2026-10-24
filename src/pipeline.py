@@ -556,6 +556,17 @@ def pagina_ou_dossie(a):
     return a.get("dossie") or (f"pessoa/{pid}.html" if re.fullmatch(r"p\d+", pid) else None)
 
 
+# campos que so as paginas da pessoa usam; o painel (index.html) nao precisa baixa-los (#73)
+CAMPOS_FORA_DO_CARD = frozenset({"link_tse_ini", "razao_salario", "monitorado", "so_pagina", "unica"})
+
+
+def so_campos_do_card(alerta):
+    """Copia do alerta sem os campos que o painel nao usa e sem valores vazios.
+    eleito_* fica mesmo vazio: o painel testa se a chave existe para mostrar a legenda do carimbo."""
+    return {k: v for k, v in alerta.items()
+            if k not in CAMPOS_FORA_DO_CARD and (v is not None or k.startswith("eleito_"))}
+
+
 def so_paginas(df, chaves, pid=None):
     """Periodo mais recente de cada chave em `chaves` (parlamentares em exercicio fora dos destaques), no formato
     das linhas de alerta, marcado `so_pagina`: ganha pagina propria e dossie, mas nao vira card do painel."""
@@ -962,7 +973,8 @@ def main():
     # ordem do painel: mais mencoes atuais na imprensa (Brasil e exterior) primeiro, depois maior crescimento
     dados["alertas"].sort(key=lambda a: (-(a.get("topo") or 0), -(a.get("mencoes") or 0), -(a.get("cresc") or 0)))
     tpl = (ROOT / "src" / "template.html").read_text(encoding="utf-8")
-    html_painel = tpl.replace("/*DADOS*/null", json.dumps(arredonda(dados), ensure_ascii=False))
+    painel = dict(dados, alertas=[so_campos_do_card(a) for a in dados["alertas"]])
+    html_painel = tpl.replace("/*DADOS*/null", json.dumps(arredonda(painel), ensure_ascii=False))
     html_painel = html_painel.replace("/*BENS*/null", json.dumps(bens, ensure_ascii=False))
     blocos = dict(CARTOES=cartoes, **graficos_painel)
     for marca, conteudo in blocos.items():

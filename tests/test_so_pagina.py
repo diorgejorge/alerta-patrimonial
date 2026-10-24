@@ -83,3 +83,10 @@ def test_resumo_da_declaracao_unica_sem_percentual_nem_faixa():
     html = paginas._resumo([a])
     assert "R$ 1.500.000" in html and "2022" in html and paginas.UNICA in html and "divulgacandcontas" in html
     assert "%" not in html and "Faixa" not in html
+
+
+def test_painel_leva_so_os_campos_do_card():
+    # #73: campos so das paginas e valores vazios nao vao para o index.html
+    a = dict(nome="A", cresc=1.0, link_tse_ini="https://tse", monitorado=True, unica=False,
+             partido=None, eleito_atual=None)
+    assert pipeline.so_campos_do_card(a) == dict(nome="A", cresc=1.0, eleito_atual=None)
