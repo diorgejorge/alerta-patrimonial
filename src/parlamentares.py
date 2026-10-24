@@ -39,7 +39,7 @@ def _tse(df):
     por_chave = {r["chave"]: r for r in u}
     por_nome = {}
     for r in u:
-        if cota.norm(r["cargo_ini"]) == "SENADOR":
+        if "SENADOR" in {cota.norm(r.get("cargo_ini")), cota.norm(r.get("cargo"))}:  # eleito senador no inicio ou no fim
             for n in (r.get("nome"), r.get("nome_urna")):
                 if isinstance(n, str) and n.strip():
                     por_nome.setdefault((cota.norm(n), str(r["uf"]).upper()), r)

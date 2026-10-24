@@ -82,3 +82,11 @@ def test_sem_listas_oficiais(monkeypatch):
     monkeypatch.setattr(parlamentares, "deputados", lambda: None)
     monkeypatch.setattr(parlamentares.projetos, "lista_senado", lambda: None)
     assert parlamentares.montar(DF, [2026], "x", None) == ([], {})
+
+
+def test_senador_eleito_no_fim_do_periodo_tambem_liga_ao_tse():
+    """Deputado em 2018 eleito senador em 2022: o periodo comeca como deputado e termina como senador."""
+    df = pd.DataFrame([dict(par(f"cpf:{CPF_S}", "BELTRANA SILVA", "SENADOR", "MG", 50_000, 800_000),
+                            cargo_ini="DEPUTADO FEDERAL")])
+    _, por_nome = parlamentares._tse(df)
+    assert por_nome[("BELTRANA SILVA", "MG")]["chave"] == f"cpf:{CPF_S}"

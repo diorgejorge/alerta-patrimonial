@@ -103,10 +103,11 @@ def _tabela_periodos(linhas):
 
 def _resumo(linhas):
     topo = max(linhas, key=lambda a: (ORDEM.get(a.get("nivel"), 0), a.get("cresc") or 0))
-    kpis = [(graficos.ROTULO_NIVEL.get(topo.get("nivel"), "Não informado"), "Faixa mais alta"),
-            (graficos.aumento_percentual(topo.get("pat_fim"), topo.get("pat_ini")),
-             f"{'Patrimônio' if (topo.get('cresc') or 0) < 0 else 'Aumento do patrimônio'} de {topo.get('ano_ini')} a {topo.get('ano_fim')}"),
-            (str(len(linhas)), "Períodos em destaque")]
+    so_pagina = bool(linhas[0].get("so_pagina"))  # fora dos destaques: sem faixa, e o periodo e so "analisado"
+    kpis = ([(graficos.ROTULO_NIVEL[topo["nivel"]], "Faixa mais alta")] if topo.get("nivel") in graficos.ROTULO_NIVEL else [])
+    kpis += [(graficos.aumento_percentual(topo.get("pat_fim"), topo.get("pat_ini")),
+              f"{'Patrimônio' if (topo.get('cresc') or 0) < 0 else 'Aumento do patrimônio'} de {topo.get('ano_ini')} a {topo.get('ano_fim')}"),
+             (str(len(linhas)), "Períodos analisados" if so_pagina else "Períodos em destaque")]
     html_kpis = '<div class="kpis">' + "".join(f'<div class="card kpi"><b>{e(v)}</b><span>{e(r)}</span></div>'
                                                 for v, r in kpis) + "</div>"
     tse = next((a["link_tse"] for a in linhas if str(a.get("link_tse") or "").startswith("https://")), None)
