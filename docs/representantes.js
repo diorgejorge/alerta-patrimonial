@@ -15,12 +15,12 @@
   // selos de cera pequenos no canto do mini card (mesmo .selo-cera do site): eleito, exemplar e Mao na massa
   const SELOS={eleito:["verde","Eleito e no cargo hoje (TSE)","check","Eleito"],
     exemplar:["ouro","Parlamentar exemplar: patrimônio compatível com o salário, cota abaixo da média e sem sanções","estrela","Exemplar"],
-    selo:["caramelo","Mão na massa: entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos","pata","Mão na massa"]};
+    selo:["caramelo","Pata na massa: entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos","pata","Pata na massa"]};
   // so o selo no card; o significado fica na legenda da aba. Eleito: o ano dentro do selo (.com-ano, igual aos cards)
   const selo=(k,ano)=>{const [cor,tit,ic,rot]=SELOS[k],a=k==="eleito"&&ano;
     return`<span class="selo-cera ${cor}${a?" com-ano":""}" title="${esc(tit)}${a?`. Eleição de ${esc(ano)}`:""}"><span class="cera" aria-hidden="true"><span>${a?`<b class="ano">${esc(ano)}</b>`:ico(ic)||"✓"}</span></span><span class="sr">${esc(rot)}${a?` em ${esc(ano)}`:""}</span></span>`;};
   // faixa do patrimonio (mesmo rotulo e cor dos cards: NV do template) e partido com a cor da legenda
-  const NVR=typeof NV==="object"?NV:{forte:"Faixa vermelha",atencao:"Faixa laranja",informativo:"Faixa azul"};
+  const NVR=typeof NV==="object"?NV:{forte:"3 pegadas",atencao:"2 pegadas",informativo:"1 pegada"};
   const corPartido=p=>typeof PD==="function"?PD(p):"";
   // numeros sempre no padrao brasileiro: 43,5% (virgula no decimal, ponto no milhar)
   const PCT=v=>Number(v).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%";
@@ -144,7 +144,7 @@ ${d.grupos.map(g=>grupo(g,uf,d.assembleia,d.eleicao_estadual)).join("")}<p class
   // legenda fixa da aba: o que cada selo e cada faixa querem dizer (no card, so o selo)
   const leg=document.getElementById("meus-legenda");
   if(leg)leg.innerHTML=`<li>${selo("eleito","ANO")} <span>Eleito: venceu a eleição do ano escrito dentro do carimbo (um carimbo por eleição)</span></li><li>${selo("exemplar")} <span>Exemplar: patrimônio compatível, cota abaixo da média e sem sanções</span></li>
-<li>${selo("selo")} <span>Mão na massa: entre os 10% com mais projetos aprovados</span></li><li><span class="chip nv-forte">${esc(NVR.forte)}</span><span class="chip nv-atencao">${esc(NVR.atencao)}</span><span class="chip nv-informativo">${esc(NVR.informativo)}</span> <span>quanto o patrimônio cresceu</span></li>`;
+<li>${selo("selo")} <span>Pata na massa: entre os 10% com mais projetos aprovados</span></li><li><span class="chip nv-forte">${esc(NVR.forte)}</span><span class="chip nv-atencao">${esc(NVR.atencao)}</span><span class="chip nv-informativo">${esc(NVR.informativo)}</span> <span>quanto o patrimônio cresceu</span></li>`;
   // link vindo de fora (paginas de estado): index.html#meus=SP escolhe o estado e abre a aba
   const pedido=(location.hash.match(/^#meus=([A-Z]{2})$/)||[])[1],salvo=UFS[pedido]?pedido:ler();
   if(UFS[salvo])escolher(salvo);else vazio();
