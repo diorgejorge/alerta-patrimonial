@@ -822,7 +822,7 @@ def main():
         print(f"[aviso] base do dossie por estado falhou ({ex!r})", file=sys.stderr)
     # meus representantes (#59): um arquivo leve por estado, baixado so quando o visitante escolhe o estado
     try:
-        extra = representantes.faixas(df)  # faixa do patrimonio e "esta na lista completa", por chave
+        extra = representantes.faixas(df, pag)  # faixa do patrimonio e "esta na lista completa", por chave
         parl_uf, tse_uf, ano_est = (representantes.demo() if args.demo else
                                     (parl, *representantes.eleitos(serie, link_tse, link_foto, pag, extra=extra)))
         contato = ({(p["casa"], p["_id"]): contatos.DEMO for p in parl_uf[::5]} if args.demo else

@@ -241,6 +241,7 @@ def test_faixas_pelo_periodo_mais_recente():
                        dict(chave="a", ano_ini=2022, ano_fim=2026, nivel="informativo"),
                        dict(chave="b", ano_ini=2020, ano_fim=2024, nivel=None)])
     assert rp.faixas(df) == {"a": dict(faixa="informativo", lista=1), "b": dict(lista=1)}
+    assert rp.faixas(df, {"b": "pessoa/p0009.html"})["b"] == dict(lista=1, dossie="pessoa/p0009.html")
     out = rp.montar([dep(_chave="a")], extra={"a": dict(faixa="forte", lista=1)})
     assert out["SP"]["grupos"][2]["pessoas"][0]["faixa"] == "forte"
 

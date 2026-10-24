@@ -104,13 +104,16 @@ GRUPOS_MUN = (("prefeito", "Prefeito"), ("vice", "Vice-prefeito"), ("vereadores"
 FAIXAS = ("forte", "atencao", "informativo")
 
 
-def faixas(df):
+def faixas(df, paginas=None):
     """{chave: dict(faixa, lista)} de quem esta na lista completa (todos.json): faixa do patrimonio no periodo mais
-    recente (so as tres faixas coloridas) e lista=1 para o painel abrir a pessoa em "Todas as pessoas"."""
+    recente (so as tres faixas coloridas), lista=1 para o painel abrir a pessoa em "Todas as pessoas" e a pagina
+    da pessoa (`paginas`: {chave: pessoa/pNNNN.html}), quando houver."""
     if df is None or not len(df):
         return {}
     ult = df.sort_values(["ano_fim", "ano_ini"]).groupby("chave").tail(1)
-    return {ch: _limpa(dict(faixa=nv if nv in FAIXAS else None, lista=1)) for ch, nv in zip(ult["chave"], ult["nivel"])}
+    pg = paginas or {}
+    return {ch: _limpa(dict(faixa=nv if nv in FAIXAS else None, lista=1, dossie=_local(pg.get(ch))))
+            for ch, nv in zip(ult["chave"], ult["nivel"])}
 
 
 def mandato_municipal(anos, hoje=None):
