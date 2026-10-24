@@ -18,7 +18,10 @@
   const rel=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);
   const iniciais=n=>n.split(/\s+/).filter(w=>w.length>2).slice(0,2).map(w=>w[0]).join("").toUpperCase();
   // feed RSS por pessoa (thread RSS): existe para quem tem pessoa/pNNNN.html
-  const feed=u=>{const m=/^pessoa\/(p\d+)\.html$/.exec(u||"");return m?`<a class="lk" href="feed/${m[1]}.xml" title="Receba um aviso (RSS) quando um dado mudar">Acompanhar</a>`:"";};
+  // todo link de feed e so o icone de RSS (.rss em estilo.css); o rotulo fica no title e no aria-label
+  const RSS='<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="currentColor"><circle cx="3" cy="13" r="2"/><path d="M1 7.5a7.5 7.5 0 0 1 7.5 7.5h-2A5.5 5.5 0 0 0 1 9.5z"/><path d="M1 2a13 13 0 0 1 13 13h-2A11 11 0 0 0 1 4z"/></svg>';
+  const rss=(href,rot,cls="rss")=>`<a class="${cls}" href="${href}" title="${esc(rot)}" aria-label="${esc(rot)}">${RSS}</a>`;
+  const feed=u=>{const m=/^pessoa\/(p\d+)\.html$/.exec(u||"");return m?rss(`feed/${m[1]}.xml`,"Acompanhar por RSS: aviso quando um dado mudar","rss leve"):"";};
   // aba "Como cobrar" da pagina da pessoa (thread Como cobrar): texto pronto para mandar
   const cobrar=u=>/^pessoa\/p\d+\.html$/.test(u||"")?`<a class="lk" href="${esc(u)}#cobrar">texto pronto</a>`:"";
   const cache=new Map();
@@ -73,7 +76,7 @@ ${parl?numeros(p):""}${fale}${links?`<p class="rep-links">${links}</p>`:""}</div
     const uf=d.uf,nome=UFS[uf];
     corpo.innerHTML=`<p class="rep-resumo">${esc(nome)} tem hoje <b>${esc(resumo(d))}</b>. Eles trabalham para você: confira e cobre.</p>
 ${(d.cidades||[]).length?`<p class="rep-cidade"><label for="minha-cidade">E na sua cidade?</label> <select id="minha-cidade"><option value="">Escolha sua cidade</option>${d.cidades.map(([c,n])=>`<option value="${esc(c)}">${esc(n)}</option>`).join("")}</select></p><div id="meus-cidade" aria-live="polite"></div>`:""}
-<p class="rep-acoes"><button type="button" class="botao" id="meus-filtrar">Ver ${esc(uf)} nos destaques</button> <a class="botao" href="estado/${esc(uf)}.html">Gastos de ${esc(nome)}</a> <a class="botao" href="feed/uf-${esc(uf)}.xml" title="Receba um aviso (RSS) quando um dado mudar">Acompanhar ${esc(uf)}</a></p>
+<p class="rep-acoes"><button type="button" class="botao" id="meus-filtrar">Ver ${esc(uf)} nos destaques</button> <a class="botao" href="estado/${esc(uf)}.html">Gastos de ${esc(nome)}</a> ${rss(`feed/uf-${esc(uf)}.xml`,`Acompanhar ${uf} por RSS: aviso quando um dado mudar`)}</p>
 ${d.grupos.map(g=>grupo(g,uf,d.assembleia)).join("")}<p class="fonte">Fontes: Câmara dos Deputados, Senado Federal e TSE${d.eleicao_estadual?` (eleitos em ${esc(d.eleicao_estadual)})`:""}. Atualizado em ${esc(d.gerado_em||"Não informado")}.</p>`;
   }
   // prefeitura e camara municipal: um arquivo pequeno por cidade, baixado so na escolha

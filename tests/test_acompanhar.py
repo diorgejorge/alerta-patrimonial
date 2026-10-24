@@ -119,7 +119,8 @@ def test_site_usa_o_repositorio_do_actions(monkeypatch):
 def test_botao_abre_direto_no_app_de_rss():
     h = acompanhar.botao("p0001", "SP")
     url = acompanhar.url_feed("p0001")
-    assert "<input" not in h and "Todos de SP" in h
+    assert "<input" not in h and 'aria-label="Feed RSS dos políticos de SP"' in h
+    assert h.count('<a class="rss"') == 3  # pessoa, estado e todos: so o icone
     assert 'aria-label="Acompanhar por RSS"' in h and "</svg></summary>" in h  # so o icone, sem texto
     assert 'href="feed:' + url + '"' in h
     assert "feedly.com/i/subscription/feed%2Fhttps%3A%2F%2F" in h and "inoreader.com/?add_feed=https%3A%2F%2F" in h

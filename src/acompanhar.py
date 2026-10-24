@@ -75,18 +75,26 @@ def links_app(url):
     return [(nome, modelo.format(q)) for nome, modelo in APPS] + [("Outro app", "feed:" + url)]
 
 
+def link_rss(href, rotulo, texto="", leve=False):
+    """Link para um feed: so o icone de RSS (pedido do usuario), com o rotulo para leitor de tela e no title."""
+    return (f'<a class="rss{" leve" if leve else ""}" href="{e(href)}" title="{e(rotulo)}" aria-label="{e(rotulo)}">'
+            f"{ICONE}{e(texto)}</a>")
+
+
 def botao(pid, uf=""):
     """Botao discreto "Acompanhar" da pagina da pessoa: um toque no app de RSS e pronto, sem copiar endereco."""
     apps = links_app(url_feed(pid))
-    extra = (f' · <a href="{e(site())}feed/uf-{uf}.xml">Todos de {uf}</a>' if RE_UF.fullmatch(uf) else "")
+    feeds = [link_rss(url_feed(pid), "Feed RSS desta pessoa")]
+    if RE_UF.fullmatch(uf):
+        feeds.append(link_rss(f"{site()}feed/uf-{uf}.xml", f"Feed RSS dos políticos de {uf}", uf))
+    feeds.append(link_rss(f"{site()}feed.xml", "Feed RSS de todas as pessoas", "Todos"))
     return (f'<details class="acompanhar"><summary class="rss" aria-label="Acompanhar por RSS" '
             f'title="Acompanhar por RSS">{ICONE}</summary>'
             '<div class="card"><p><b>Não perca nada.</b> Seja avisado quando o patrimônio crescer, a cota subir, '
             "sair um voto ou uma notícia nova. Toque no seu app:</p><p class=\"apps\">"
             + "".join(f'<a class="botao{"" if i == 0 else " secundario"}" href="{e(h)}" target="_blank" rel="noopener">'
                       f"{e(n)}</a>" for i, (n, h) in enumerate(apps))
-            + f'</p><p class="mut"><small><a href="{e(url_feed(pid))}">Ver o feed</a>{extra} · '
-            f'<a href="{e(site())}feed.xml">Todas as pessoas</a></small></p></div></details>')
+            + '</p><p class="feeds">' + "".join(feeds) + "</p></div></details>")
 
 
 def link_head(pid, nome):
