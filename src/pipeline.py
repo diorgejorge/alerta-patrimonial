@@ -223,7 +223,7 @@ def serie_demo(seed=7):
                            uf=random.choice(["PA", "SP", "MG", "BA"]), partido="XX", eleito=True, patrimonio=base,
                            sq_candidato=None, cd_eleicao=None, sg_ue=None, nome_urna=f"DEMO {i:03d}",
                            suplementar=False, empresas=[], empresas_cnpj=[]))  # sem SQ real: link_tse fica None no demo
-        linhas.append(dict(linhas[-1], ano=2022, patrimonio=base * f, eleito=False))
+        linhas.append(dict(linhas[-1], ano=2022, patrimonio=base * f, eleito=i % 3 == 0))  # 1 em 3 reeleito (#67)
     # presidente e vice eleitos em 2022 com crescimento pequeno (sem nivel): mesmo assim aparecem nos destaques (#63)
     linhas.append(dict(linhas[-1], chave="demo:presidente", ano=2018, nome="PRESIDENTE DEMO", nome_urna="PRESIDENTE DEMO",
                        cargo="PRESIDENTE", uf="BR", partido="XX", eleito=False, patrimonio=1_000_000.0))
@@ -357,6 +357,16 @@ def em_exercicio(serie, cargo, hoje=None):
     eleitos = serie[serie["eleito"].astype(bool) & (serie["cargo"].map(norm) == cargo)
                     & (serie["ano"].astype(int) < hoje.year)]
     return None if eleitos.empty else eleitos.sort_values("ano").iloc[-1]["chave"]
+
+
+def em_mandato(serie, hoje=None):
+    """Chaves de quem o TSE registra como eleito com mandato em curso hoje (#67): posse ja ocorrida
+    (1o de janeiro seguinte a eleicao) e mandato ainda nao terminado (4 anos; senador 8)."""
+    hoje = hoje or dt.date.today()
+    eleitos = serie[serie["eleito"].astype(bool)]
+    ano = eleitos["ano"].astype(int)
+    dur = eleitos["cargo"].map(norm).eq("SENADOR").map({True: 8, False: 4})
+    return set(eleitos.loc[(ano < hoje.year) & (ano + dur >= hoje.year), "chave"])
 
 
 # ---------------------------------------------------------------- saida
@@ -549,6 +559,7 @@ def main():
         chave = em_exercicio(serie, cargo)
         df[campo] = df["chave"].eq(chave) if chave else False
     df["topo"] = df.presidente_atual * 2 + df.vice_atual
+    df["eleito_atual"] = df["chave"].isin(em_mandato(serie))  # carimbo verde "Eleito" nos cards (#67)
     alertas = df[df.nivel.notna() | df.topo.gt(0)].copy()
 
     # memoria de alertas por id interno (versoes antigas usavam o CPF na chave: sao descartadas)

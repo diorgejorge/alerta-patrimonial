@@ -35,3 +35,18 @@ def test_vice_e_presidente_separados():
     serie = pd.DataFrame([linha("p", 2022), linha("v", 2022, cargo="VICE-PRESIDENTE")])
     assert pipeline.em_exercicio(serie, "PRESIDENTE", dt.date(2024, 5, 1)) == "p"
     assert pipeline.em_exercicio(serie, "VICE-PRESIDENTE", dt.date(2024, 5, 1)) == "v"
+
+
+# #67: carimbo "Eleito" = eleito pelo TSE com mandato em curso (posse ja ocorrida; 4 anos, senador 8)
+def test_em_mandato_respeita_posse_e_duracao():
+    serie = pd.DataFrame([linha("dep", 2022, cargo="DEPUTADO FEDERAL"), linha("velho", 2018, cargo="DEPUTADO FEDERAL"),
+                          linha("sen", 2018, cargo="Senador"), linha("perdeu", 2022, cargo="GOVERNADOR", eleito=False),
+                          linha("novo", 2026, cargo="DEPUTADO FEDERAL")])
+    assert pipeline.em_mandato(serie, dt.date(2026, 10, 24)) == {"dep", "sen"}  # "novo" ainda nao tomou posse
+    assert pipeline.em_mandato(serie, dt.date(2027, 1, 1)) == {"novo"}  # mandatos de 2022 e o do senador de 2018 acabaram
+
+
+def test_em_mandato_senador_eleito_que_perdeu_outra_eleicao_segue_eleito():
+    serie = pd.DataFrame([linha("s", 2018, cargo="SENADOR"), linha("s", 2022, cargo="GOVERNADOR", eleito=False)])
+    assert pipeline.em_mandato(serie, dt.date(2024, 5, 1)) == {"s"}
+    assert pipeline.em_mandato(serie.iloc[:0], dt.date(2024, 5, 1)) == set()

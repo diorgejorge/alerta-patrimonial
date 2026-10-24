@@ -57,7 +57,7 @@ def test_icones_flat_sem_emoji(html):
 
 def test_selo_de_cera_so_nas_abas_proprias(html):
     destaques = re.search(r'<section id="destaques".*?</section>', html, re.S).group(0)
-    assert "selo-cera" not in destaques  # na principal, Exemplar e Mao na massa sao tags coloridas
+    assert "selo-cera" not in destaques  # na principal, Exemplar e Mao na massa sao tags coloridas (o Eleito vem do JS, #67)
 
 
 def test_selo_js_publicado_junto(site, html):
@@ -310,7 +310,58 @@ def test_abas_proprias_mostram_selo_de_cera(abrir):
     assert pg.locator("#projetos-lista .selo-cera.caramelo").count() == com_selo
     if pg.evaluate("(D.exemplares||[]).length"):
         assert pg.locator("#exemplares-lista .selo-cera.ouro").count() == pg.locator("#exemplares-lista li").count()
-    assert pg.locator("#cards .selo-cera").count() == 0
+    # na principal, so o carimbo verde de Eleito (#67)
+    assert pg.locator("#cards .selo-cera").count() == pg.locator("#cards .selo-cera.verde").count()
+
+
+def test_eleito_carimbo_verde_e_borda_verde(abrir):
+    """#67: mandato em curso ganha o carimbo verde no canto e borda verde; candidato sem mandato, nada."""
+    pg = abrir()
+    c = card(pg, [{**UM_PERIODO[0], "eleito_atual": True}])
+    assert "eleito" in c.get_attribute("class") and c.locator(".selo-cera.verde.canto").count() == 1
+    assert "mandato está em curso" in c.locator(".selo-cera").get_attribute("title")
+    borda, cor = pg.evaluate("""()=>{const e=document.querySelector('#teste .alerta'),s=getComputedStyle(e);
+        return[s.borderTopColor,getComputedStyle(document.documentElement).getPropertyValue('--eleito')]}""")
+    assert borda == pg.evaluate("c=>{const d=document.createElement('i');d.style.color=c;document.body.append(d);"
+                                "const r=getComputedStyle(d).color;d.remove();return r}", cor.strip())
+    canto = pg.evaluate("""()=>{const e=document.querySelector('#teste .alerta').getBoundingClientRect(),
+        s=document.querySelector('#teste .selo-cera').getBoundingClientRect();return[s.left-e.left,s.top-e.top]}""")
+    assert all(v < 0 for v in canto)  # canto superior esquerdo, por cima da borda
+    pg.evaluate("document.getElementById('teste').remove()")
+    assert card(pg, UM_PERIODO).locator(".selo-cera").count() == 0  # sem o campo (antes da carga), nada muda
+
+
+def test_presidente_eleito_mantem_ouro_e_ganha_carimbo(abrir):
+    pg = abrir()
+    c = pg.locator("#cards > li").first
+    assert "presidente" in c.get_attribute("class") and c.locator(".selo-cera.verde").count() == 1
+    ouro, borda = pg.evaluate("""()=>{const e=document.querySelector('#cards > li'),d=document.createElement('i');
+        d.style.color='var(--ouro)';document.body.append(d);const o=getComputedStyle(d).color;d.remove();
+        return[o,getComputedStyle(e).borderTopColor]}""")
+    assert borda == ouro
+    sc, ca = pg.evaluate("""()=>{const e=document.querySelector('#cards > li').getBoundingClientRect(),
+        s=document.querySelector('#cards > li .selo-cera').getBoundingClientRect();return[s.left-e.left,s.top-e.top]}""")
+    assert sc < 0 and ca < 0  # no card em grade o carimbo fica no canto do card, nao da coluna
+
+
+def test_legenda_e_filtro_do_eleito(abrir):
+    pg = abrir()
+    b = pg.locator('#legenda button[data-v="eleito"]')
+    assert b.is_visible()
+    total = pg.locator("#cards .selo-cera.verde").count()
+    assert total > 0
+    b.click()
+    assert pg.locator("#cards > li").count() == pg.locator("#cards .alerta.eleito").count()
+    assert "Carimbo verde" in pg.inner_text("#leitura") or "Carimbo verde" in pg.evaluate("$('leitura').innerHTML")
+
+
+def test_legenda_do_eleito_escondida_sem_o_campo(html):
+    assert re.search(r'<li data-eleito hidden>', html)
+
+
+def test_funcionamento_explica_o_eleito(site):
+    f = (site / "funcionamento.html").read_text(encoding="utf-8")
+    assert "Eleito (carimbo verde)" in f and "divulgacandcontas.tse.jus.br" in f
 
 
 def test_todas_as_pessoas_carrega_ao_abrir_a_aba(abrir):

@@ -6,7 +6,7 @@
   --fonte-marca:"Baloo 2","Fredoka","Nunito",ui-rounded,"Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
   --bg:#fbf5e9;--fg:#2b1f14;--mut:#6a5643;--line:#e7d6b8;--card:#fff;--realce:#f6e9cf;--sombra:#e3cfa9;--titulo:#1b2f4e;
   --forte:#a8322a;--atencao:#8a4d12;--info:#2a5384;--novo:#1d5e34;--link:#1f4f86;
-  --exemplar:#8a6600;--sombra-exemplar:#ecd48f;
+  --exemplar:#8a6600;--sombra-exemplar:#ecd48f;--eleito:#1f7a3a;
   /* superficies: cantos generosos e sombra suave em camadas (sem a sombra solida antiga) */
   --raio:18px;--elev:0 1px 2px rgba(27,47,78,.06),0 6px 18px rgba(27,47,78,.08);--elev-alto:0 2px 4px rgba(27,47,78,.08),0 16px 40px rgba(27,47,78,.16);  /* dourado do parlamentar exemplar (5,3:1 no card) */
   /* tags (paleta categorica fixa; o rotulo de texto sempre acompanha a cor) */
@@ -15,7 +15,7 @@
 @media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){color-scheme:dark;
   --bg:#0f1a2b;--fg:#f5ecdc;--mut:#c9b9a0;--line:#2c3d5c;--card:#172540;--realce:#1f3050;--sombra:#08111f;--titulo:#f4b223;
   --forte:#ff9b8f;--atencao:#f3b46a;--info:#9fc4ef;--novo:#84d9a2;--link:#f6c24a;
-  --exemplar:#f4b223;--sombra-exemplar:#3d3210;
+  --exemplar:#f4b223;--sombra-exemplar:#3d3210;--eleito:#6fd08f;
   --elev:0 1px 2px rgba(0,0,0,.35),0 8px 22px rgba(0,0,0,.3);--elev-alto:0 2px 6px rgba(0,0,0,.4),0 18px 44px rgba(0,0,0,.45);
   --t-politico:#3987e5;--t-eleitoral:#d95926;--t-legislativo:#199e70;--t-gestao:#c98500;
   --t-patrimonial:#d55181;--t-judicial:#008300;--t-criminal:#9085e9;--t-outros:#9aa0a5}}
@@ -25,7 +25,7 @@
 html.vidro{color-scheme:dark;
   --bg:#122138;--fg:#fff;--mut:rgba(245,236,220,.8);--line:rgba(255,255,255,.14);--card:rgba(255,255,255,.07);--realce:rgba(255,255,255,.1);
   --sombra:rgba(0,0,0,.3);--titulo:#fff;--forte:#ffa89d;--atencao:#f7c67f;--info:#add0f7;--novo:#8fe0ab;--link:#f6c24a;
-  --exemplar:#f4b223;--sombra-exemplar:rgba(244,178,35,.22);--destaque:#f4b223;--elev:0 8px 30px rgba(4,10,20,.28);--elev-alto:0 16px 48px rgba(4,10,20,.4)}
+  --exemplar:#f4b223;--sombra-exemplar:rgba(244,178,35,.22);--eleito:#7fdc9c;--destaque:#f4b223;--elev:0 8px 30px rgba(4,10,20,.28);--elev-alto:0 16px 48px rgba(4,10,20,.4)}
 html.vidro body{min-height:100vh;background:radial-gradient(90% 60% at 85% 110%,rgba(196,122,53,.45),transparent 60%),
   radial-gradient(70% 50% at 0% 0%,rgba(58,96,150,.55),transparent 60%),linear-gradient(170deg,#1f3a62 0%,#1b2f4e 40%,#111e34 100%) #111e34;background-attachment:fixed}
 html.vidro{background:#111e34}
@@ -242,7 +242,7 @@ html button.tag.reu:hover{background:var(--realce);border-color:var(--atencao)}
    Cor em --cera; variantes: .ouro (exemplar), .caramelo (Mao na massa), .alerta-cera (carimbo de alerta). */
 .selo-cera{--cera:#a8322a;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 4px 0 0;border:0;background:none;
   color:inherit;font:inherit;font-size:.8125rem;font-weight:700;line-height:1.2;text-align:left;cursor:pointer}
-.selo-cera.ouro{--cera:#c98a0c}.selo-cera.caramelo{--cera:#b4561f}.selo-cera.alerta-cera{--cera:#b3261e}
+.selo-cera.ouro{--cera:#c98a0c}.selo-cera.verde{--cera:#2e7d32}.selo-cera.caramelo{--cera:#b4561f}.selo-cera.alerta-cera{--cera:#b3261e}
 .selo-cera .cera{position:relative;flex:none;display:grid;place-items:center;width:42px;height:42px;transform:rotate(-8deg);
   filter:drop-shadow(0 1px 1px rgba(0,0,0,.35)) drop-shadow(0 5px 8px rgba(0,0,0,.25))}
 .selo-cera .cera::before{content:"";position:absolute;inset:0;
@@ -261,6 +261,9 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 /* selo no canto superior esquerdo do card (abas Exemplares e Projetos) */
 .alerta.com-selo{position:relative;content-visibility:visible;padding-top:26px}
 .selo-cera.canto{position:absolute;top:-16px;left:-16px;z-index:2;min-height:0;padding:0}
+.alerta>.selo-cera.canto{grid-area:auto}  /* no card em grade (presidente, vice) o canto e o do card, nao o da coluna */
+/* eleito com mandato em curso (#67): borda verde; presidente, vice e exemplar mantem a borda deles e ganham so o carimbo */
+.alerta.eleito:not(.presidente,.vice,.exemplar){border:1.5px solid var(--eleito)}
 @media print{.selo-cera .cera{filter:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{
