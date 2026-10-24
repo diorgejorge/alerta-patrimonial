@@ -373,6 +373,16 @@ def em_mandato(serie, hoje=None):
     return atuais.assign(ano=atuais["ano"].astype(int)).groupby("chave")["ano"].max().to_dict()
 
 
+def anos_eleito(serie, hoje=None):
+    """{chave: [anos]} das eleicoes analisadas que a pessoa venceu, segundo o TSE, com posse ja ocorrida:
+    um carimbo Eleito para cada ano (pedido do usuario, 24/10/2026)."""
+    hoje = hoje or dt.date.today()
+    e = serie[serie["eleito"].astype(bool)]
+    e = e.assign(ano=e["ano"].astype(int))
+    e = e[e["ano"] < hoje.year]
+    return {k: sorted(set(v)) for k, v in e.groupby("chave")["ano"]}
+
+
 def ligar_ao_tse(parl, serie):
     """Da a chave do TSE a quem esta em exercicio sem ela (senador suplente ou de primeiro mandato nao entra nos
     periodos): candidatura com o mesmo nome e UF, so quando o nome aponta para uma pessoa so."""
@@ -634,6 +644,8 @@ def main():
     mandato = em_mandato(serie)  # carimbo verde "Eleito <ano>" nos cards (#67)
     df["eleito_atual"] = df["chave"].isin(list(mandato))
     df["eleito_ano"] = df["chave"].map(mandato).astype("Int64")
+    anos = anos_eleito(serie)  # um carimbo por eleicao vencida
+    df["eleito_anos"] = df["chave"].map(lambda k: anos.get(k, []))
     alertas = df[df.nivel.notna() | df.topo.gt(0)].copy()
 
     # memoria de alertas por id interno (versoes antigas usavam o CPF na chave: sao descartadas)

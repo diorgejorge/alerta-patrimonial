@@ -332,7 +332,7 @@ def test_eleito_carimbo_verde_e_borda_verde(abrir):
     """#67: mandato em curso ganha o carimbo verde no canto e borda verde; candidato sem mandato, nada."""
     pg = abrir()
     c = card(pg, [{**UM_PERIODO[0], "eleito_atual": True, "eleito_ano": 2022}])
-    assert "eleito" in c.get_attribute("class") and c.locator(".selo-cera.verde.canto").count() == 1
+    assert "eleito" in c.get_attribute("class") and c.locator(".carimbos.canto .selo-cera.verde").count() == 1
     assert c.locator(".selo-cera .cera .ano").inner_text() == "2022"  # ano dentro do selo
     assert c.locator(".selo-cera .rot").count() == 0  # sem texto do significado ao lado (fica na legenda)
     assert "mandato está em curso" in c.locator(".selo-cera").get_attribute("title")
@@ -371,8 +371,26 @@ def test_legenda_e_filtro_do_eleito(abrir):
     assert total > 0
     assert pg.locator("#cards .selo-cera.verde .ano").first.inner_text() == "2022"  # ano gravado pelo pipeline
     b.click()
-    assert pg.locator("#cards > li").count() == pg.locator("#cards .alerta.eleito").count()
+    assert pg.locator("#cards > li").count() == pg.locator("#cards .alerta.com-selo").count()
     assert "Carimbo verde" in pg.inner_text("#leitura") or "Carimbo verde" in pg.evaluate("$('leitura').innerHTML")
+
+
+def test_um_carimbo_por_eleicao_vencida(abrir):
+    """Pedido do usuario (24/10): eleito em 2018 e 2022 ganha dois carimbos, em ordem; borda verde so com mandato em curso."""
+    pg = abrir()
+    c = card(pg, [{**UM_PERIODO[0], "eleito_atual": True, "eleito_ano": 2022, "eleito_anos": [2018, 2022]}])
+    assert c.locator(".carimbos .selo-cera .ano").all_inner_texts() == ["2018", "2022"]
+    assert c.locator(".carimbos .rot").count() == 0  # so o ano dentro do selo; o significado fica na legenda
+    xs = pg.evaluate("()=>[...document.querySelectorAll('#teste .carimbos .selo-cera')].map(e=>e.getBoundingClientRect().left)")
+    assert xs[1] > xs[0] + 30  # lado a lado, sem sobrepor
+    pg.evaluate("document.getElementById('teste').remove()")
+    c = card(pg, [{**UM_PERIODO[0], "eleito_atual": False, "eleito_anos": [2018]}])  # venceu, mas o mandato acabou
+    assert "eleito" not in c.get_attribute("class").split() and c.locator(".carimbos .selo-cera").count() == 1
+
+
+def test_demo_reeleito_tem_dois_carimbos(abrir):
+    pg = abrir()
+    assert pg.locator("#cards .alerta:has(.carimbos .selo-cera:nth-child(2))").count() > 0
 
 
 def test_legenda_do_eleito_escondida_sem_o_campo(html):

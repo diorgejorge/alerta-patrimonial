@@ -55,3 +55,10 @@ def test_em_mandato_senador_eleito_que_perdeu_outra_eleicao_segue_eleito():
 def test_em_mandato_com_dois_mandatos_fica_a_eleicao_mais_recente():
     serie = pd.DataFrame([linha("s", 2018, cargo="SENADOR"), linha("s", 2020, cargo="PREFEITO")])
     assert pipeline.em_mandato(serie, dt.date(2022, 5, 1)) == {"s": 2020}
+
+
+def test_anos_eleito_um_por_eleicao_vencida_com_posse():
+    serie = pd.DataFrame([linha("a", 2018, cargo="DEPUTADO FEDERAL"), linha("a", 2022, cargo="DEPUTADO FEDERAL"),
+                          linha("a", 2026, cargo="SENADOR"), linha("b", 2022, eleito=False)])
+    assert pipeline.anos_eleito(serie, dt.date(2026, 10, 24)) == {"a": [2018, 2022]}  # 2026 ainda sem posse
+    assert pipeline.anos_eleito(serie, dt.date(2027, 1, 1)) == {"a": [2018, 2022, 2026]}

@@ -263,7 +263,9 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 /* selo no canto superior esquerdo do card (abas Exemplares e Projetos) */
 .alerta.com-selo{position:relative;content-visibility:visible;padding-top:26px}
 .selo-cera.canto{position:absolute;top:-16px;left:-16px;z-index:2;min-height:0;padding:0}
-.alerta>.selo-cera.canto{grid-area:auto}  /* no card em grade (presidente, vice) o canto e o do card, nao o da coluna */
+.alerta>:is(.selo-cera,.carimbos).canto{grid-area:auto}
+/* varios carimbos (um por eleicao vencida) lado a lado no canto do card */
+.carimbos.canto{position:absolute;top:-18px;left:-16px;z-index:2;display:flex;gap:2px}.carimbos .selo-cera{min-height:0;padding:0}  /* no card em grade (presidente, vice) o canto e o do card, nao o da coluna */
 /* eleito com mandato em curso (#67): borda verde; presidente, vice e exemplar mantem a borda deles e ganham so o carimbo */
 .alerta.eleito:not(.presidente,.vice,.exemplar),.borda-eleito{border:2px solid var(--eleito);
   box-shadow:0 0 0 4px color-mix(in srgb,var(--eleito) 20%,transparent),var(--elev)}
