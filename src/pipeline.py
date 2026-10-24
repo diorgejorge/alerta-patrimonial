@@ -23,7 +23,7 @@ import cifra
 import contatos
 import paginas
 import representantes, shutil
-import ranking
+import ranking as ranking_uf  # "ranking" ja e variavel do main()
 import acompanhar
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -873,8 +873,8 @@ def main():
         print(f"[aviso] meus representantes falhou ({ex!r})", file=sys.stderr)
     # aba Estados (#68): ranking dos estados pelos parlamentares em exercicio; sem lista, a aba fica em ordem alfabetica
     try:
-        dados["estados_rank"] = ranking.montar(representantes.demo()[0] if args.demo else parl,
-                                               ranking.ultimo_periodo(df))
+        dados["estados_rank"] = ranking_uf.montar(representantes.demo()[0] if args.demo else parl,
+                                                  ranking_uf.ultimo_periodo(df))
     except Exception as ex:
         print(f"[aviso] ranking dos estados falhou ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)

@@ -110,11 +110,19 @@ button.tag{cursor:pointer}button.tag:hover{border-color:var(--mut)}
 .leve ul{list-style:none;padding:0;margin:.3em 0 0;font-size:.875rem;font-variant-numeric:tabular-nums}.leve ul li{padding:.15em 0;border-top:1px solid var(--line)}
 .leve .tags{margin:.3em 0}.leve .links{margin:.2em 0 0;font-size:.9rem}
 details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(--info);font-size:.9rem}details.dados table{min-width:0}
-/* meus representantes (#59): bloco em destaque antes das abas; mini cards com foto, numeros e links */
+/* meus representantes (#59), dentro da aba Estados (#68): mini cards com foto, numeros e links */
 .meus{margin:.8em 0 0;padding:1em 1.2em;border:1px solid var(--line);border-left:4px solid var(--ouro);border-radius:var(--raio);background:var(--card);box-shadow:var(--elev)}
-.meus-topo{display:flex;flex-wrap:wrap;gap:10px 20px;align-items:center;justify-content:space-between}.meus-topo>div{flex:1 1 320px}
-.meus h2{margin:0;font-size:1.25rem}.meus-topo p{margin:.2em 0 0;color:var(--mut);font-size:.9rem}.meus select{flex:0 1 260px;font-weight:600}
-.meus.escolhido select{border-color:var(--ouro)}
+/* aba Estados (#68): grade de bandeiras na ordem do ranking; o estado escolhido abre os representantes logo abaixo */
+.uf-topo{display:flex;gap:14px;align-items:center;margin:0 0 .4em}.uf-topo h2{margin:0}.uf-topo p{margin:.2em 0 0;color:var(--mut);font-size:.9rem}
+.uf-br,.uf-card img{flex:none;width:60px;height:40px;object-fit:cover;border-radius:6px;box-shadow:0 0 0 1px var(--line)}
+.uf-grade{list-style:none;margin:.8em 0;padding:0;display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.uf-card{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;gap:6px;padding:.8em .5em;font:inherit;color:var(--fg);text-align:center;cursor:pointer;
+background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--elev);transition:transform .15s,border-color .15s}
+.uf-card:hover{transform:translateY(-2px);border-color:var(--caramelo)}.uf-card:focus-visible{outline:3px solid var(--caramelo);outline-offset:2px}
+.uf-card[aria-pressed="true"]{border:2px solid var(--ouro);background:var(--realce)}
+.uf-nome{font-weight:700;font-size:.9375rem;line-height:1.2}.uf-pos{color:var(--caramelo)}.uf-card small{color:var(--mut);font-size:.8125rem;font-variant-numeric:tabular-nums}
+@media (max-width:599.98px){.uf-grade{grid-template-columns:repeat(3,1fr);gap:8px}.uf-card{padding:.6em .3em}.uf-card img{width:48px;height:32px}.uf-nome{font-size:.8125rem}.uf-card small{font-size:.75rem}}
+@media (prefers-reduced-motion:reduce){.uf-card{transition:none}.uf-card:hover{transform:none}}
 .rep-resumo{margin:.8em 0 .4em}.rep-acoes{display:flex;flex-wrap:wrap;gap:8px;margin:.4em 0 .6em}.rep-acoes .botao{text-decoration:none}
 .rep-grupo h3{margin:.9em 0 .4em;font-size:1rem}.rep-grupo h3 small{font-weight:400}
 .rep-lista{list-style:none;margin:.4em 0 0;padding:0;display:grid;gap:20px 10px;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr))}
@@ -129,7 +137,7 @@ details.dados{margin:.2em 0 1em}details.dados summary{cursor:pointer;color:var(-
 .rep-selos .selo-cera{min-height:0;padding:0}.rep-selos .selo-cera .cera{width:30px;height:30px}.rep-selos .selo-cera .cera::after{inset:5px}.rep-selos .selo-cera .cera .ico{width:13px;height:13px}
 .rep .tags .tag,.rep .tags .chip{min-height:0;font-size:.75rem;padding:.1em .6em}button.rep-lista-bt{background:none;border:0;color:var(--link);text-decoration:underline;font:inherit;cursor:pointer}
 .rep-links{font-size:.875rem}.rep-fale{margin:.4em 0 0!important;font-size:.875rem}.rep-fale .lk{display:inline;min-height:0;padding:0 2px;white-space:nowrap}.rep-grupo h3 .lk{font-size:.8125rem;font-weight:400;min-height:0}.meus .fonte{font-size:.8125rem;margin:.8em 0 0}
-@media (max-width:599.98px){.rep-grupo.curto .rep:nth-child(n+4){display:none}.meus{padding:.9em}.meus select{flex:1 1 100%}.rep-num{grid-template-columns:1fr}}
+@media (max-width:599.98px){.rep-grupo.curto .rep:nth-child(n+4){display:none}.meus{padding:.9em}.rep-num{grid-template-columns:1fr}}
 /* layout (#52): topo curto, abas fixas, filtros e ajudas recolhidos; o detalhe abre quando a pessoa pede */
 /* cabecalho: logo grande, faixa marinho com borda ouro, sem contorno no titulo; a frase de abertura fica dentro */
 .marca{gap:28px;padding:28px 32px;border-radius:28px}
@@ -188,10 +196,6 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <p class="acoes"><a id="sug-noticia" target="_blank" rel="noopener">Sugerir fonte de notícias</a><a id="sug-dados" target="_blank" rel="noopener">Sugerir fonte de dados</a><a id="sug-lista" target="_blank" rel="noopener">Ver sugestões enviadas</a></p>
 <small>As sugestões são feitas pelo GitHub (é preciso ter conta), ficam públicas e só entram no site depois de revisadas.</small></section>
 </details>
-<section class="meus" id="meus" aria-labelledby="meus-tit" hidden><div class="meus-topo"><div><h2 id="meus-tit">Quem representa você</h2>
-<p>Escolha seu estado e veja quem está no cargo hoje, quanto gasta do seu dinheiro e o que entrega.</p></div>
-<select id="meu-uf" aria-label="Seu estado"><option value="">Escolha seu estado</option></select></div>
-<div id="meus-corpo" aria-live="polite"></div></section>
 <nav class="abas-site" id="abas" role="tablist" aria-label="Seções do painel" hidden></nav>
 <section id="destaques" class="painel-aba" aria-label="Destaques">
 <div class="barra">
@@ -225,6 +229,11 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <details class="dados" id="tabela"><summary>Ver todos em tabela</summary>
 <div class="tab"><table class="resp"><thead><tr><th>Nome</th><th>Tags <small>(clique para filtrar)</small></th><th>Período</th><th class="n" title="(patrimônio do fim − patrimônio do começo) ÷ patrimônio do começo × 100">Aumento<br><small>do patrimônio</small></th><th class="n" title="Comparação com quem teve o mesmo cargo no mesmo período">Entre colegas<br><small>do mesmo cargo</small></th><th>Faixa</th></tr></thead><tbody id="tb"></tbody></table></div></details>
 </section>
+<section id="estados" class="painel-aba" aria-labelledby="estados-tit" hidden><div class="uf-topo"><img class="uf-br" src="bandeiras/BR.svg" alt="" width="60" height="40"><div><h2 id="estados-tit">Quem representa você</h2>
+<p>Toque no seu estado e veja quem está no cargo hoje, quanto gasta do seu dinheiro e o que entrega.</p></div></div>
+<p class="fonte" id="uf-ordem" hidden>Ordem dos estados: primeiro quem tem a maior parte dos deputados federais e senadores com o selo Exemplar; no empate, mais gente fora das faixas de cor e, depois, o menor aumento típico do patrimônio. <a href="funcionamento.html#ranking-estados">Como é a conta</a>. Fontes: <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">TSE</a>, <a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener">Câmara dos Deputados</a>, <a href="https://www12.senado.leg.br/dados-abertos" target="_blank" rel="noopener">Senado Federal</a> e <a href="https://portaldatransparencia.gov.br/" target="_blank" rel="noopener">Portal da Transparência</a>.</p>
+<ol class="uf-grade" id="uf-grade" aria-label="Estados"></ol>
+<section class="meus" id="meus" aria-label="Representantes do estado escolhido" hidden><div id="meus-corpo" aria-live="polite"></div></section></section>
 <section id="exemplares" class="painel-aba" hidden><h2><span class="estrela"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg></span> Parlamentares exemplares</h2>
 <p class="fonte">Deputados federais e senadores que, no período mais recente, cumprem os três critérios: crescimento do patrimônio dentro do que o salário do cargo permitiria, gasto da cota parlamentar abaixo da média do mesmo cargo nos últimos quatro anos e nenhum registro nos cadastros de sanções (CEIS, CNEP e CEAF) do Portal da Transparência. Fontes: <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">TSE</a>, <a href="https://dadosabertos.camara.leg.br/" target="_blank" rel="noopener">Câmara dos Deputados</a>, <a href="https://www12.senado.leg.br/dados-abertos" target="_blank" rel="noopener">Senado Federal</a> e <a href="https://portaldatransparencia.gov.br/" target="_blank" rel="noopener">Portal da Transparência</a>.</p>
 <p id="exemplares-qtd"></p>
@@ -267,7 +276,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 </main>
 <script>
 // icones flat de traco (cor do texto); um so desenho por ideia
-const ICO={"regua":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 15h18M5 15v-3M9 15v-3M13 15v-3M17 15v-3M21 15v-3"/><circle cx="19" cy="7" r="2.2" fill="currentColor" stroke="none"/></svg>',"estrela":'<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg>',"pata":'<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.2" ry="3.4"/><circle cx="5.8" cy="10.6" r="1.9"/><circle cx="9.4" cy="6.6" r="1.9"/><circle cx="14.6" cy="6.6" r="1.9"/><circle cx="18.2" cy="10.6" r="1.9"/></svg>',"predio":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M11 21v-3h2v3"/></svg>',"alta":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>',"moeda":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-.9-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.6-3-1.5M12 6.5v11"/></svg>',"carrinho":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.2"/><circle cx="18" cy="20" r="1.2"/><path d="M3 4h2.2l2.3 11.2h11.2L21 7.5H6.4"/></svg>',"balanca":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a3 3 0 0 0 5 0zM19 8l-2.5 6a3 3 0 0 0 5 0z"/></svg>'};
+const ICO={"mapa":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5v15M4 5h12l-2 4 2 4H4"/></svg>',"regua":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 15h18M5 15v-3M9 15v-3M13 15v-3M17 15v-3M21 15v-3"/><circle cx="19" cy="7" r="2.2" fill="currentColor" stroke="none"/></svg>',"estrela":'<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg>',"pata":'<svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><ellipse cx="12" cy="16" rx="4.2" ry="3.4"/><circle cx="5.8" cy="10.6" r="1.9"/><circle cx="9.4" cy="6.6" r="1.9"/><circle cx="14.6" cy="6.6" r="1.9"/><circle cx="18.2" cy="10.6" r="1.9"/></svg>',"predio":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 7h.01M15 7h.01M9 11h.01M15 11h.01M9 15h.01M15 15h.01M11 21v-3h2v3"/></svg>',"alta":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>',"moeda":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-.9-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.6-3-1.5M12 6.5v11"/></svg>',"carrinho":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.2"/><circle cx="18" cy="20" r="1.2"/><path d="M3 4h2.2l2.3 11.2h11.2L21 7.5H6.4"/></svg>',"balanca":'<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a3 3 0 0 0 5 0zM19 8l-2.5 6a3 3 0 0 0 5 0z"/></svg>'};
 ICO.check='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg>';
 ICO.faixa='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6M5 10v8M9.7 10v8M14.3 10v8M19 10v8M3 20h18"/></svg>';
 ICO.urna='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v9H4zM8 11V4h8v7M10 7h4"/></svg>';
@@ -703,7 +712,7 @@ function legenda(){
     const td=b.closest("li")?.querySelector(".expl");if(!n&&td)td.append(" ",el("small",null,nt?"(nenhum entre os destaques; veja na lista completa)":"(ninguém nesta atualização)"));}
 }
 // abas (#52): uma secao por vez e a pessoa escolhe o que aprofundar; sem JS tudo aparece em sequencia
-const ABAS=[["destaques","Destaques"],["exemplares",ICO.estrela+" Exemplares"],["projetos",ICO.pata+" Projetos"],["cota","Cota parlamentar"],["numeros","Números"],["todos","Todas as pessoas"]];
+const ABAS=[["destaques","Destaques"],["estados",ICO.mapa+" Estados"],["exemplares",ICO.estrela+" Exemplares"],["projetos",ICO.pata+" Projetos"],["cota","Cota parlamentar"],["numeros","Números"],["todos","Todas as pessoas"]];
 let ABA="";
 function abrirAba(id,foco,inicio){
   if(!$("aba-"+id))id="destaques";ABA=id;
@@ -734,7 +743,7 @@ $("filtros-bt").onclick=()=>$("filtros-bt").setAttribute("aria-expanded",$("filt
 // blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
 for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
 for(const s of document.querySelectorAll("section.grade.duas"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
-if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();abas();heroNum();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();$("estados").hidden=!D.representantes;abas();heroNum();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
 $("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;if(b.dataset.todos){todosCom(b.dataset.v==="exemplar"?"e":"s");return;}F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();verDestaques();};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};

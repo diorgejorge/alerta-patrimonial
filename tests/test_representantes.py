@@ -124,10 +124,23 @@ def pagina(servidor):  # noqa: F811
     pg.close()
 
 
+def escolher(pagina, uf):
+    """Aba Estados (#68): toca na bandeira do estado."""
+    if pagina.locator("#aba-estados").is_visible():
+        pagina.click("#aba-estados")
+    pagina.click(f'.uf-card[data-uf="{uf}"]')
+
+
+def escolhido(pagina):
+    b = pagina.locator('.uf-card[aria-pressed="true"]')
+    return b.get_attribute("data-uf") if b.count() == 1 else ""
+
+
 def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     pagina.goto(pagina.url_base)
-    assert pagina.locator("#meus").is_visible() and pagina.locator("#meus-corpo .rep").count() == 0
-    pagina.select_option("#meu-uf", "SP")
+    pagina.click("#aba-estados")
+    assert pagina.locator(".uf-card").count() == 27 and not pagina.locator("#meus").is_visible()
+    escolher(pagina, "SP")
     pagina.wait_for_selector("#meus-corpo .rep")
     txt = pagina.locator("#meus-corpo").inner_text()
     assert "1 governador, 2 senadores, 3 deputados federais e 8 deputados estaduais" in txt
@@ -144,12 +157,12 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     assert pagina.locator('.rep a[href^="mailto:"]').count() == 1 and "Cobre direto" in txt
     pagina.reload()
     pagina.wait_for_selector("#meus-corpo .rep")
-    assert pagina.input_value("#meu-uf") == "SP"
+    assert escolhido(pagina) == "SP"
 
 
 def test_ver_todos_e_filtrar_destaques(pagina):
     pagina.goto(pagina.url_base)
-    pagina.select_option("#meu-uf", "PA")
+    escolher(pagina, "PA")
     pagina.wait_for_selector("#meus-corpo .rep")
     grupo = pagina.locator('.rep-grupo[data-g="estaduais"]')
     assert grupo.locator(".rep:visible").count() == 6
@@ -162,13 +175,13 @@ def test_ver_todos_e_filtrar_destaques(pagina):
 def test_link_externo_escolhe_estado_e_df_tem_distritais(pagina):
     pagina.goto(pagina.url_base + "#meus=DF")
     pagina.wait_for_selector("#meus-corpo .rep")
-    assert pagina.input_value("#meu-uf") == "DF" and "deputados distritais" in pagina.locator("#meus-corpo").inner_text()
+    assert escolhido(pagina) == "DF" and "deputados distritais" in pagina.locator("#meus-corpo").inner_text()
 
 
 def test_sem_arquivo_mostra_fonte_nao_encontrada(pagina):
     pagina.route("**/representantes/*.json", lambda r: r.fulfill(status=404, body=""))
     pagina.goto(pagina.url_base)
-    pagina.select_option("#meu-uf", "BA")
+    escolher(pagina, "BA")
     pagina.wait_for_function("document.getElementById('meus-corpo').textContent.includes('Fonte não encontrada')")
 
 
@@ -223,7 +236,7 @@ def test_gravar_cidades_e_lista_no_arquivo_do_estado(tmp_path):
 
 def test_escolher_cidade_mostra_prefeitura_e_lembra(pagina):
     pagina.goto(pagina.url_base)
-    pagina.select_option("#meu-uf", "SP")
+    escolher(pagina, "SP")
     pagina.wait_for_selector("#minha-cidade")
     pagina.select_option("#minha-cidade", label="Cidade Demo SP 2")
     pagina.wait_for_selector("#meus-cidade .rep")
@@ -233,7 +246,7 @@ def test_escolher_cidade_mostra_prefeitura_e_lembra(pagina):
     pagina.reload()
     pagina.wait_for_selector("#meus-cidade .rep")
     assert "Prefeita Demo SP 2" in pagina.locator("#meus-cidade").inner_text()
-    pagina.select_option("#meu-uf", "DF")
+    escolher(pagina, "DF")
     pagina.wait_for_selector("#meus-corpo .rep")
     assert pagina.locator("#minha-cidade").count() == 0
 
@@ -250,8 +263,49 @@ def test_faixas_pelo_periodo_mais_recente():
 
 def test_patrimonio_abre_a_lista_completa_pelo_nome(pagina):
     pagina.goto(pagina.url_base)
-    pagina.select_option("#meu-uf", "SP")
+    escolher(pagina, "SP")
     pagina.wait_for_selector("#meus-corpo .rep-lista-bt")
     pagina.locator(".rep-lista-bt").first.click()
     pagina.wait_for_function("document.getElementById('tq').value==='Governadora Demo SP'")
     assert pagina.locator("#todos").is_visible()
+
+
+# ---------- aba Estados (#68) ----------
+
+def test_aba_estados_tem_bandeiras_ranking_e_formula(pagina):
+    pagina.goto(pagina.url_base + "#estados")
+    cards = pagina.locator(".uf-card")
+    assert cards.count() == 27 and pagina.locator("#uf-ordem").is_visible()
+    assert cards.first.locator(".uf-pos").inner_text() == "1º" and cards.nth(26).locator(".uf-pos").inner_text() == "27º"
+    assert "1 de 5 Exemplar" in cards.first.inner_text()
+    assert pagina.locator('#uf-ordem a[href="funcionamento.html#ranking-estados"]').count() == 1
+    # bandeiras do proprio site, nunca link externo
+    srcs = cards.locator("img").evaluate_all("l=>l.map(i=>i.getAttribute('src'))")
+    assert all(s.startswith("bandeiras/") and s.endswith(".svg") for s in srcs)
+    assert pagina.evaluate("Promise.all([...document.images].filter(i=>i.src.includes('bandeiras/')).map(i=>i.decode().then(()=>i.naturalWidth)))")
+
+
+def test_link_de_fora_abre_a_aba_estados(pagina):
+    pagina.goto(pagina.url_base + "#meus=SP")
+    pagina.wait_for_selector("#meus-corpo .rep")
+    assert pagina.locator("#estados").is_visible() and pagina.get_attribute("#aba-estados", "aria-selected") == "true"
+    assert escolhido(pagina) == "SP"
+
+
+def test_teclado_escolhe_estado(pagina):
+    pagina.goto(pagina.url_base + "#estados")
+    pagina.focus('.uf-card[data-uf="RS"]')
+    pagina.keyboard.press("Enter")
+    pagina.wait_for_selector("#meus-corpo .rep")
+    assert escolhido(pagina) == "RS" and "Rio Grande do Sul" in pagina.locator("#meus-corpo").inner_text()
+
+
+def test_sem_ranking_ordem_alfabetica_sem_posicao(pagina):
+    def sem_rank(rota):
+        r = rota.fetch()
+        rota.fulfill(response=r, body=re.sub(r'"estados_rank":\s*\[[^\]]*\],?\s*', "", r.text()))
+    pagina.route("**/index.html", sem_rank)
+    pagina.goto(pagina.url_base + "#estados")
+    assert pagina.locator(".uf-card").count() == 27 and pagina.locator(".uf-pos").count() == 0
+    assert not pagina.locator("#uf-ordem").is_visible()
+    assert pagina.locator(".uf-card").first.get_attribute("data-uf") == "AC"
