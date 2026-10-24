@@ -223,6 +223,19 @@ def test_numeros_com_virgula_no_decimal(abrir, site):
         assert not SEM_VIRGULA.search(corpo), (f.name, SEM_VIRGULA.findall(corpo)[:5])
 
 
+def test_tabela_da_pessoa_nao_quebra_palavras_no_computador(servidor, site):
+    """1280px: "Período", "R$ 26.961.420" e "Faixa vermelha" inteiros, cada um numa linha so."""
+    nav, url = servidor
+    pg = nav.new_page(viewport={"width": 1280, "height": 900})
+    pg.goto(url.replace("index.html", f"pessoa/{next((site / 'pessoa').glob('*.html')).name}"))
+    # cada cabecalho, numero e faixa ocupa uma linha so (nada de "Perío do" ou "vermelh a")
+    linhas = pg.evaluate("""()=>[...document.querySelectorAll('table.resp th, table.resp td.n, table.resp .chip')]
+        .filter(e=>e.innerText.trim()&&!e.querySelector('br,small')).map(e=>{const r=document.createRange();r.selectNodeContents(e);
+        return [e.innerText.trim(),new Set([...r.getClientRects()].map(x=>Math.round(x.bottom/12))).size]})""")
+    assert linhas and all(n == 1 for _, n in linhas), [t for t, n in linhas if n != 1]
+    pg.close()
+
+
 def test_card_patrimonio_que_diminuiu(abrir):
     c = card(abrir(), [{**UM_PERIODO[0], "cresc": -400_000, "pat_ini": 1_000_000, "pat_fim": 600_000}])
     valor = c.locator(".valor").text_content()

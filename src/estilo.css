@@ -117,6 +117,8 @@ table.g-tabela td,table.g-tabela tfoot th{text-align:right;font-variant-numeric:
 table.resp{border-collapse:collapse;width:100%}
 table.resp th,table.resp td{padding:.55em .8em;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
 table.resp th{font-weight:600;color:var(--mut)}.n{text-align:right;font-variant-numeric:tabular-nums}
+/* computador: palavras e numeros inteiros (o body quebra em qualquer ponto); se nao couber, a .tab rola de lado */
+@media (min-width:600px){table.resp{overflow-wrap:normal}table.resp th,table.resp .n,table.resp .chip,table.resp td.nivel{white-space:nowrap}}
 @media (max-width:599.98px){
   table.resp thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
   table.resp tr{display:block;padding:8px 0;border-bottom:1px solid var(--line)}
