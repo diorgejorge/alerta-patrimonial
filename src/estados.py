@@ -815,6 +815,13 @@ def _autor(a):
             f'<span class="val">{valor}</span></li>')
 
 
+def prioridade(a):
+    """Exemplar e Mao na massa primeiro (os dois, so Exemplar, so Mao na massa); o resto fica na ordem de antes
+    (sort estavel), pelo valor pago."""
+    tem = {m.split(":")[0] for m in a.get("marcas") or ()}
+    return 2 * ("exemplar" not in tem) + ("selo" not in tem) if tem & {"exemplar", "selo"} else 3
+
+
 def legenda_autores(autores):
     """So os selos que aparecem na lista, na ordem dos cards; o da emenda parada traz o numero dentro."""
     tem = {m.split(":")[0] for a in autores for m in a.get("marcas") or ()}
@@ -829,7 +836,7 @@ def legenda_autores(autores):
 def secao_autores(autores, uf, falhou):
     if falhou:
         return f'<p class="vazio"><b>{NAO_ACHOU}</b>.</p>'
-    do_estado = [a for a in autores if a["uf"] == uf and not a["coletivo"]]
+    do_estado = sorted((a for a in autores if a["uf"] == uf and not a["coletivo"]), key=prioridade)
     outros = [a for a in autores if a not in do_estado and a["n"]]
     if not do_estado and not outros:
         return '<p class="vazio"><b>Não informado</b>.</p>'

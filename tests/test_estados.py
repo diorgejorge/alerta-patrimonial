@@ -459,3 +459,15 @@ def test_texto_para_leigo():
     sp = estados.pagina_uf(pag["SP"])
     assert "Individual, tipo Pix (sem destino definido)<small>Emenda Individual - Transferências Especiais</small>" in sp
     assert 'href="../index.html#meus=SP">Ver meus representantes' in sp and "do prometido já pago" in sp
+
+
+def test_exemplar_e_mao_na_massa_primeiro_no_estado():
+    base = dict(cargo="DEPUTADO FEDERAL", partido="PX", uf="SP", n=1, empenhado=1.0, coletivo=False, link=None, perfil=None)
+    autores = [dict(base, nome="Rica", pago=900.0, marcas=("eleito:2022",)),
+               dict(base, nome="Massa", pago=500.0, marcas=("selo",)),
+               dict(base, nome="Media", pago=400.0, marcas=()),
+               dict(base, nome="Exemplo", pago=100.0, marcas=("exemplar",)),
+               dict(base, nome="Ambos", pago=50.0, marcas=("eleito:2022", "exemplar", "selo"))]
+    html = estados.secao_autores(autores, "SP", falhou=False)
+    ordem = [html.index(f"{n}<") for n in ("Ambos", "Exemplo", "Massa", "Rica", "Media")]
+    assert ordem == sorted(ordem)  # o resto continua pelo valor pago
