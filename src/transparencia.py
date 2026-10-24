@@ -294,16 +294,29 @@ def _pessoa(api, p):
     return r
 
 
-def coletar(pessoas, tempo_max=45 * 60, chave_api=None, cache=None):
+def completo(r):
+    """True se nenhuma parte da consulta da pessoa ficou sem resposta (None) ou com detalhe que falhou."""
+    if not isinstance(r, dict) or not r.get("api") or r.get("pendente") or r.get("emendas", {}) is None:
+        return False
+    if not r.get("sem_cpf"):
+        pf = r.get("pf")
+        if pf is None or r.get("recursos_pf") is None or any(b.get("erro") for b in pf.get("beneficios") or []):
+            return False
+    return all(pj is not None and pj.get("recursos") is not None for _, pj in r.get("empresas") or [])
+
+
+def coletar(pessoas, tempo_max=45 * 60, chave_api=None, cache=None, bom=None):
     """pessoas: {chave: dict(nome, nome_urna, cargo, cpf, empresas=[(nome, cnpj)])} na ordem do painel.
     Tudo pela API oficial (precisa de `chave_api`); sem chave nada e consultado.
     Devolve {chave: dados}; quem fica de fora do prazo recebe {"pendente": "tempo"}.
-    `cache` (cache.Cache cifrado): pessoa consultada sem falhas nos ultimos dias nao e consultada de novo."""
+    `cache` (cache.Cache cifrado): pessoa consultada sem falhas nos ultimos dias nao e consultada de novo.
+    `bom` (cache.Cache de validade longa): ultima resposta completa de cada pessoa; se a API falhar ou o tempo
+    acabar, a pagina mostra essa em vez de "Fonte nao encontrada"."""
     if not chave_api:
         print("Portal da Transparencia: sem TRANSPARENCIA_TOKEN, nada consultado.")
         return {k: {"api": False} for k in pessoas}
     api = Api(chave_api, time.monotonic() + tempo_max)
-    out = {}
+    out, mantidas = {}, 0
     print(f"Portal da Transparencia: consultando {len(pessoas)} pessoas pela API...")
     if api.pausa() > 0.5:
         print("[aviso] Portal da Transparencia: fora da faixa 0h-6h (Brasilia) a API aceita menos consultas por "
@@ -311,24 +324,32 @@ def coletar(pessoas, tempo_max=45 * 60, chave_api=None, cache=None):
     for n, (k, p) in enumerate(pessoas.items(), 1):
         if n % 20 == 0:
             print(f"  {n}/{len(pessoas)} pessoas, {api.req} consultas, {api.falhas} falhas")
-        guardado = cache.get(p.get("chave") or k) if cache else None
-        if guardado is not None:  # incremental: so consulta quem e novo ou venceu no cache
+        ck = p.get("chave") or k
+        guardado = cache.get(ck) if cache is not None else None
+        if completo(guardado):  # incremental: so consulta quem e novo, venceu no cache ou ficou incompleto
             out[k] = guardado
             continue
+        antes = api.falhas
         if not api.ativa():
             out[k] = {"pendente": "tempo" if time.monotonic() >= api.fim else "falha"}
-            continue
-        try:
-            antes = api.falhas
-            out[k] = _pessoa(api, p)
-            if cache and api.falhas == antes:  # so respostas completas entram no cache
-                cache.set(p.get("chave") or k, out[k])
-        except Exception as ex:  # dado inesperado da API: so esta pessoa fica "indisponivel"
-            print(f"[aviso] Portal da Transparencia: erro ao montar {p.get('nome')} ({ex!r})", file=sys.stderr)
-            out[k] = {"pendente": "falha"}
-    if cache:
-        cache.salvar()
-    print(f"Portal da Transparencia (API): {len(out)} pessoas, {api.req} consultas, {api.falhas} falhas.")
+        else:
+            try:
+                out[k] = _pessoa(api, p)
+            except Exception as ex:  # dado inesperado da API: so esta pessoa fica "indisponivel"
+                print(f"[aviso] Portal da Transparencia: erro ao montar {p.get('nome')} ({ex!r})", file=sys.stderr)
+                out[k] = {"pendente": "falha"}
+        if completo(out[k]) and api.falhas == antes:  # falha numa parte (um ano de recursos) tambem nao entra
+            for c in (cache, bom):
+                if c is not None:
+                    c.set(ck, out[k])
+        elif bom is not None and bom.get(ck) is not None:  # falhou agora: fica a ultima resposta completa
+            out[k] = bom.get(ck)
+            mantidas += 1
+    for c in (cache, bom):
+        if c is not None:
+            c.salvar()
+    print(f"Portal da Transparencia (API): {len(out)} pessoas, {api.req} consultas, {api.falhas} falhas, "
+          f"{mantidas} com a ultima resposta completa mantida.")
     return out
 
 

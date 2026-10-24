@@ -532,6 +532,7 @@ def main():
         cifra.limpar_puros(CACHE)
     caches = dict(tse=Cache(CACHE / "tse_lido.cache", 400 * 86400, seg_cache, cifrar=True),
                   portal=Cache(CACHE / "portal.cache", 7 * 86400, seg_cache, cifrar=True),
+                  portal_bom=Cache(CACHE / "portal_bom.cache", 400 * 86400, seg_cache),  # ultima resposta completa
                   noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache),
                   pares=Cache(CACHE / "pares.cache", 400 * 86400, seg_cache),
                   contatos=Cache(CACHE / "contatos.cache", contatos.VALIDADE_S, seg_cache),
@@ -594,7 +595,7 @@ def main():
         q["idx"].append(i)
     try:  # o Portal nunca derruba a atualizacao: se falhar, a secao sai "Fonte nao encontrada"
         info = {} if args.demo else transparencia.coletar(pessoas, chave_api=os.getenv("TRANSPARENCIA_TOKEN"),
-                                                          cache=caches.get("portal"))
+                                                          cache=caches.get("portal"), bom=caches.get("portal_bom"))
     except Exception as ex:
         print(f"[aviso] Portal da Transparencia indisponivel ({ex!r})", file=sys.stderr)
         info = {k: {"pendente": "falha"} for k in pessoas}
