@@ -478,8 +478,8 @@ def marcas_de(p):
     for campo, *_ in MARCAS:
         v = p.get(campo)
         anos = [v] if type(v) is int else v if isinstance(v, (list, tuple)) else ()
-        if campo == "eleito" and anos:
-            out += [f"eleito:{a}" for a in anos]
+        if campo == "eleito":
+            out += [f"eleito:{a}" for a in anos]  # sem o ano, sem carimbo
         elif v:
             out.append(campo)
     return tuple(out)
@@ -592,12 +592,12 @@ BASE = ROOT / "data" / "estados_base.json"
 
 def ano_eleito(eleitos, chave, anos=None):
     """Anos das eleicoes vencidas (pipeline.anos_eleito: {chave: [anos]}), um carimbo para cada; sem a lista, o ano do
-    mandato em curso (pipeline.em_mandato: {chave: ano}); True se so se sabe que e eleito; False se nao foi."""
+    mandato em curso (pipeline.em_mandato: {chave: ano}); False sem o ano (o carimbo nunca aparece sem ele)."""
     if anos and anos.get(chave):
         return sorted(int(a) for a in anos[chave])
     if not eleitos or chave not in eleitos:
         return False
-    return [eleitos[chave]] if isinstance(eleitos, dict) and type(eleitos[chave]) is int else True
+    return [eleitos[chave]] if isinstance(eleitos, dict) and type(eleitos[chave]) is int else False
 
 
 def base(parl, serie=None, paginas=None, link=None, hoje=None, eleitos=None, anos_eleito=None):
@@ -997,7 +997,7 @@ def demo(parl=(), serie=None, paginas=None):
     fin, lista, entes, mun, siglas = {}, [], [], {}, list(UFS)
     parl = list(parl) or [dict(nome=f"Deputada Demo {uf} {j}", cargo="DEPUTADO FEDERAL" if j < 4 else "SENADOR",
                                partido="XX", uf=uf, perfil=f"https://www.camara.leg.br/deputados/{j}",
-                               pagina="pessoa/p0001.html" if j == 1 else None, eleito=j < 5, exemplar=j == 2,
+                               pagina="pessoa/p0001.html" if j == 1 else None, eleito=[2018, 2022] if j < 2 else [2022] if j < 5 else False, exemplar=j == 2,
                                selo=j in (1, 3)) for uf in UFS for j in range(1, 6)]
     for i, (uf, (cod, nome)) in enumerate(UFS.items()):
         if uf == "AC":  # um estado com a fonte fora do ar, para a pagina mostrar "Fonte nao encontrada"

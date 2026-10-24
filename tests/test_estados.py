@@ -480,3 +480,8 @@ def test_eleito_um_carimbo_por_eleicao_com_o_ano_dentro():
     assert marcas == ("eleito:2018", "eleito:2022", "selo")
     html = estados.carimbos(marcas)
     assert html.count("selo-cera verde p com-ano") == 2 and '<b class="ano">2018</b>' in html and "Eleito em 2022" in html
+
+
+def test_eleito_sem_ano_nao_ganha_carimbo():
+    assert estados.ano_eleito({"cpf:1"}, "cpf:1") is False
+    assert estados.marcas_de(dict(eleito=True, selo=True)) == ("selo",)
