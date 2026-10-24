@@ -1,14 +1,14 @@
 """Indicadores do IBGE na aba Estados (#68): como o Brasil e cada estado estao indo, sem relacao com patrimonio de
-politicos. Fonte oficial e gratuita: API de agregados do IBGE (os mesmos dados do SIDRA), com o link da tabela.
-Cada indicador (config/ibge.json) acha a tabela e a variavel pelo nome nos metadados, porque o numero da tabela
-pode mudar entre edicoes da pesquisa. So no Brasil: IDH do PNUD (Relatorio de Desenvolvimento Humano).
+politicos. Fonte oficial e gratuita: API do SIDRA (apisidra.ibge.gov.br), com o link da tabela. Cada indicador
+(config/ibge.json) usa a primeira tabela candidata que tiver a variavel (achada pelo nome) e o Brasil. So no Brasil: IDH do PNUD (Relatorio de Desenvolvimento Humano).
 Tendencia: ultimo periodo contra o mesmo trimestre do ano anterior (trimestral) ou o periodo anterior (anual)."""
 import csv, io, json, re, time, urllib.error, urllib.parse, urllib.request
 from pathlib import Path
 from estados import UFS, norm
 
 CONFIG = Path(__file__).resolve().parent.parent / "config" / "ibge.json"
-API = "https://servicodados.ibge.gov.br/api/v3/agregados"
+VALORES = "https://apisidra.ibge.gov.br/values"  # 24/10: o runner do GitHub alcanca o apisidra; servicodados da timeout
+DESC = "https://apisidra.ibge.gov.br/desctabapi.aspx?c={t}"
 SIDRA = "https://sidra.ibge.gov.br/tabela/{t}"
 UA = {"User-Agent": "alerta-patrimonial/1.0"}
 VALIDADE_S = 7 * 86400  # dado trimestral/anual: consulta de novo uma vez por semana
@@ -37,60 +37,17 @@ def _baixar(url, tentativas=2, pausa=2):
 
 
 def _json(url):
-    return json.loads(_baixar(url).decode("utf-8"))
+    """JSON do SIDRA; a pagina de descricao (desctabapi) vem como texto."""
+    bruto = _baixar(url).decode("utf-8", "replace")
+    return bruto if "desctabapi" in url else json.loads(bruto)
 
 
 def _tem(texto, trecho):
     return norm(trecho) in norm(texto)
 
 
-def _variavel(meta, ind):
-    for v in meta.get("variaveis") or ():
-        if _tem(v.get("nome"), ind["variavel"]) and not NAO_E_VALOR.search(norm(v.get("nome"))):
-            return v
-    return None
-
-
-def _classificacao(meta, ind):
-    """'C2[6794]|C58[95253]': cada classificacao no Total, menos as de `categorias` (ex.: esgoto pela rede geral)."""
-    partes = []
-    for c in meta.get("classificacoes") or ():
-        cats = c.get("categorias") or []
-        alvo = next((v for k, v in (ind.get("categorias") or {}).items() if _tem(c.get("nome"), k)), None)
-        cat = (next((x for x in cats if _tem(x.get("nome"), alvo)), None) if alvo else
-               next((x for x in cats if norm(x.get("nome")) == "TOTAL"), None))
-        if alvo and not cat:
-            return None  # a categoria pedida nao existe nesta tabela
-        if cat:
-            partes.append(f"C{c['id']}[{cat['id']}]")
-    return "|".join(partes)
-
-
-def _serve(meta, ind):
-    """dict(tabela, variavel, classificacao, freq) se a tabela tem a variavel e o nivel de estado (N3); senao None."""
-    niveis = (meta.get("nivelTerritorial") or {}).get("Administrativo") or []
-    v = _variavel(meta, ind)
-    cl = _classificacao(meta, ind) if v else None
-    if not v or "N3" not in niveis or cl is None:
-        return None
-    return dict(tabela=int(meta["id"]), variavel=int(v["id"]), classificacao=cl, nome_var=v.get("nome"),
-                freq=norm((meta.get("periodicidade") or {}).get("frequencia")))
-
-
-def resolver(ind, metadados):
-    """Primeira das tabelas candidatas (config) que tem a variavel e o nivel de estado; loga por que cada uma nao serviu.
-    (O catalogo completo de agregados nao e usado: tem varios MB e estourava o tempo da carga de 24/10.)"""
-    for t in ind.get("tabelas") or ():
-        try:
-            meta = metadados(int(t))
-        except Exception as ex:
-            print(f"[aviso] IBGE: {ind['id']}, tabela {t}: metadados indisponiveis ({ex!r})")
-            continue
-        r = _serve(meta, ind)
-        if r:
-            return r
-        print(f"[aviso] IBGE: {ind['id']}, tabela {t}: sem a variavel, a categoria ou o nivel de estado")
-    return None
+PERIODOS = {"ANO": "ANUAL", "TRIMESTRE": "TRIMESTRAL", "TRIMESTRE MOVEL": "TRIMESTRAL MOVEL", "MES": "MENSAL"}
+TERRITORIO = re.compile(r"BRASIL|UNIDADE DA FEDERACAO")
 
 
 def _num(v):
@@ -100,19 +57,59 @@ def _num(v):
         return None  # "-", "...", "X": sem dado
 
 
-def series(resp):
-    """{"BR" ou UF: {periodo: valor}} da resposta da API de agregados."""
+def url_sidra(t, classif="", periodos=6):
+    """Brasil (n1) e estados (n3), todas as variaveis, ultimos periodos; classificacao nao pedida vem no Total."""
+    return f"{VALORES}/t/{t}/n1/all/n3/all/v/all/p/last%20{periodos}{classif or ''}"
+
+
+def ler_sidra(resp, ind):
+    """(series {"BR"/UF: {periodo: valor}}, frequencia, nome da variavel) da resposta do SIDRA (a 1a linha e o
+    cabecalho com o nome de cada dimensao D1..Dn). None se a tabela nao tem a variavel do indicador."""
+    if not isinstance(resp, list) or len(resp) < 2 or not isinstance(resp[0], dict):
+        return None
+    dim = {norm(v): k[:-1] for k, v in resp[0].items() if re.fullmatch(r"D\d+N", k)}
+    kvar = dim.get("VARIAVEL")
+    kper = next((dim[n] for n in PERIODOS if n in dim), None)
+    kloc = next((k for n, k in dim.items() if TERRITORIO.search(n)), None)
+    if not (kvar and kper and kloc):
+        return None
+    nomes = list(dict.fromkeys(r.get(kvar + "N") for r in resp[1:]))
+    var = next((n for n in nomes if _tem(n, ind["variavel"]) and not NAO_E_VALOR.search(norm(n))), None)
+    if not var:
+        return None
     out = {}
-    for var in resp or ():
-        for res in var.get("resultados") or ():
-            for s in res.get("series") or ():
-                loc = s.get("localidade") or {}
-                nivel = (loc.get("nivel") or {}).get("id")
-                chave = "BR" if nivel == "N1" else UF_DO_COD.get(str(loc.get("id"))) if nivel == "N3" else None
-                if chave:
-                    vals = {p: _num(v) for p, v in (s.get("serie") or {}).items()}
-                    out[chave] = {p: v for p, v in vals.items() if v is not None}
-    return out
+    for r in resp[1:]:
+        v = _num(r.get("V"))
+        if r.get(kvar + "N") != var or v is None:
+            continue
+        nc, cod = str(r.get("NC")), str(r.get(kloc + "C"))
+        loc = "BR" if nc == "1" else UF_DO_COD.get(cod) if nc == "3" else None
+        if loc:
+            out.setdefault(loc, {})[str(r.get(kper + "C"))] = v
+    freq = next(PERIODOS[n] for n in PERIODOS if dim.get(n) == kper)
+    return out, freq, var
+
+
+def classif_desc(html, categorias):
+    """'/c11558/46290' a partir da pagina de descricao da tabela no SIDRA (classificacao e categoria pelo nome).
+    Le o texto sem tags: 'C11558 Esgotamento sanitario ... 46290 Rede geral ...'. None se nao achar."""
+    texto = re.sub(r"<[^>]+>", " ", html or "")
+    partes = []
+    for chave, alvo in (categorias or {}).items():
+        achou = None
+        for m in re.finditer(r"\bC(\d+)\b[\s:-]*([^\n(]{3,80})", texto):
+            if not _tem(m.group(2), chave):
+                continue
+            prox = re.search(r"\bC\d+\b", texto[m.end():])
+            bloco = texto[m.end(): m.end() + prox.start()] if prox else texto[m.end():]
+            cat = next((c for c in re.finditer(r"\b(\d{2,7})\b[\s:-]*([^\n\d]{3,120})", bloco) if _tem(c.group(2), alvo)), None)
+            if cat:
+                achou = f"/c{m.group(1)}/{cat.group(1)}"
+                break
+        if not achou:
+            return None
+        partes.append(achou)
+    return "".join(partes)
 
 
 def periodo(p, freq):
@@ -145,13 +142,6 @@ def tendencia(r, ind):
     return "melhor" if subiu == (ind.get("melhor") == "maior") else "pior"
 
 
-def url_valores(res, periodos):
-    q = dict(localidades="N1[all]|N3[all]")
-    if res["classificacao"]:
-        q["classificacao"] = res["classificacao"]
-    return f"{API}/{res['tabela']}/periodos/-{periodos}/variaveis/{res['variavel']}?" + urllib.parse.urlencode(q, safe="[]|")
-
-
 def idh(cfg, baixar=_baixar):
     """IDH do Brasil e posicao entre os paises (PNUD), do CSV oficial da serie completa; None se nao achar."""
     iso = (cfg or {}).get("iso3", "BRA")
@@ -180,7 +170,7 @@ def _completo(d, cfg):
         (bool(d.get("idh")) or not cfg.get("idh"))
 
 
-# caminhos oficiais alternativos para o mesmo dado: testados so quando a API de agregados nao responde, para saber
+# caminhos oficiais do IBGE e do IPEA: testados so quando o SIDRA nao responde, para saber
 # qual deles o runner do GitHub alcanca (24/10: servicodados.ibge.gov.br deu timeout no Actions)
 SONDAS = ("https://apisidra.ibge.gov.br/values/t/4099/n1/all/v/4099/p/last%201",
           "https://servicodados.ibge.gov.br/api/v3/agregados/4099/metadados",
@@ -222,24 +212,32 @@ def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None, sonda
             raise
     inds, valores = [], {}
     for ind in cfg.get("indicadores") or ():
-        try:
-            res = resolver(ind, lambda t: seguro(f"{API}/{t}/metadados"))
-            if not res:
-                print(f"[aviso] IBGE: {ind['id']} " + ("pulado (fonte fora do ar)" if fora else "sem tabela que sirva"))
+        achado = None
+        for t in ind.get("tabelas") or ():
+            try:
+                cl = ind.get("classificacao") or ""
+                if ind.get("categorias") and not cl:
+                    cl = classif_desc(seguro(DESC.format(t=t)), ind["categorias"])
+                    if cl is None:
+                        print(f"[aviso] IBGE: {ind['id']}, tabela {t}: categoria {ind['categorias']} nao achada na descricao")
+                        continue
+                lido = ler_sidra(seguro(url_sidra(t, cl)), ind)
+            except Exception as ex:
+                print(f"[aviso] IBGE: {ind['id']}, tabela {t}: indisponivel ({ex!r})")
                 continue
-            sr = series(seguro(url_valores(res, 6)))
-        except Exception as ex:
-            print(f"[aviso] IBGE: {ind['id']} indisponivel ({ex!r})")
+            if lido and "BR" in lido[0]:
+                achado = (t, cl) + lido
+                break
+            print(f"[aviso] IBGE: {ind['id']}, tabela {t}: sem a variavel '{ind['variavel']}' ou sem o Brasil")
+        if not achado:
+            print(f"[aviso] IBGE: {ind['id']} " + ("pulado (fonte fora do ar)" if fora else "sem tabela que sirva"))
             continue
-        if "BR" not in sr:
-            print(f"[aviso] IBGE: {ind['id']} sem o valor do Brasil na tabela {res['tabela']}")
-            continue
-        print(f"IBGE: {ind['id']} = tabela {res['tabela']}, variavel {res['variavel']} ({res['nome_var']}), "
-              f"{res['classificacao'] or 'sem classificacao'}, {len(sr)} localidades.")
+        t, cl, sr, freq, var = achado
+        print(f"IBGE: {ind['id']} = tabela {t}{cl}, variavel '{var}', {freq.lower()}, {len(sr)} localidades.")
         inds.append(dict(id=ind["id"], nome=ind["nome"], unidade=ind["unidade"], casas=ind.get("casas", 1),
-                         melhor=ind["melhor"], fonte=ind.get("fonte") or "IBGE", link=SIDRA.format(t=res["tabela"])))
-        for loc, s in sr.items():
-            r = resumo(s, res["freq"])
+                         melhor=ind["melhor"], fonte=ind.get("fonte") or "IBGE", link=SIDRA.format(t=t)))
+        for loc, serie in sr.items():
+            r = resumo(serie, freq)
             if r:
                 valores.setdefault(loc, {})[ind["id"]] = r + [tendencia(r, ind)]
     try:

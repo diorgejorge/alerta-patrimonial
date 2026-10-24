@@ -11,47 +11,46 @@ ESG = dict(id="esgoto", nome="Casas com esgoto", unidade="%", casas=1, melhor="m
            variavel="percentual", categorias={"esgot": "rede geral"})
 
 
-def meta(t, variaveis, classif=(), freq="trimestral", niveis=("N1", "N3")):
-    return dict(id=t, periodicidade=dict(frequencia=freq), nivelTerritorial=dict(Administrativo=list(niveis)),
-                variaveis=[dict(id=i, nome=n) for i, n in variaveis], classificacoes=list(classif))
+CAB = {"NC": "Nível Territorial (Código)", "NN": "Nível Territorial", "MN": "Unidade de Medida", "V": "Valor",
+       "D1C": "Brasil e Unidade da Federação (Código)", "D1N": "Brasil e Unidade da Federação",
+       "D2C": "Trimestre (Código)", "D2N": "Trimestre", "D3C": "Variável (Código)", "D3N": "Variável"}
 
 
-def resp(valores):
-    """valores: {(nivel, id): {periodo: valor}}"""
-    return [dict(id="4099", resultados=[dict(series=[dict(localidade=dict(id=i, nivel=dict(id=n)), serie=s)
-                                                      for (n, i), s in valores.items()])])]
+def sidra(valores, var="Taxa de desocupação, na semana de referência", per="Trimestre"):
+    """Resposta do apisidra: valores {(nivel '1'/'3', codigo): {periodo: valor}}; inclui o coeficiente de variacao."""
+    cab = {**CAB, "D2C": f"{per} (Código)", "D2N": per}
+    linhas = [cab]
+    for (nc, cod), s in valores.items():
+        for p, v in s.items():
+            for nome, val in ((var + " - coeficiente de variação", "1.5"), (var, v)):
+                linhas.append(dict(NC=nc, NN="x", MN="%", V=val, D1C=cod, D1N="x", D2C=p, D2N="x", D3C="1", D3N=nome))
+    return linhas
 
 
-def test_resolve_pela_tabela_e_ignora_coeficiente_de_variacao():
-    m = meta(4099, [(1, "Taxa de desocupação - coeficiente de variação"), (4099, "Taxa de desocupação")])
-    r = ibge.resolver(IND, lambda t: m)
-    assert r["tabela"] == 4099 and r["variavel"] == 4099 and r["classificacao"] == ""
-
-
-def test_tabela_sem_nivel_de_estado_passa_para_a_proxima_candidata():
-    metas = {4099: meta(4099, [(4099, "Taxa de desocupação")], niveis=("N1",)),
-             6381: meta(6381, [(4099, "Taxa de desocupação")])}
-    assert ibge.resolver(dict(IND, tabelas=[4099, 6381]), metas.__getitem__)["tabela"] == 6381
-
-
-def test_classificacao_no_total_e_categoria_pedida():
-    m = meta(9, [(7, "Domicílios - percentual do total geral")], freq="anual", classif=[
-        dict(id=2, nome="Sexo", categorias=[dict(id=4, nome="Homens"), dict(id=6794, nome="Total")]),
-        dict(id=11558, nome="Esgotamento sanitário", categorias=[dict(id=1, nome="Total"), dict(id=46290, nome="Rede geral ou fossa ligada à rede")])])
-    r = ibge.resolver(ESG, lambda t: m)
-    assert r["classificacao"] == "C2[6794]|C11558[46290]"
-    assert "classificacao=C2[6794]|C11558[46290]" in ibge.url_valores(r, 6)
-
-
-def test_series_resumo_e_tendencia():
-    s = ibge.series(resp({("N1", "1"): {"202502": "6.9", "202601": "7.0", "202602": "6.1"},
-                          ("N3", "35"): {"202502": "6.0", "202602": "6.0"}, ("N3", "11"): {"202602": "..."}}))
-    assert set(s) == {"BR", "SP", "RO"} and s["RO"] == {}
-    br = ibge.resumo(s["BR"], "TRIMESTRAL")
+def test_ler_sidra_acha_a_variavel_e_ignora_coeficiente_de_variacao():
+    s, freq, var = ibge.ler_sidra(sidra({("1", "1"): {"202502": "6.9", "202602": "6.1"},
+                                         ("3", "35"): {"202502": "6.0", "202602": "6.0"}, ("3", "11"): {"202602": "..."}}), IND)
+    assert freq == "TRIMESTRAL" and var == "Taxa de desocupação, na semana de referência"
+    assert s == {"BR": {"202502": 6.9, "202602": 6.1}, "SP": {"202502": 6.0, "202602": 6.0}}
+    br = ibge.resumo(s["BR"], freq)
     assert br == [6.1, 6.9, "2º tri 2026", "2º tri 2025"]  # mesmo trimestre do ano anterior
-    assert ibge.tendencia(br, IND) == "melhor" and ibge.tendencia(ibge.resumo(s["SP"], "TRIMESTRAL"), IND) == "igual"
+    assert ibge.tendencia(br, IND) == "melhor" and ibge.tendencia(ibge.resumo(s["SP"], freq), IND) == "igual"
     assert ibge.tendencia([10.0, 9.0, "", ""], dict(melhor="maior", casas=0)) == "melhor"
     assert ibge.tendencia([10.0, None, "2025", None], IND) is None and ibge.resumo({}, "ANUAL") is None
+
+
+def test_ler_sidra_sem_a_variavel_ou_resposta_esquisita_e_none():
+    assert ibge.ler_sidra(sidra({("1", "1"): {"2024": "5"}}, var="Outra coisa", per="Ano"), IND) is None
+    assert ibge.ler_sidra("Tabela nao encontrada", IND) is None and ibge.ler_sidra([CAB], IND) is None
+    assert ibge.ler_sidra(sidra({("1", "1"): {"2024": "5"}}, per="Ano"), IND)[1] == "ANUAL"
+
+
+def test_url_do_sidra_e_categoria_pela_descricao():
+    assert ibge.url_sidra(4099) == "https://apisidra.ibge.gov.br/values/t/4099/n1/all/n3/all/v/all/p/last%206"
+    html = ("<p><b>C1</b> Situação do domicílio (3): 1 Total, 2 Urbana</p>\n<p><b>C11558</b> Esgotamento sanitário (4):</p>"
+            "\n<p>46289 Total</p>\n<p>46290 Rede geral, rede pluvial ou fossa ligada à rede</p>\n<p>46291 Fossa não ligada</p>")
+    assert ibge.classif_desc(html, ESG["categorias"]) == "/c11558/46290"
+    assert ibge.classif_desc(html, {"esgot": "poco artesiano"}) is None
 
 
 def test_anual_compara_com_o_periodo_anterior():
@@ -67,9 +66,9 @@ class CacheFalso(dict):
 
 
 def obter_falso(url):
-    if url.endswith("/metadados"):
-        return meta(4099, [(4099, "Taxa de desocupação")])
-    return resp({("N1", "1"): {"202502": "6.9", "202602": "6.1"}, ("N3", "35"): {"202502": "6.0", "202602": "6.5"}})
+    if "desctabapi" in url:
+        return "<p>C11558 Esgotamento sanitário</p>\n<p>46290 Rede geral</p>"
+    return sidra({("1", "1"): {"202502": "6.9", "202602": "6.1"}, ("3", "35"): {"202502": "6.0", "202602": "6.5"}})
 
 
 CSV = "iso3,country,hdi_rank_2023,hdi_2022,hdi_2023\nBRA,Brazil,84,0.780,0.786\nARG,Argentina,47,0.84,0.85\n"
