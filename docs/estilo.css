@@ -279,13 +279,19 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 }
 
 /* Acompanhar (#57): botao discreto no cabecalho da pessoa; abre a explicacao do feed RSS */
-details.acompanhar{margin:.4em 0 1em}
-details.acompanhar>summary{list-style:none;border:1px solid currentColor;min-height:44px}
+details.acompanhar{position:relative}
+/* todo link de feed RSS do site e so o icone (.rss); .leve = sem fundo, para cards pequenos */
+.rss{display:inline-flex;align-items:center;justify-content:center;gap:4px;min-width:44px;height:44px;padding:0 10px;
+  border-radius:12px;background:var(--ouro);color:var(--tinta);font-weight:700;text-decoration:none;cursor:pointer;box-shadow:var(--elev)}
+.rss svg{width:22px;height:22px;flex:none}
+.rss:focus-visible{outline:3px solid var(--fg);outline-offset:2px}
+.rss.leve{background:transparent;box-shadow:none;color:var(--caramelo);padding:0}
+details.acompanhar>summary.rss{list-style:none;padding:0;width:44px}
 details.acompanhar>summary::-webkit-details-marker{display:none}
-details.acompanhar>summary svg{color:var(--caramelo)}
-details.acompanhar[open]>summary{background:var(--ouro);color:var(--tinta);border-color:var(--ouro)}
-details.acompanhar[open]>summary svg{color:var(--tinta)}
-details.acompanhar .card{margin-top:8px;max-width:60ch}
+details.acompanhar[open]>summary{background:var(--caramelo);color:#fff}
+.acompanhar .feeds{display:flex;flex-wrap:wrap;gap:8px;margin:.6em 0 0}
+details.acompanhar .card{position:absolute;right:0;top:52px;z-index:5;width:min(340px,calc(100vw - 32px))}
+html.vidro details.acompanhar .card{background:rgba(27,47,78,.96)}  /* painel sobre o conteudo: vidro quase opaco para ler bem */
 .acompanhar .apps{display:flex;flex-wrap:wrap;gap:8px}
 .acompanhar .apps .botao.secundario{border:1px solid currentColor}
 @media print{details.acompanhar{display:none}}
