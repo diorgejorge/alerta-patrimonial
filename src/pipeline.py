@@ -941,7 +941,7 @@ def main():
     # indicadores do IBGE na aba Estados (#68): Brasil e estados; sem dado, o bloco fica escondido
     try:
         dados["ibge"] = ibge.demo() if args.demo else ibge.coletar(
-            Cache(CACHE / "ibge.cache", 400 * 86400, seg_cache) if seg_cache else None)
+            Cache(CACHE / "ibge.cache", 400 * 86400, seg_cache) if seg_cache else None, sondar=ibge.sondar)
     except Exception as ex:
         print(f"[aviso] indicadores do IBGE falharam ({ex!r})", file=sys.stderr)
     paginas.copiar_estilo(docs)

@@ -113,8 +113,8 @@ def test_fora_do_ar_para_na_primeira_falha():
         chamadas.append(url)
         raise TimeoutError("timed out")
     cfg = dict(indicadores=[IND, ESG, dict(IND, id="outro")])
-    assert ibge.coletar(None, cfg, lento, lambda u: (_ for _ in ()).throw(OSError("fora"))) is None
-    assert len(chamadas) == 1  # a primeira falha de rede pula o resto
+    assert ibge.coletar(None, cfg, lento, lambda u: (_ for _ in ()).throw(OSError("fora")), sondar=lambda: chamadas.append("sonda")) is None
+    assert len(chamadas) == 2 and chamadas[-1] == "sonda"  # a primeira falha de rede pula o resto e sonda os caminhos
 
 
 def test_tabela_com_erro_http_nao_derruba_as_outras():

@@ -180,7 +180,27 @@ def _completo(d, cfg):
         (bool(d.get("idh")) or not cfg.get("idh"))
 
 
-def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None):
+# caminhos oficiais alternativos para o mesmo dado: testados so quando a API de agregados nao responde, para saber
+# qual deles o runner do GitHub alcanca (24/10: servicodados.ibge.gov.br deu timeout no Actions)
+SONDAS = ("https://apisidra.ibge.gov.br/values/t/4099/n1/all/v/4099/p/last%201",
+          "https://servicodados.ibge.gov.br/api/v3/agregados/4099/metadados",
+          "https://www.ipeadata.gov.br/api/odata4/Metadados('PNADC12_TD12')",
+          "https://ftp.ibge.gov.br/")
+
+
+def sondar(urls=SONDAS, timeout=10):
+    """Uma linha de log por caminho: status HTTP e tempo, ou o erro. Nao guarda nada."""
+    for u in urls:
+        t0 = time.monotonic()
+        try:
+            with urllib.request.urlopen(urllib.request.Request(u, headers=UA), timeout=timeout) as r:
+                res = f"HTTP {r.status}, {len(r.read(200000))} bytes"
+        except Exception as ex:
+            res = repr(ex)[:120]
+        print(f"IBGE sonda: {u.split('/')[2]} -> {res} em {time.monotonic() - t0:.1f}s")
+
+
+def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None, sondar=None):
     """Dados da aba: {"indicadores": [...], "valores": {"BR"/UF: {id: [ultimo, anterior, per, per_ant, tendencia]}},
     "idh": {...}}. Usa o cache por uma semana; se a consulta nova vier pior (menos indicadores), fica a ultima boa."""
     cfg = cfg or ler_config()
@@ -227,6 +247,8 @@ def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None):
     except Exception as ex:
         print(f"[aviso] IBGE: IDH indisponivel ({ex!r})")
         h = None
+    if fora and sondar is not None:
+        sondar()
     dados = dict(indicadores=inds, valores=valores, idh=h) if inds or h else None
     antes = (guardado or {}).get("dados")
     if antes and (len(antes.get("indicadores") or ()) > len(inds) or (antes.get("idh") and not h)):
