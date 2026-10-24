@@ -372,8 +372,8 @@ function agrupaPessoas(l){
       gabinete:per.map(a=>a.gabinete).find(g=>g&&g.pessoas>0)||null,
       // parlamentar: cargo do TSE ou contagem de projetos da casa em que esta em exercicio (o cargo do TSE pode ser outro)
       presidente:per.some(a=>a.presidente_atual),eleito:per.some(a=>a.eleito_atual),eleito_ano:Math.max(0,...per.map(a=>a.eleito_ano||0))||null,
-      // um carimbo por eleicao vencida (pedido do usuario, 24/10); carga antiga: so o ano do mandato em curso
-      eleito_anos:[...new Set(per.flatMap(a=>a.eleito_anos||(a.eleito_ano?[a.eleito_ano]:a.eleito_atual?[0]:[])))].sort(),vice:per.some(a=>a.vice_atual),foto:[...per].reverse().map(a=>a.link_foto).find(v=>/^https:\/\//.test(v||"")),
+      // um carimbo por eleicao vencida (pedido do usuario, 24/10); carga antiga: so o ano do mandato em curso; sem ano, nenhum
+      eleito_anos:[...new Set(per.flatMap(a=>a.eleito_anos||(a.eleito_ano?[a.eleito_ano]:[])))].sort(),vice:per.some(a=>a.vice_atual),foto:[...per].reverse().map(a=>a.link_foto).find(v=>/^https:\/\//.test(v||"")),
       parlamentar:per.some(a=>a.projetos||/^(DEPUTADO FEDERAL|SENADOR)$/i.test(a.cargo||""))};});
 }
 // ordem dos destaques: presidente e depois vice em exercicio no topo (#63), depois o maior aumento percentual do patrimonio (pedido do usuario)

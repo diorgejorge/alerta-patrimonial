@@ -346,8 +346,8 @@ def test_eleito_carimbo_verde_e_borda_verde(abrir):
     pg.evaluate("document.getElementById('teste').remove()")
     assert card(pg, UM_PERIODO).locator(".selo-cera").count() == 0  # sem o campo (antes da carga), nada muda
     pg.evaluate("document.getElementById('teste').remove()")
-    sem_ano = card(pg, [{**UM_PERIODO[0], "eleito_atual": True}])  # carga sem o ano: so "Eleito"
-    assert sem_ano.locator(".selo-cera .ano").count() == 0 and sem_ano.locator(".selo-cera .cera svg").count() == 1
+    sem_ano = card(pg, [{**UM_PERIODO[0], "eleito_atual": True}])  # sem o ano: nenhum carimbo (selo sem ano nao diz nada)
+    assert sem_ano.locator(".selo-cera").count() == 0 and "eleito" in sem_ano.get_attribute("class").split()
 
 
 def test_presidente_eleito_mantem_ouro_e_ganha_carimbo(abrir):

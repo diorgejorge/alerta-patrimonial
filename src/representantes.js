@@ -61,9 +61,9 @@
     const votos=p.votos?`<div><dt>Temas importantes</dt><dd>Votou em ${p.votos[0]} de ${p.votos[1]}</dd></div>`:"";
     return`<dl class="rep-num"><div><dt>Gasto da cota (4 anos)</dt><dd>${cota}</dd></div><div><dt>Projetos aprovados</dt><dd>${proj}</dd></div>${pres}${votos}</dl>`;
   }
-  // um carimbo Eleito por eleicao vencida (TSE), sempre com a do mandato atual; sem ano conhecido, um carimbo sem ano
-  const anosEleito=(p,ano)=>{const a=[...new Set([...(p.eleito_anos||[]),p.eleito_em||ano].filter(Boolean).map(Number))].sort();
-    return a.length?a:[null];};
+  // um carimbo Eleito por eleicao vencida (TSE), sempre com a do mandato atual; sem ano conhecido, nenhum carimbo
+  // (um selo sem ano nao diz nada ao leitor; pedido do usuario, 24/10)
+  const anosEleito=(p,ano)=>[...new Set([...(p.eleito_anos||[]),p.eleito_em||ano].filter(Boolean).map(Number))].sort();
   // ano: eleicao que deu o mandato atual (estadual para governador e deputados, municipal na cidade)
   function pessoa(p,g,uf,ano){
     const cargo=g==="estaduais"&&uf==="DF"?"Deputado distrital":CARGO[g];

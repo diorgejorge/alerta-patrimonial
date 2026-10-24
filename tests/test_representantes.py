@@ -146,7 +146,9 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     assert "1 governador, 2 senadores, 3 deputados federais e 8 deputados estaduais" in txt
     assert "60% abaixo da média" in txt and "R$" not in txt
     # selos discretos no canto: todos eleitos; exemplar e Mao na massa so em quem tem
-    assert pagina.locator("#meus-corpo .rep").count() == pagina.locator("#meus-corpo .rep:has(.rep-selos .selo-cera.verde)").count()
+    # carimbo Eleito sempre com o ano dentro; sem ano conhecido, o mini card fica sem carimbo (pedido do usuario, 24/10)
+    verdes = pagina.locator("#meus-corpo .rep-selos .selo-cera.verde")
+    assert verdes.count() > 0 and verdes.count() == pagina.locator("#meus-corpo .rep-selos .selo-cera.verde .ano").count()
     assert pagina.locator("#meus-corpo .selo-cera.ouro").count() == 1 and pagina.locator("#meus-corpo .selo-cera.caramelo").count() == 1
     gov = pagina.locator('.rep-grupo[data-g="governador"] .rep')
     assert "Faixa laranja" in gov.inner_text() and gov.locator(".rep-lista-bt").count() == 1
@@ -375,3 +377,9 @@ def test_extra_com_dossie_nao_conflita():  # carga de 24/10: parl e extra trazia
                                chave="cpf:" + CPF)])
     tse, _ = rp.eleitos(linha, paginas={"cpf:" + CPF: "pessoa/p0001.html"}, extra=extra, hoje=dt.date(2026, 10, 23))
     assert tse["SP"]["governador"][0]["dossie"] == "pessoa/p0042.html"
+
+
+def test_mini_card_sem_ano_de_eleicao_nao_mostra_carimbo_vazio():
+    """Pedido do usuario (24/10): selo de eleito sem ano nao diz nada; sem ano conhecido, nenhum carimbo."""
+    js = (Path(__file__).resolve().parent.parent / "src" / "representantes.js").read_text(encoding="utf-8")
+    assert "[null]" not in js
