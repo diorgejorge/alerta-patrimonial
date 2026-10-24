@@ -11,6 +11,9 @@ VALORES = "https://apisidra.ibge.gov.br/values"  # 24/10: o runner do GitHub alc
 DESC = "https://apisidra.ibge.gov.br/desctabapi.aspx?c={t}"
 SIDRA = "https://sidra.ibge.gov.br/tabela/{t}"
 UA = {"User-Agent": "alerta-patrimonial/1.0"}
+# a pagina de descricao do SIDRA (desctabapi) respondeu 403 ao agente do robo em 24/10; ela e HTML para navegador
+UA_NAVEGADOR = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"}
+ATRASO_MAX = 4  # dado com o ultimo ano mais velho que isso nao entra (a tabela 3834 parou em 2016)
 VALIDADE_S = 7 * 86400  # dado trimestral/anual: consulta de novo uma vez por semana
 PRAZO_S = 180  # teto da etapa inteira: a carga de 24/10 ficou 50 min esperando a API fora do ar
 CHAVE = "ibge:v1"
@@ -28,7 +31,8 @@ def ler_config(arq=CONFIG):
 def _baixar(url, tentativas=2, pausa=2):
     for i in range(tentativas):
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=20) as r:
+            cab = UA_NAVEGADOR if "desctabapi" in url else UA
+            with urllib.request.urlopen(urllib.request.Request(url, headers=cab), timeout=20) as r:
                 return r.read()
         except Exception:
             if i == tentativas - 1:
@@ -88,6 +92,16 @@ def ler_sidra(resp, ind):
             out.setdefault(loc, {})[str(r.get(kper + "C"))] = v
     freq = next(PERIODOS[n] for n in PERIODOS if dim.get(n) == kper)
     return out, freq, var
+
+
+def descrever(resp):
+    """Resumo da resposta para o log quando a tabela nao serve: dimensoes e as primeiras variaveis."""
+    if not isinstance(resp, list) or not resp or not isinstance(resp[0], dict):
+        return f"resposta inesperada: {str(resp)[:120]!r}"
+    dims = {k[:-1]: v for k, v in resp[0].items() if re.fullmatch(r"D\d+N", k)}
+    kvar = next((k for k, v in dims.items() if norm(v) == "VARIAVEL"), None)
+    nomes = list(dict.fromkeys(r.get(kvar + "N") for r in resp[1:]))[:4] if kvar else []
+    return f"dimensoes {list(dims.values())}; variaveis {nomes}"
 
 
 def classif_desc(html, categorias):
@@ -221,14 +235,20 @@ def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None, sonda
                     if cl is None:
                         print(f"[aviso] IBGE: {ind['id']}, tabela {t}: categoria {ind['categorias']} nao achada na descricao")
                         continue
-                lido = ler_sidra(seguro(url_sidra(t, cl)), ind)
+                resp = seguro(url_sidra(t, cl))
+                lido = ler_sidra(resp, ind)
             except Exception as ex:
                 print(f"[aviso] IBGE: {ind['id']}, tabela {t}: indisponivel ({ex!r})")
                 continue
-            if lido and "BR" in lido[0]:
-                achado = (t, cl) + lido
-                break
-            print(f"[aviso] IBGE: {ind['id']}, tabela {t}: sem a variavel '{ind['variavel']}' ou sem o Brasil")
+            if not lido or "BR" not in lido[0]:
+                print(f"[aviso] IBGE: {ind['id']}, tabela {t}: sem a variavel '{ind['variavel']}' ou sem o Brasil ({descrever(resp)})")
+                continue
+            ultimo = max(int(p[:4]) for p in lido[0]["BR"])
+            if ultimo < time.gmtime(agora).tm_year - ATRASO_MAX:
+                print(f"[aviso] IBGE: {ind['id']}, tabela {t}: dado antigo (ultimo ano {ultimo}), nao entra")
+                continue
+            achado = (t, cl) + lido
+            break
         if not achado:
             print(f"[aviso] IBGE: {ind['id']} " + ("pulado (fonte fora do ar)" if fora else "sem tabela que sirva"))
             continue
@@ -247,9 +267,11 @@ def coletar(cache=None, cfg=None, obter=_json, baixar=_baixar, agora=None, sonda
         h = None
     if fora and sondar is not None:
         sondar()
-    dados = dict(indicadores=inds, valores=valores, idh=h) if inds or h else None
     antes = (guardado or {}).get("dados")
-    if antes and (len(antes.get("indicadores") or ()) > len(inds) or (antes.get("idh") and not h)):
+    h = h or (antes or {}).get("idh")  # PNUD fora do ar: fica o IDH guardado
+    dados = dict(indicadores=inds, valores=valores, idh=h) if inds or h else None
+    # fonte fora do ar no meio: fica a ultima boa; sem falha de rede, vale o resultado novo (ex.: dado antigo saiu)
+    if antes and fora and (len(antes.get("indicadores") or ()) > len(inds) or (antes.get("idh") and not h)):
         print("[aviso] IBGE: consulta veio incompleta; fica a ultima boa.")
         return antes
     if cache is not None and dados:

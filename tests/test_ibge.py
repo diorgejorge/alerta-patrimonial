@@ -125,3 +125,12 @@ def test_tabela_com_erro_http_nao_derruba_as_outras():
         return obter_falso(url)
     d = ibge.coletar(None, dict(indicadores=[dict(ESG, tabelas=[9]), IND]), obter, lambda u: b"")
     assert [i["id"] for i in d["indicadores"]] == ["desemprego"]
+
+
+def test_dado_antigo_nao_entra_e_log_descreve_a_tabela(capsys):
+    velho = lambda url: sidra({("1", "1"): {"2015": "13.8", "2016": "13.3"}}, var="Taxa de mortalidade infantil", per="Ano")
+    ind = dict(IND, id="mortalidade", variavel="mortalidade infantil", tabelas=[3834])
+    assert ibge.coletar(None, dict(indicadores=[ind]), velho, lambda u: b"", agora=1793000000) is None  # 2026
+    assert "dado antigo (ultimo ano 2016)" in capsys.readouterr().out
+    ibge.coletar(None, dict(indicadores=[dict(ind, variavel="analfabetismo")]), velho, lambda u: b"", agora=1793000000)
+    assert "variaveis ['Taxa de mortalidade infantil - coeficiente de variação', 'Taxa de mortalidade infantil']" in capsys.readouterr().out
