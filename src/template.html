@@ -9,6 +9,7 @@
 <link rel="icon" type="image/png" href="icone.png">
 <link rel="apple-touch-icon" href="logo.png">
 <link rel="stylesheet" href="estilo.css">
+<script>document.documentElement.classList.add("js")</script>
 <script src="selo.js" defer></script>
 <script src="representantes.js" defer></script>
 <script src="compartilhar.js" defer></script>
@@ -166,7 +167,9 @@ details.sobre[open]{padding-bottom:.4em}details.sobre .agregador,details.sobre .
 .abas-site{position:sticky;top:8px;z-index:5;display:flex;width:fit-content;max-width:100%;overflow-x:auto;margin:.8em 0 0;scrollbar-width:none}
 .abas-site button{flex:none;min-height:40px;background:none;color:var(--mut);font:inherit;font-weight:600;cursor:pointer;white-space:nowrap}
 .abas-site button:hover{color:var(--fg)}
-.painel-aba{padding-top:.4em;scroll-margin-top:56px}.painel-aba.fora{display:none}.painel-aba>h2:first-child{margin-top:.6em}
+.painel-aba{padding-top:.4em;scroll-margin-top:56px}.painel-aba.fora{display:none}
+/* com JS, a tela nao pula enquanto a pagina carrega: so Destaques aparece e o espaco das abas, dos numeros do topo e dos cards ja fica reservado */
+.js:not(.abas-prontas) .painel-aba:not(#destaques){display:none}.js:not(.abas-prontas) :is(.abas-site,.hero-num)[hidden]{display:flex!important;visibility:hidden}.js:not(.abas-prontas) .abas-site{min-height:52px}.js:not(.abas-prontas) #cards:empty{min-height:150vh}.js:not(.abas-prontas) .reserva{visibility:hidden}html:not(.js) .reserva,.abas-prontas .reserva{display:none}.painel-aba>h2:first-child{margin-top:.6em}
 #contagem{scroll-margin-top:56px}
 .filtros{display:contents}.filtros-bt{display:none}
 .ajudas{display:flex;flex-wrap:wrap;gap:0 18px}details.ajuda[open]{flex-basis:100%}
@@ -196,7 +199,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 </head>
 <body><main>
 <header class="marca"><img src="logo.png" alt="" width="84" height="84"><div><h1>Caramelo Vasculha</h1><p class="lema">Farejando gastos públicos.</p>
-<p class="intro">Quanto o patrimônio declarado ao TSE aumentou, comparado com quem tem o mesmo cargo. É um ponto de partida para pesquisar, não uma acusação. <a href="estado/index.html">Veja também os gastos por estado</a>. <small id="meta"></small></p></div><dl class="hero-num" id="hero-num" hidden></dl></header>
+<p class="intro">Quanto o patrimônio declarado ao TSE aumentou, comparado com quem tem o mesmo cargo. É um ponto de partida para pesquisar, não uma acusação. <a href="estado/index.html">Veja também os gastos por estado</a>. <small id="meta"><span class="reserva">Atualizado em 2026-01-01 00:00 · 00.000 comparações no universo analisado</span></small></p></div><dl class="hero-num" id="hero-num" hidden><div><dd>&nbsp;</dd><dt>pessoas em destaque</dt></div><div><dd>&nbsp;</dd><dt>pelo menos dobraram o patrimônio</dt></div></dl></header>
 <details class="sobre"><summary>Como funciona e de onde vêm os dados</summary>
 <p class="agregador"><strong>O Caramelo Vasculha é apenas um agregador</strong>: reúne dados públicos de fontes oficiais, como o TSE, o Portal da Transparência, a Câmara dos Deputados e o Senado Federal, que respondem por eles, além de links para notícias de outros veículos. O site não produz nem altera esses dados; os destaques são só contas simples sobre eles, um ponto de partida para pesquisar. <strong>Para conferir, cada informação mostrada traz o link direto para a fonte.</strong></p>
 <p class="aviso">Os dados mostram quanto o patrimônio declarado aumentou. Há várias explicações possíveis; use como ponto de partida para pesquisar. Os bens são declarados pelo custo histórico, e herança, atividade própria, renda do cônjuge e venda de bens não entram no cálculo. Confira sempre a fonte antes de qualquer conclusão.</p>
@@ -221,7 +224,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <div class="ajudas">
 <section class="legenda" id="legenda" aria-labelledby="legenda-tit">
 <h2 id="legenda-tit">Como ler cada card <button type="button" class="leg-mais" id="leg-mais" aria-expanded="false" aria-controls="legenda">O que significa?</button> <small>(toque numa marcação para filtrar)</small></h2>
-<ul class="leg-lista" id="leg-niveis"></ul>
+<ul class="leg-lista" id="leg-niveis"><li class="reserva"><span class="chip nv-forte">Faixa vermelha</span> <span class="expl">O patrimônio aumentou 300% ou mais, e mais que 95 de cada 100 colegas.</span></li><li class="reserva"><span class="chip nv-atencao">Faixa laranja</span> <span class="expl">O patrimônio aumentou 200% ou mais, ou bem mais que os colegas do mesmo cargo.</span></li><li class="reserva"><span class="chip nv-informativo">Faixa azul</span> <span class="expl">Cresceu mais que 95 de cada 100 colegas do mesmo cargo.</span></li></ul>
 <ul class="leg-lista">
 <li data-eleito hidden><button type="button" class="tag eleito" data-f="flag" data-v="eleito"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5"/></svg> Eleito</button> <span class="expl">Carimbo verde com o ano dentro: venceu a eleição daquele ano, segundo o TSE. Um carimbo para cada eleição vencida. Borda verde: está no mandato agora e pode ser cobrado no cargo.</span></li>
 <li><button type="button" class="tag exemplar" data-f="flag" data-v="exemplar"><svg class="ico" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.8-4.5 4.4 1.1 6.2L12 17.2l-5.6 3 1.1-6.2L3 9.6l6.2-.8z"/></svg> Exemplar</button> <span class="expl">Ficou mais rico só o que o salário explica, gasta a verba do gabinete abaixo da média e não tem punição registrada.</span></li>
@@ -232,7 +235,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 </section>
 <details class="ajuda leitura" id="como-ler"><summary>Como ler os números</summary><div id="leitura"></div></details>
 </div>
-<p class="contagem" id="contagem" aria-live="polite"></p>
+<p class="contagem" id="contagem" aria-live="polite"><span class="reserva">Mostrando <b>000</b> de 000 pessoas</span></p>
 <ul class="alertas" id="cards"></ul>
 <div id="vz" class="vazio" hidden>O Caramelo não farejou nenhum destaque com este filtro.</div>
 <p class="mais"><button type="button" class="botao" id="mais" hidden></button></p>
@@ -786,7 +789,7 @@ function abas(){
     b.setAttribute("role","tab");b.setAttribute("aria-controls",id);b.onclick=()=>abrirAba(id);
     $(id).setAttribute("role","tabpanel");$(id).setAttribute("aria-labelledby",b.id);nav.append(b);}
   nav.onkeydown=ev=>{const d={ArrowRight:1,ArrowLeft:-1}[ev.key];if(!d)return;ev.preventDefault();abrirAba(ids[(ids.indexOf(ABA)+d+ids.length)%ids.length],true);};
-  $("todos-abrir").parentElement.hidden=true;nav.hidden=false;
+  $("todos-abrir").parentElement.hidden=true;nav.hidden=false;document.documentElement.classList.add("abas-prontas");
   abrirAba(location.hash.slice(1),false,true);
 }
 // depois de filtrar (tag, legenda ou barra de grafico): volta aos destaques, na contagem
@@ -811,4 +814,5 @@ $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((
 // tags clicaveis (cards e tabela): cargo, partido e UF filtram pela dimensao; marcacoes filtram pela legenda
 const porTag=ev=>{const t=ev.target.closest("button[data-dim],button[data-f]");if(!t)return;if(t.dataset.f)F[t.dataset.f]=t.dataset.v;else F[t.dataset.dim]=t.dataset.v;draw();verDestaques();};
 $("cards").onclick=porTag;document.addEventListener("click",verDet);$("tb").onclick=porTag;$("exemplares-lista").onclick=$("cota-lista").onclick=$("projetos-lista").onclick=porTag;$("tabela").ontoggle=tabelaToda;draw();}
+document.documentElement.classList.add("abas-prontas");  // sem dados as secoes voltam a aparecer em sequencia
 </script></body></html>
