@@ -361,13 +361,15 @@ def em_exercicio(serie, cargo, hoje=None):
 
 
 def em_mandato(serie, hoje=None):
-    """Chaves de quem o TSE registra como eleito com mandato em curso hoje (#67): posse ja ocorrida
-    (1o de janeiro seguinte a eleicao) e mandato ainda nao terminado (4 anos; senador 8)."""
+    """{chave: ano da eleicao} de quem o TSE registra como eleito com mandato em curso hoje (#67): posse ja
+    ocorrida (1o de janeiro seguinte a eleicao) e mandato ainda nao terminado (4 anos; senador 8).
+    Com dois mandatos em curso (senador eleito depois para outro cargo), fica a eleicao mais recente."""
     hoje = hoje or dt.date.today()
     eleitos = serie[serie["eleito"].astype(bool)]
     ano = eleitos["ano"].astype(int)
     dur = eleitos["cargo"].map(norm).eq("SENADOR").map({True: 8, False: 4})
-    return set(eleitos.loc[(ano < hoje.year) & (ano + dur >= hoje.year), "chave"])
+    atuais = eleitos.loc[(ano < hoje.year) & (ano + dur >= hoje.year)]
+    return atuais.assign(ano=atuais["ano"].astype(int)).groupby("chave")["ano"].max().to_dict()
 
 
 # ---------------------------------------------------------------- saida
@@ -572,7 +574,9 @@ def main():
         chave = em_exercicio(serie, cargo)
         df[campo] = df["chave"].eq(chave) if chave else False
     df["topo"] = df.presidente_atual * 2 + df.vice_atual
-    df["eleito_atual"] = df["chave"].isin(em_mandato(serie))  # carimbo verde "Eleito" nos cards (#67)
+    mandato = em_mandato(serie)  # carimbo verde "Eleito <ano>" nos cards (#67)
+    df["eleito_atual"] = df["chave"].isin(list(mandato))
+    df["eleito_ano"] = df["chave"].map(mandato).astype("Int64")
     alertas = df[df.nivel.notna() | df.topo.gt(0)].copy()
 
     # memoria de alertas por id interno (versoes antigas usavam o CPF na chave: sao descartadas)

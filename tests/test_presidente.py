@@ -42,11 +42,16 @@ def test_em_mandato_respeita_posse_e_duracao():
     serie = pd.DataFrame([linha("dep", 2022, cargo="DEPUTADO FEDERAL"), linha("velho", 2018, cargo="DEPUTADO FEDERAL"),
                           linha("sen", 2018, cargo="Senador"), linha("perdeu", 2022, cargo="GOVERNADOR", eleito=False),
                           linha("novo", 2026, cargo="DEPUTADO FEDERAL")])
-    assert pipeline.em_mandato(serie, dt.date(2026, 10, 24)) == {"dep", "sen"}  # "novo" ainda nao tomou posse
-    assert pipeline.em_mandato(serie, dt.date(2027, 1, 1)) == {"novo"}  # mandatos de 2022 e o do senador de 2018 acabaram
+    assert pipeline.em_mandato(serie, dt.date(2026, 10, 24)) == {"dep": 2022, "sen": 2018}  # "novo" ainda nao tomou posse
+    assert pipeline.em_mandato(serie, dt.date(2027, 1, 1)) == {"novo": 2026}  # mandatos de 2022 e o do senador de 2018 acabaram
 
 
 def test_em_mandato_senador_eleito_que_perdeu_outra_eleicao_segue_eleito():
     serie = pd.DataFrame([linha("s", 2018, cargo="SENADOR"), linha("s", 2022, cargo="GOVERNADOR", eleito=False)])
-    assert pipeline.em_mandato(serie, dt.date(2024, 5, 1)) == {"s"}
-    assert pipeline.em_mandato(serie.iloc[:0], dt.date(2024, 5, 1)) == set()
+    assert pipeline.em_mandato(serie, dt.date(2024, 5, 1)) == {"s": 2018}
+    assert pipeline.em_mandato(serie.iloc[:0], dt.date(2024, 5, 1)) == {}
+
+
+def test_em_mandato_com_dois_mandatos_fica_a_eleicao_mais_recente():
+    serie = pd.DataFrame([linha("s", 2018, cargo="SENADOR"), linha("s", 2020, cargo="PREFEITO")])
+    assert pipeline.em_mandato(serie, dt.date(2022, 5, 1)) == {"s": 2020}

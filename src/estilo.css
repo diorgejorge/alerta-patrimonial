@@ -263,7 +263,11 @@ html.js-carimbo .selo-cera:not(.carimbado) .cera{opacity:0}
 .selo-cera.canto{position:absolute;top:-16px;left:-16px;z-index:2;min-height:0;padding:0}
 .alerta>.selo-cera.canto{grid-area:auto}  /* no card em grade (presidente, vice) o canto e o do card, nao o da coluna */
 /* eleito com mandato em curso (#67): borda verde; presidente, vice e exemplar mantem a borda deles e ganham so o carimbo */
-.alerta.eleito:not(.presidente,.vice,.exemplar){border:1.5px solid var(--eleito)}
+.alerta.eleito:not(.presidente,.vice,.exemplar),.borda-eleito{border:2px solid var(--eleito);
+  box-shadow:0 0 0 4px color-mix(in srgb,var(--eleito) 20%,transparent),var(--elev)}
+/* rotulo visivel ao lado do selo ("Eleito 2022"): fita na cor da cera, por cima da borda do card */
+.selo-cera.com-rot .rot{padding:3px 10px;border-radius:999px;background:var(--cera);color:#fff;font-size:.75rem;font-weight:800;
+  letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 @media print{.selo-cera .cera{filter:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
 @media print{
