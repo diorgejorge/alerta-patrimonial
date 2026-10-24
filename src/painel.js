@@ -383,11 +383,11 @@ function todos(){
 }
 function draw(){
   const rows=filtra();chips();
-  $("cg").value=F.cargo;$("rg").value=F.regiao;const nf=[F.cargo,F.regiao,$("nv").value].filter(Boolean).length;$("filtros-bt").textContent=nf?`Filtros (${nf})`:"Filtros";for(const b of $("legenda").querySelectorAll("button"))b.setAttribute("aria-pressed",F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
+  $("cg").value=F.cargo;$("rg").value=F.regiao;const nf=[F.cargo,F.regiao,$("nv").value].filter(Boolean).length;$("filtros-bt").textContent=nf?`Filtros (${nf})`:"Filtros";for(const b of $("legenda").querySelectorAll("button[data-f],button[data-nv]"))b.setAttribute("aria-pressed",b.dataset.nv?$("nv").value===b.dataset.nv:F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
   if(ABA==="numeros")numeros(rows);else DESENHADAS.delete("numeros");  // fora da aba, redesenha quando ela abrir
-  const fl=[F.flag&&FLAG[F.flag][0].toLowerCase(),F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
+  const fl=[$("nv").value&&`faixa de ${NV[$("nv").value]}`,F.flag&&FLAG[F.flag][0].toLowerCase(),F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${PES.length.toLocaleString("pt-BR")} ${PES.length===1?"pessoa":"pessoas"}`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
-  if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo=F.regiao=F.flag="";$("cg").value="";$("rg").value="";draw();};
+  if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo=F.regiao=F.flag="";$("cg").value="";$("rg").value="";$("nv").value="";draw();};
   document.getElementById("vz").hidden=rows.length>0;
 }
 // percentil no grupo de pares: 100 = o maior crescimento do grupo
@@ -441,7 +441,7 @@ function legenda(){
   $("leg-niveis").innerHTML=[["forte",`O patrimônio aumentou ${PCT(m.forte.razao*100)} ou mais, e mais que ${NUM(m.forte.percentil)} de cada 100 colegas.`],
     ["atencao",`O patrimônio aumentou ${PCT(m.atencao.razao*100)} ou mais, ou bem mais que os colegas do mesmo cargo.`],
     ["informativo",`Cresceu mais que ${NUM(m.informativo.percentil)} de cada 100 colegas do mesmo cargo.`]]
-    .map(([n,t])=>`<li><span class="chip nv-${n}">${NV[n]}</span> <span class="expl">${t}</span></li>`).join("");
+    .map(([n,t])=>`<li><button type="button" class="chip nv-${n}" data-nv="${n}" aria-pressed="false" title="Clique para ver só esta faixa">${NV[n]}</button> <span class="expl">${t}</span></li>`).join("");
   const tt={eleito:"Clique para ver só quem já venceu eleição",exemplar:"Clique para ver só os parlamentares exemplares",selo:"Clique para ver só quem tem o selo Pata na massa",renda:"Clique para ver só quem tem empresas declaradas",reu:`${REU_OBS}. Clique para ver só quem está na lista`};
   for(const b of $("legenda").querySelectorAll('button[data-f="flag"]')){const f=FLAG[b.dataset.v];if(!f)continue;
     const n=PES.filter(f[1]).length,nt=(D.todos||{})[b.dataset.v]||0;  // nt: na lista completa (exemplar e selo)
@@ -501,7 +501,8 @@ function mostraAbasComDados(){
 }
 function abrirAba(id,foco,inicio){
   if(!$("aba-"+id))id="destaques";ABA=id;desenhaAba(id);
-  for(const [x] of ABAS){const b=$("aba-"+x);if(!b)continue;const on=x===id;$(x).classList.toggle("fora",!on);b.setAttribute("aria-selected",on);b.tabIndex=on?0:-1;if(on&&foco)b.focus();}
+  for(const [x] of ABAS){const b=$("aba-"+x);if(!b)continue;const on=x===id;$(x).classList.toggle("fora",!on);b.setAttribute("aria-selected",on);b.tabIndex=on?0:-1;if(on&&foco)b.focus();
+    if(on){const nav=$("abas");nav.scrollLeft=b.offsetLeft-(nav.clientWidth-b.offsetWidth)/2;}}  // no celular a aba aberta sempre aparece na barra
   if(id==="todos")todosAbrir(true);
   if(!inicio)try{history.replaceState(null,"","#"+id);}catch(e){}  // na carga nao: o navegador rolaria ate a ancora
 }
@@ -527,7 +528,8 @@ $("leg-mais").onclick=()=>{const on=$("legenda").classList.toggle("explicada");$
 $("filtros-bt").onclick=()=>$("filtros-bt").setAttribute("aria-expanded",$("filtros").classList.toggle("aberto"));
 if(D){contrib();todos();legenda();mostraAbasComDados();$("estados").hidden=$("meus").hidden=!D.representantes;indicadores();abas();heroNum();$("como-ler").addEventListener("toggle",()=>{if($("como-ler").open&&!$("leitura").childElementCount)leitura();});if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
-$("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;if(b.dataset.todos){todosCom(b.dataset.v==="exemplar"?"e":"s");return;}F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();verDestaques();};
+$("legenda").onclick=ev=>{const c=ev.target.closest("button[data-nv]");if(c){$("nv").value=$("nv").value===c.dataset.nv?"":c.dataset.nv;draw();verDestaques();return;}  // faixa: mesmo filtro do select
+  const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;if(b.dataset.todos){todosCom(b.dataset.v==="exemplar"?"e":"s");return;}F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();verDestaques();};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};
 $("cg").append(...[...new Set(D.alertas.map(a=>a.cargo).filter(Boolean))].sort((x,y)=>x.localeCompare(y,"pt-BR")).map(c=>{const o=el("option",null,c);o.value=c;return o;}));$("cg").onchange=()=>{F.cargo=$("cg").value;draw();};$("mais").onclick=mais;
 // tags clicaveis (cards e tabela): cargo, partido e UF filtram pela dimensao; marcacoes filtram pela legenda

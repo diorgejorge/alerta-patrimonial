@@ -594,3 +594,48 @@ def test_carimbo_pegada_de_cera_com_ano_em_texto(abrir):
     assert selo.locator(".ano").evaluate("e=>getComputedStyle(e).color") == "rgb(255, 255, 255)"
     mascara = selo.locator(".cera").evaluate("e=>getComputedStyle(e,'::before').maskImage||getComputedStyle(e,'::before').webkitMaskImage")
     assert "ellipse" in mascara  # pegada (almofada e dedos), nao o selo redondo recortado
+
+
+@pytest.mark.parametrize("largura", [360, 1280])
+def test_cada_filtro_da_pagina_inicial_filtra(abrir, largura):
+    # #73: no celular e no computador, cada filtro (busca, selects, faixas e marcacoes da legenda) muda a lista
+    pg = abrir(largura)
+    total = pg.evaluate("PES.length")
+    contagem = lambda: int(pg.inner_text("#contagem b").replace(".", ""))
+    if largura < 600:
+        pg.click("#filtros-bt")
+        assert pg.is_visible("#cg")
+    for sel in ("cg", "rg", "nv"):
+        pg.select_option(f"#{sel}", index=1)
+        assert contagem() < total or "filtro" in pg.inner_text("#contagem"), sel
+        pg.select_option(f"#{sel}", index=0)
+        assert contagem() == total, sel
+    pg.fill("#q", "zzzz-ninguem")
+    assert contagem() == 0 and pg.is_visible("#vz")
+    pg.fill("#q", "")
+    for b in pg.locator("#legenda button[data-nv]").all():  # faixas da legenda tambem filtram
+        b.click()
+        assert b.get_attribute("aria-pressed") == "true" and "faixa de" in pg.inner_text("#contagem")
+        assert pg.locator("#cards > li").count() > 0 and contagem() <= total
+        b.click()
+        assert contagem() == total
+    for b in pg.locator('#legenda button[data-f="flag"]:not([aria-disabled=true])').all():
+        if not b.is_visible():  # marcacao desligada nesta atualizacao (li hidden)
+            continue
+        if b.get_attribute("data-todos"):  # ninguem entre os destaques: abre a lista completa ja filtrada
+            b.click()
+            assert pg.get_attribute("#aba-todos", "aria-selected") == "true"
+            pg.click("#aba-destaques")
+            continue
+        b.click()
+        assert "filtro:" in pg.inner_text("#contagem") and contagem() <= total
+        pg.click("#limpar")
+        assert contagem() == total
+
+
+def test_aba_aberta_aparece_na_barra_do_celular(abrir):
+    pg = abrir(360)
+    pg.click("#aba-destaques")
+    pg.evaluate("abrirAba('todos')")
+    caixa, nav = pg.locator("#aba-todos").bounding_box(), pg.locator("#abas").bounding_box()
+    assert caixa["x"] >= nav["x"] - 1 and caixa["x"] + caixa["width"] <= nav["x"] + nav["width"] + 1

@@ -182,7 +182,8 @@ details.sobre[open]{padding-bottom:.4em}details.sobre .agregador,details.sobre .
 .leg-lista li{font-size:.8125rem;line-height:1.45;color:var(--mut);padding:2px 0}
 .leg-lista li>:first-child{margin-right:6px;vertical-align:middle}.legenda .tag{gap:.35em}
 .leg-mais{display:none}
-.legenda button.tag{min-height:44px}.legenda button.tag[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px;font-weight:700}
+.legenda button.tag{min-height:44px}.legenda :is(button.tag,button.chip)[aria-pressed=true]{outline:3px solid var(--link);outline-offset:1px;font-weight:700}
+.legenda button.chip{min-height:36px;min-width:44px;justify-content:center;cursor:pointer;font-family:inherit}  /* faixa da legenda tambem filtra (#73) */
 .alerta .tags:empty{display:none}
 details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.leitura[open]>div{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:.4em 1em}
 @media (max-width:599.98px){.filtros-bt{display:inline-flex;align-items:center;min-height:44px;padding:0 1em;border:2px solid var(--line);border-radius:12px;background:var(--card);color:var(--fg);font:inherit;font-weight:600;cursor:pointer}
