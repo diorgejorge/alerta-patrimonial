@@ -131,7 +131,12 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     pagina.wait_for_selector("#meus-corpo .rep")
     txt = pagina.locator("#meus-corpo").inner_text()
     assert "1 governador, 2 senadores, 3 deputados federais e 8 deputados estaduais" in txt
-    assert "Parlamentar exemplar" in txt and "Mão na massa" in txt and "60% abaixo da média" in txt and "R$" not in txt
+    assert "60% abaixo da média" in txt and "R$" not in txt
+    # selos discretos no canto: todos eleitos; exemplar e Mao na massa so em quem tem
+    assert pagina.locator("#meus-corpo .rep").count() == pagina.locator("#meus-corpo .rep-selos .selo-cera.verde").count()
+    assert pagina.locator("#meus-corpo .selo-cera.ouro").count() == 1 and pagina.locator("#meus-corpo .selo-cera.caramelo").count() == 1
+    gov = pagina.locator('.rep-grupo[data-g="governador"] .rep')
+    assert "Faixa laranja" in gov.inner_text() and gov.locator(".rep-lista-bt").count() == 1
     assert not SEM_VIRGULA.search(txt), SEM_VIRGULA.findall(txt)  # 43,5%, nunca 43.5%
     assert pagina.locator('a[href="estado/SP.html"]').count() == 1
     assert pagina.locator('a[href="feed/uf-SP.xml"]').count() == 1
@@ -229,3 +234,21 @@ def test_escolher_cidade_mostra_prefeitura_e_lembra(pagina):
     pagina.select_option("#meu-uf", "DF")
     pagina.wait_for_selector("#meus-corpo .rep")
     assert pagina.locator("#minha-cidade").count() == 0
+
+
+def test_faixas_pelo_periodo_mais_recente():
+    df = pd.DataFrame([dict(chave="a", ano_ini=2018, ano_fim=2022, nivel="forte"),
+                       dict(chave="a", ano_ini=2022, ano_fim=2026, nivel="informativo"),
+                       dict(chave="b", ano_ini=2020, ano_fim=2024, nivel=None)])
+    assert rp.faixas(df) == {"a": dict(faixa="informativo", lista=1), "b": dict(lista=1)}
+    out = rp.montar([dep(_chave="a")], extra={"a": dict(faixa="forte", lista=1)})
+    assert out["SP"]["grupos"][2]["pessoas"][0]["faixa"] == "forte"
+
+
+def test_patrimonio_abre_a_lista_completa_pelo_nome(pagina):
+    pagina.goto(pagina.url_base)
+    pagina.select_option("#meu-uf", "SP")
+    pagina.wait_for_selector("#meus-corpo .rep-lista-bt")
+    pagina.locator(".rep-lista-bt").first.click()
+    pagina.wait_for_function("document.getElementById('tq').value==='Governadora Demo SP'")
+    assert pagina.locator("#todos").is_visible()

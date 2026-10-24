@@ -11,8 +11,14 @@
     RR:"Roraima",SC:"Santa Catarina",SP:"São Paulo",SE:"Sergipe",TO:"Tocantins"};
   const CARGO={governador:"Governador",senadores:"Senador",federais:"Deputado federal",estaduais:"Deputado estadual",prefeito:"Prefeito",vice:"Vice-prefeito",vereadores:"Vereador"};
   const ico=k=>typeof ICO==="object"&&ICO[k]||"";  // icones do painel (template.html), quando houver
-  const MARCA={exemplar:["exemplar","Parlamentar exemplar","Patrimônio compatível com o salário, cota abaixo da média e sem sanções"],
-    selo:["selo","Mão na massa","Entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos"]};
+  // selos de cera pequenos no canto do mini card (mesmo .selo-cera do site): eleito, exemplar e Mao na massa
+  const SELOS={eleito:["verde","Eleito e no cargo hoje (TSE)","check","Eleito"],
+    exemplar:["ouro","Parlamentar exemplar: patrimônio compatível com o salário, cota abaixo da média e sem sanções","estrela","Exemplar"],
+    selo:["caramelo","Mão na massa: entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos","pata","Mão na massa"]};
+  const selo=k=>{const [cor,tit,ic,rot]=SELOS[k];return`<span class="selo-cera ${cor}" title="${esc(tit)}"><span class="cera" aria-hidden="true"><span>${ico(ic)||"✓"}</span></span><span class="sr">${esc(rot)}</span></span>`;};
+  // faixa do patrimonio (mesmo rotulo e cor dos cards: NV do template) e partido com a cor da legenda
+  const NVR=typeof NV==="object"?NV:{forte:"Faixa vermelha",atencao:"Faixa laranja",informativo:"Faixa azul"};
+  const corPartido=p=>typeof PD==="function"?PD(p):"";
   // numeros sempre no padrao brasileiro: 43,5% (virgula no decimal, ponto no milhar)
   const PCT=v=>Number(v).toLocaleString("pt-BR",{maximumFractionDigits:1})+"%";
   const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -47,15 +53,17 @@
   function pessoa(p,g,uf){
     const cargo=g==="estaduais"&&uf==="DF"?"Deputado distrital":CARGO[g];
     const foto=https(p.foto)?`<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:"";
-    const tags=(p.marcas||[]).filter(m=>MARCA[m]).map(m=>`<span class="tag ${MARCA[m][0]}" title="${esc(MARCA[m][2])}">${ico(m==="selo"?"pata":"estrela")} ${esc(MARCA[m][1])}</span>`).join("");
+    const selos=["eleito",...(p.marcas||[]).filter(m=>SELOS[m])].map(selo).join("");
+    const tags=(NVR[p.faixa]?`<span class="chip nv-${p.faixa}" title="${esc(NVR[p.faixa])}: veja a fórmula em Como ler os números">${esc(NVR[p.faixa])}</span>`:"")
+      +(p.partido?`<span class="tag">${corPartido(p.partido)}${esc(p.partido)}</span>`:"");
     const parl=g==="senadores"||g==="federais";
     const links=[https(p.perfil)?`<a class="lk" href="${esc(p.perfil)}" target="_blank" rel="noopener">${parl?"Perfil oficial":"Candidatura no TSE"}</a>`:"",
-      rel(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Dossiê</a>`:"",feed(p.dossie)].filter(Boolean).join(" · ");
+      rel(p.dossie)?`<a class="lk" href="${esc(p.dossie)}">Dossiê</a>`:p.lista?`<button type="button" class="lk rep-lista-bt" data-nome="${esc(p.nome)}" title="Abrir em Todas as pessoas, com o patrimônio declarado em cada eleição">Patrimônio</button>`:"",feed(p.dossie)].filter(Boolean).join(" · ");
     const c=p.contato||{},tel=(c.telefone||"").replace(/\D/g,"");
     const fale=parl&&(c.email||tel)?`<p class="rep-fale"><b>Cobre direto:</b> ${[c.email?`<a class="lk" href="mailto:${esc(c.email)}">e-mail</a>`:"",
       tel?`<a class="lk" href="tel:+55${esc(tel)}">${esc(c.telefone)}</a>`:"",cobrar(p.dossie)].filter(Boolean).join(" · ")}</p>`:"";
-    return`<li class="rep"><span class="avatar" aria-hidden="true">${esc(iniciais(p.nome))}${foto}</span><div class="rep-txt">
-<p class="rep-nome"><b>${esc(p.nome)}</b> <small>${esc(cargo)} · ${esc(p.partido||"Não informado")}</small></p>${tags?`<p class="tags">${tags}</p>`:""}
+    return`<li class="rep com-selo"><span class="rep-selos">${selos}</span><span class="avatar" aria-hidden="true">${esc(iniciais(p.nome))}${foto}</span><div class="rep-txt">
+<p class="rep-nome"><b>${esc(p.nome)}</b> <small>${esc(cargo)}</small></p>${tags?`<p class="tags">${tags}</p>`:""}
 ${parl?numeros(p):""}${fale}${links?`<p class="rep-links">${links}</p>`:""}</div></li>`;
   }
   function grupo(g,uf,ala_){
@@ -103,6 +111,9 @@ ${d.grupos.map(g=>grupo(g,uf,d.assembleia)).join("")}<p class="fonte">Fontes: C�
   corpo.onclick=ev=>{
     const b=ev.target.closest("button");if(!b)return;
     if(b.id==="meus-filtrar"&&typeof F==="object"&&typeof draw==="function"){F.uf=sel.value;F.regiao="";if(typeof verDestaques==="function"){draw();verDestaques();}else draw();return;}
+    // "Patrimonio": abre a pessoa na lista completa (aba Todas as pessoas), buscando pelo nome
+    if(b.classList.contains("rep-lista-bt")&&typeof todosAbrir==="function"){if(typeof abrirAba==="function"&&typeof ABA==="string"&&ABA)abrirAba("todos");todosAbrir(true);
+      const q=document.getElementById("tq");if(q){q.value=b.dataset.nome;q.dispatchEvent(new Event("input"));}document.getElementById("todos")?.scrollIntoView({behavior:"smooth",block:"start"});return;}
     if(b.classList.contains("rep-mais")){const s=b.closest(".rep-grupo"),aberto=s.classList.toggle("curto");b.setAttribute("aria-expanded",!aberto);
       b.textContent=aberto?`Ver todos os ${s.querySelectorAll(".rep").length}`:"Mostrar menos";}
   };

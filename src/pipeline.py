@@ -822,16 +822,17 @@ def main():
         print(f"[aviso] base do dossie por estado falhou ({ex!r})", file=sys.stderr)
     # meus representantes (#59): um arquivo leve por estado, baixado so quando o visitante escolhe o estado
     try:
+        extra = representantes.faixas(df)  # faixa do patrimonio e "esta na lista completa", por chave
         parl_uf, tse_uf, ano_est = (representantes.demo() if args.demo else
-                                    (parl, *representantes.eleitos(serie, link_tse, link_foto, pag)))
+                                    (parl, *representantes.eleitos(serie, link_tse, link_foto, pag, extra=extra)))
         contato = ({(p["casa"], p["_id"]): contatos.DEMO for p in parl_uf[::5]} if args.demo else
                    representantes.contatos_de(parl_uf, caches.get("contatos")))
         cid, ano_mun = (representantes.demo_cidades() if args.demo else
-                        representantes.cidades(serie, link_tse, link_foto, pag))
+                        representantes.cidades(serie, link_tse, link_foto, pag, extra=extra))
         representantes.gravar_cidades(docs, cid, ano_mun)
         dados["representantes"] = representantes.gravar(docs, parl_uf, tse_uf, dados["gerado_em"], ano_est,
                                                          contato, contatos.assembleias(),
-                                                         representantes.lista_cidades(cid))
+                                                         representantes.lista_cidades(cid), extra)
         shutil.copyfile(ROOT / "src" / "representantes.js", docs / "representantes.js")
     except Exception as ex:  # nunca derruba o painel: sem os arquivos, o bloco mostra "Fonte não encontrada"
         print(f"[aviso] meus representantes falhou ({ex!r})", file=sys.stderr)
