@@ -298,7 +298,7 @@ const NV={forte:"Faixa vermelha",atencao:"Faixa laranja",informativo:"Faixa azul
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
 // link do TSE de um periodo
-const TSE=a=>/^https:\/\//.test(a.link_tse||"")?`<a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Página no DivulgaCandContas (TSE), período ${a.ano_ini}–${a.ano_fim}">TSE</a> · <a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Prestação de contas da campanha de ${a.ano_fim} (quanto arrecadou e gastou), no quadro Prestação de contas da página do TSE">Contas da campanha</a>`:"";
+const TSE=a=>/^https:\/\//.test(a.link_tse||"")?`<a class="lk" href="${esc(a.link_tse)}" target="_blank" rel="noopener" title="Candidatura, bens e contas da campanha no TSE (DivulgaCandContas), período ${a.ano_ini}–${a.ano_fim}">TSE</a>`:"";
 // processos (#51): desligados ate haver base oficial e gratuita por CPF; o pipeline liga com D.processos_ativo
 const PROC_ON=D?.processos_ativo===true;
 if(PROC_ON)for(const e of document.querySelectorAll("[data-processos]"))e.hidden=false;

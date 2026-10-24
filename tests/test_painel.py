@@ -488,10 +488,10 @@ def test_regua_dos_colegas_cores_e_posicao(abrir):
 
 
 def test_link_para_contas_da_campanha_no_tse(abrir):
-    """Prestação de contas: só o link oficial do TSE, sem cálculo."""
+    """Prestação de contas: um só link oficial do TSE (candidatura, bens e contas), sem cálculo nem link duplicado."""
     pg = abrir()
     h = pg.evaluate("TSE({link_tse:'https://divulgacandcontas.tse.jus.br/divulga/#/candidato/X',ano_ini:2018,ano_fim:2022})")
-    assert "Contas da campanha" in h and h.count("divulgacandcontas.tse.jus.br") == 2
+    assert "Candidatura, bens e contas da campanha" in h and h.count("divulgacandcontas.tse.jus.br") == 1
     assert pg.evaluate("TSE({link_tse:'javascript:x'})") == ""
 
 
