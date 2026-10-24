@@ -24,6 +24,7 @@ import contatos
 import paginas
 import representantes, shutil
 import ibge
+import recarga
 import ranking as ranking_uf  # "ranking" ja e variavel do main()
 import acompanhar
 
@@ -623,7 +624,7 @@ def main():
     if seg_cache:  # tudo que fica salvo e cifrado (cifra.py): sobras em texto puro de execucoes antigas saem
         cifra.limpar_puros(CACHE)
     caches = dict(tse=Cache(CACHE / "tse_lido.cache", 400 * 86400, seg_cache, cifrar=True),
-                  portal=Cache(CACHE / "portal.cache", 7 * 86400, seg_cache, cifrar=True),
+                  portal=Cache(CACHE / "portal.cache", recarga.segundos("portal_dias", 30), seg_cache, cifrar=True),  # #71
                   portal_bom=Cache(CACHE / "portal_bom.cache", 400 * 86400, seg_cache),  # ultima resposta completa
                   noticias=Cache(CACHE / "noticias.cache", 3 * 86400, seg_cache),
                   pares=Cache(CACHE / "pares.cache", 400 * 86400, seg_cache),
