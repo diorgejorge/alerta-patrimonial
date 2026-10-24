@@ -140,8 +140,8 @@ ${d.grupos.map(g=>grupo(g,uf,d.assembleia,d.eleicao_estadual)).join("")}<p class
   };
   // legenda fixa da aba: o que cada selo e cada faixa querem dizer (no card, so o selo)
   const leg=document.getElementById("meus-legenda");
-  if(leg)leg.innerHTML=`<li>${selo("eleito",2022)} Eleito: venceu a eleição e está no cargo; o número é o ano da eleição</li><li>${selo("exemplar")} Exemplar: patrimônio compatível, cota abaixo da média e sem sanções</li>
-<li>${selo("selo")} Mão na massa: entre os 10% com mais projetos aprovados</li><li><span class="chip nv-forte">${esc(NVR.forte)}</span><span class="chip nv-atencao">${esc(NVR.atencao)}</span><span class="chip nv-informativo">${esc(NVR.informativo)}</span> quanto o patrimônio cresceu</li>`;
+  if(leg)leg.innerHTML=`<li>${selo("eleito",2022)} <span>Eleito: venceu a eleição e está no cargo; o número é o ano da eleição</span></li><li>${selo("exemplar")} <span>Exemplar: patrimônio compatível, cota abaixo da média e sem sanções</span></li>
+<li>${selo("selo")} <span>Mão na massa: entre os 10% com mais projetos aprovados</span></li><li><span class="chip nv-forte">${esc(NVR.forte)}</span><span class="chip nv-atencao">${esc(NVR.atencao)}</span><span class="chip nv-informativo">${esc(NVR.informativo)}</span> <span>quanto o patrimônio cresceu</span></li>`;
   // link vindo de fora (paginas de estado): index.html#meus=SP escolhe o estado e abre a aba
   const pedido=(location.hash.match(/^#meus=([A-Z]{2})$/)||[])[1],salvo=UFS[pedido]?pedido:ler();
   if(UFS[salvo])escolher(salvo);else vazio();
