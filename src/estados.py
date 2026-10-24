@@ -351,23 +351,29 @@ def enxuta(d):
 VERSAO_EMENDAS = 2  # mude ao mudar enxuta(): invalida os anos guardados
 
 
-def emendas(api, anos, cache=None, hoje=None, prog=None):
-    """Emendas dos `anos` (lista enxuta) e os anos que faltaram. O ano so vai para o cache se veio inteiro; anos
-    recentes sao sempre relidos (restos a pagar continuam sendo pagos)."""
-    hoje = hoje or dt.date.today()
+def emendas(api, anos, cache=None, hoje=None, prog=None, agora=None):
+    """Emendas dos `anos` (lista enxuta) e os anos que faltaram. O ano so vai para o cache se veio inteiro e so e
+    relido no prazo de config/recarga.json (#71): o atual a cada `ano_atual_dias`; os fechados a cada
+    `emendas_anos_fechados_dias`, porque restos a pagar continuam sendo pagos (e mudam as emendas paradas)."""
+    hoje, agora = hoje or dt.date.today(), agora or time.time()
     out, faltou = [], []
     for ano in anos:
-        guardavel = cache is not None and ano < hoje.year - 1
-        lista = cache.get(("emendas", VERSAO_EMENDAS, ano)) if guardavel else None
-        if lista is None:
+        chave = ("emendas", VERSAO_EMENDAS, ano)
+        prazo = ("ano_atual_dias", 30) if ano >= hoje.year else ("emendas_anos_fechados_dias", 90)
+        guardado = cache.get(chave) if cache is not None else None
+        if isinstance(guardado, dict) and not recarga.vencido(guardado.get("em"), *prazo, agora):
+            lista = guardado["lista"]
+        else:
             antes = api.falhas
             ler = (lambda pg, n, ano=ano: prog.passo(n, None, f"ano {ano}, página {pg}")) if prog else None
             bruto = api.paginas("/emendas", max_paginas=5000, ao_ler=ler, ano=ano) if api.ativa() else None
             if bruto is None or api.falhas != antes:
                 faltou.append(ano)
             lista = [enxuta(d) for d in bruto or ()]
-            if guardavel and ano not in faltou:
-                cache.set(("emendas", VERSAO_EMENDAS, ano), lista)
+            if ano in faltou and isinstance(guardado, dict):  # falhou: fica a ultima resposta completa
+                lista, faltou = guardado["lista"], faltou[:-1]
+            elif cache is not None and ano not in faltou:
+                cache.set(chave, dict(em=agora, lista=lista))
         out += lista
         if prog:
             prog.saida(f"    ano {ano}: {len(lista):,} emendas{' (faltou)' if ano in faltou else ''}".replace(",", "."), flush=True)

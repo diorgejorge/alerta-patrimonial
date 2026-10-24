@@ -204,16 +204,25 @@ def test_municipios_respeita_o_prazo():
     assert estados.municipios(b, entes, 2025, tempo_max=0) == {}
 
 
-def test_emendas_cache_so_de_ano_antigo_e_completo():
+def test_emendas_guardadas_no_prazo_de_cada_ano():
     api = ApiFalsa({2023: [emenda("FULANA", "SÃO PAULO (UF)", 10)], 2026: [emenda("FULANA", "CAMPINAS - SP", 5)]},
                    falha=[2024])
-    cache = CacheMem()
-    lista, faltou = estados.emendas(api, [2023, 2024, 2025, 2026], cache, HOJE)
+    cache, t0 = CacheMem(), 1_000_000_000
+    lista, faltou = estados.emendas(api, [2023, 2024, 2025, 2026], cache, HOJE, agora=t0)
     assert faltou == [2024] and [d["pago"] for d in lista] == [10.0, 5.0]
-    assert set(cache.d) == {("emendas", estados.VERSAO_EMENDAS, 2023)}  # 2024 falhou; 2025/2026 ainda recebem pagamentos
+    assert {k[2] for k in cache.d} == {2023, 2025, 2026}  # 2024 falhou: nao guarda
     api.pedidos.clear()
-    estados.emendas(api, [2023], cache, HOJE)
+    estados.emendas(api, [2023, 2026], cache, HOJE, agora=t0 + 29 * 86400)  # dentro dos prazos: nada e relido
     assert api.pedidos == []
+    estados.emendas(api, [2023, 2026], cache, HOJE, agora=t0 + 31 * 86400)  # ano atual: 30 dias; fechado: 90
+    assert [p for p in api.pedidos if "2026" in str(p)] and not [p for p in api.pedidos if "2023" in str(p)]
+
+
+def test_emenda_que_falha_fica_com_a_ultima_resposta_completa():
+    cache, t0 = CacheMem(), 1_000_000_000
+    estados.emendas(ApiFalsa({2026: [emenda("FULANA", "CAMPINAS - SP", 5)]}), [2026], cache, HOJE, agora=t0)
+    lista, faltou = estados.emendas(ApiFalsa({}, falha=[2026]), [2026], cache, HOJE, agora=t0 + 40 * 86400)
+    assert faltou == [] and [d["pago"] for d in lista] == [5.0]
 
 
 def test_agregar_e_ligar_autores():
