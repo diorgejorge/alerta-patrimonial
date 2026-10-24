@@ -273,7 +273,7 @@ details.ajuda.leitura{background:none;border:0;padding:0;margin:0}details.ajuda.
 <div class="card"><h2>Pessoas em destaque por estado</h2><p>Clique numa barra para filtrar o painel.</p><div class="bars" id="gu"></div><div class="leg" id="lg2"></div></div>
 </section>
 <details class="dados"><summary>Ver dados dos gráficos em tabela</summary><div class="graf"><div class="tab" id="tp"></div><div class="tab" id="tu"></div></div></details>
-<section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section>
+<template id="graficos-gerados"><section class="grade duas" aria-label="Visão geral"><div class="card"><h2>Destaques por nível</h2><!--GRAFICO_NIVEIS--></div><div class="card"><h2>Notícias por tema ao longo do tempo</h2><!--GRAFICO_TEMAS--></div></section></template>
 </section>
 <section id="todos" class="painel-aba" hidden><h2>Todas as pessoas analisadas</h2>
 <p class="fonte">Todas as pessoas com duas declarações de bens ao TSE que dá para comparar, com ou sem destaque. Cada pessoa aparece uma vez, com os períodos dentro. O Raio-X completo existe só para quem está entre os destaques. Os números são o que foi declarado ao TSE; confira cada período no link da fonte. Fonte: <a href="https://dadosabertos.tse.jus.br/" target="_blank" rel="noopener">TSE</a>.</p>
@@ -302,7 +302,9 @@ ICO.faixa='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor
 ICO.urna='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h16v9H4zM8 11V4h8v7M10 7h4"/></svg>';
 ICO.equipe='<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.9.4 5 2.9 5 5.8"/></svg>';
 // numeros sempre no padrao brasileiro (43,5% e 2.400): virgula no decimal, ponto no milhar
-const NUM=(v,casas=1)=>Number(v).toLocaleString("pt-BR",{maximumFractionDigits:casas});
+// formatadores criados uma vez (#73): toLocaleString monta um Intl.NumberFormat novo a cada chamada
+const FORMATOS=new Map(),formato=casas=>FORMATOS.get(casas)||FORMATOS.set(casas,new Intl.NumberFormat("pt-BR",{maximumFractionDigits:casas})).get(casas);
+const NUM=(v,casas=1)=>formato(casas).format(Number(v));
 const PCT=v=>NUM(v)+"%";
 const D=/*DADOS*/null;
 const BENS=/*BENS*/null;  // config/bens_referencia.json
@@ -313,7 +315,7 @@ function COMPRA(v){
   return`Daria para comprar <b>${n.toLocaleString("pt-BR")}</b> ${esc(n>1?b.plural:b.singular)}${/^https:\/\//.test(b.link||"")?` · <a href="${esc(b.link)}" target="_blank" rel="noopener" title="${esc(b.referencia)}">ver preço</a>`:""}`;
 }
 // negativo com o sinal antes do R$: "−R$ 11.973.159"
-const R=v=>v==null?"Não informado":(v<0?"−":"")+"R$ "+Math.round(Math.abs(v)).toLocaleString("pt-BR");
+const R=v=>v==null?"Não informado":(v<0?"−":"")+"R$ "+formato(0).format(Math.round(Math.abs(v)));
 const NV={forte:"3 pegadas",atencao:"2 pegadas",informativo:"1 pegada"};  // so a cor (#62); a formula fica na legenda
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const REL=u=>u&&!/^\s*[a-z][a-z0-9+.-]*:/i.test(u);  // so caminhos relativos do proprio site
@@ -445,7 +447,14 @@ function tabela(id,titulo,l){
   const tb=el("tbody");for(const x of l){const r=el("tr");r.append(el("td",null,x.k));for(const c of ["n",...NIVEIS])r.append(el("td","n",x[c].toLocaleString("pt-BR")));tb.append(r);}
   const th=el("thead");th.append(h);t.append(th,tb);$(id).replaceChildren(t);
 }
-function painel(rows){
+// graficos gerados a parte (so existem com ID_SEGREDO) ficam num <template> e entram na pagina quando a aba abre (#73); sem conteudo, nao aparecem
+function graficosGerados(){
+  const t=$("graficos-gerados");if(!t)return;const s=t.content.firstElementChild;t.replaceWith(t.content);
+  for(const c of s.querySelectorAll(":scope>.card"))if(c.children.length<=1)c.hidden=true;
+  s.hidden=![...s.children].some(x=>!x.hidden&&x.tagName!=="H2");
+}
+function numeros(rows){
+  graficosGerados();
   // rows = pessoas; o crescimento de cada pessoa e a soma dos seus periodos
   const n=nv=>rows.filter(p=>p.nivel===nv).length.toLocaleString("pt-BR");
   const k=$("kpis");k.replaceChildren();
@@ -453,6 +462,8 @@ function painel(rows){
     [n("informativo"),NV.informativo]]){
     const d=el("div","kpi");d.append(el("b",null,v),el("span",null,r));k.append(d);}
   tabela("tp","Partido",grafico("gp","partido",0));tabela("tu","UF",grafico("gu","uf",0));
+}
+function chips(){
   const c=$("chips");c.replaceChildren();
   if(F.flag){const b=el("button",null,`${FLAG[F.flag][0]} ×`);b.title="Remover filtro";b.onclick=()=>{F.flag="";draw();};c.append(b);}
   for(const [dim,rot] of [["cargo","Cargo"],["regiao","Região"],["partido","Partido"],["uf","UF"]])if(F[dim]){const b=el("button",null,`${rot}: ${F[dim]} ×`);b.title="Remover filtro";b.onclick=()=>{F[dim]="";draw();};c.append(b);}
@@ -667,8 +678,9 @@ function todos(){
   $("todos").hidden=false;
 }
 function draw(){
-  const rows=filtra();painel(rows);
+  const rows=filtra();chips();
   $("cg").value=F.cargo;$("rg").value=F.regiao;const nf=[F.cargo,F.regiao,$("nv").value].filter(Boolean).length;$("filtros-bt").textContent=nf?`Filtros (${nf})`:"Filtros";for(const b of $("legenda").querySelectorAll("button"))b.setAttribute("aria-pressed",F[b.dataset.f]===b.dataset.v);ROWS=rows;VIS=0;$("cards").replaceChildren();mais();tabelaToda();
+  if(ABA==="numeros")numeros(rows);else DESENHADAS.delete("numeros");  // fora da aba, redesenha quando ela abrir
   const fl=[F.flag&&FLAG[F.flag][0].toLowerCase(),F.cargo&&`cargo ${F.cargo}`,F.regiao&&`região ${F.regiao}`,F.partido&&`partido ${F.partido}`,F.uf&&`estado ${F.uf}`].filter(Boolean);
   $("contagem").innerHTML=`Mostrando <b>${rows.length.toLocaleString("pt-BR")}</b> de ${PES.length.toLocaleString("pt-BR")} ${PES.length===1?"pessoa":"pessoas"}`+(fl.length?` · filtro: ${esc(fl.join(" e "))} <button type="button" id="limpar">Limpar filtro</button>`:"");
   if(fl.length)$("limpar").onclick=()=>{F.partido=F.uf=F.cargo=F.regiao=F.flag="";$("cg").value="";$("rg").value="";draw();};
@@ -777,8 +789,14 @@ function indicadores(){
 // abas (#52): uma secao por vez e a pessoa escolhe o que aprofundar; sem JS tudo aparece em sequencia
 const ABAS=[["destaques","Destaques"],["meus","Quem representa você"],["estados",ICO.mapa+" Estados"],["exemplares",ICO.estrela+" Exemplares"],["projetos",ICO.pata+" Projetos"],["cota","Cota parlamentar"],["numeros","Números"],["todos","Todas as pessoas"]];
 let ABA="";
+// abas desenhadas so quando abrem (#73): no celular, montar todas na carga travava a tela por 1 s
+const DESENHO={exemplares,projetos,cota,numeros:()=>numeros(ROWS)},DESENHADAS=new Set();
+function desenhaAba(id){if(!DESENHO[id]||DESENHADAS.has(id))return;DESENHADAS.add(id);DESENHO[id]();}
+function mostraAbasComDados(){
+  $("exemplares").hidden=!Array.isArray(D.exemplares);$("projetos").hidden=!(D.projetos||[]).length;$("cota").hidden=!(D.cota||[]).length;
+}
 function abrirAba(id,foco,inicio){
-  if(!$("aba-"+id))id="destaques";ABA=id;
+  if(!$("aba-"+id))id="destaques";ABA=id;desenhaAba(id);
   for(const [x] of ABAS){const b=$("aba-"+x);if(!b)continue;const on=x===id;$(x).classList.toggle("fora",!on);b.setAttribute("aria-selected",on);b.tabIndex=on?0:-1;if(on&&foco)b.focus();}
   if(id==="todos")todosAbrir(true);
   if(!inicio)try{history.replaceState(null,"","#"+id);}catch(e){}  // na carga nao: o navegador rolaria ate a ancora
@@ -803,10 +821,7 @@ function verDestaques(){if(ABA&&ABA!=="destaques")abrirAba("destaques");$("conta
 // filtros recolhidos no celular; o botao mostra quantos estao ativos
 $("leg-mais").onclick=()=>{const on=$("legenda").classList.toggle("explicada");$("leg-mais").setAttribute("aria-expanded",on);$("leg-mais").textContent=on?"Esconder":"O que significa?";};
 $("filtros-bt").onclick=()=>$("filtros-bt").setAttribute("aria-expanded",$("filtros").classList.toggle("aberto"));
-// blocos gerados a parte (graficos so existem com ID_SEGREDO): sem conteudo, nao aparecem
-for(const c of document.querySelectorAll("section.grade.duas>.card"))if(c.children.length<=1)c.hidden=true;
-for(const s of document.querySelectorAll("section.grade.duas"))if(![...s.children].some(x=>!x.hidden&&x.tagName!=="H2"))s.hidden=true;
-if(D){contrib();leitura();todos();legenda();exemplares();projetos();cota();$("estados").hidden=$("meus").hidden=!D.representantes;indicadores();abas();heroNum();if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
+if(D){contrib();todos();legenda();mostraAbasComDados();$("estados").hidden=$("meus").hidden=!D.representantes;indicadores();abas();heroNum();$("como-ler").addEventListener("toggle",()=>{if($("como-ler").open&&!$("leitura").childElementCount)leitura();});if(location.hash==="#como-ler")$("como-ler").open=true;document.getElementById("meta").textContent=`Atualizado em ${D.gerado_em} · ${D.universo.toLocaleString("pt-BR")} comparações no universo analisado`;
 document.getElementById("q").oninput=draw;document.getElementById("nv").onchange=draw;
 $("legenda").onclick=ev=>{const b=ev.target.closest("button[data-f]");if(!b||b.getAttribute("aria-disabled")==="true")return;if(b.dataset.todos){todosCom(b.dataset.v==="exemplar"?"e":"s");return;}F[b.dataset.f]=F[b.dataset.f]===b.dataset.v?"":b.dataset.v;draw();verDestaques();};
 $("rg").onchange=()=>{F.regiao=$("rg").value;F.uf="";draw();};

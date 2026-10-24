@@ -321,6 +321,10 @@ def test_resumo_do_card_filtra(abrir):
 def test_abas_proprias_mostram_selo_de_cera(abrir):
     pg = abrir()
     com_selo = pg.evaluate("(D.projetos||[]).filter(c=>c.selo).length")
+    for aba in ("projetos", "exemplares"):  # abas desenhadas so quando abrem (#73)
+        if pg.locator(f"#aba-{aba}").count():
+            pg.click(f"#aba-{aba}")
+    pg.click("#aba-destaques")
     assert pg.locator("#projetos-lista .selo-cera.caramelo").count() == com_selo
     if pg.evaluate("(D.exemplares||[]).length"):
         assert pg.locator("#exemplares-lista .selo-cera.ouro").count() == pg.locator("#exemplares-lista li").count()
@@ -372,6 +376,8 @@ def test_legenda_e_filtro_do_eleito(abrir):
     assert pg.locator("#cards .selo-cera.verde .ano").first.inner_text() == "2022"  # ano gravado pelo pipeline
     b.click()
     assert pg.locator("#cards > li").count() == pg.locator("#cards .alerta.com-selo").count()
+    pg.evaluate("$('como-ler').open=true")  # "Como ler os numeros" e montado ao abrir (#73)
+    pg.wait_for_function("$('leitura').childElementCount>0")
     assert "Carimbo verde" in pg.inner_text("#leitura") or "Carimbo verde" in pg.evaluate("$('leitura').innerHTML")
 
 
@@ -533,3 +539,32 @@ def test_regua_explica_troca_de_cargo(abrir):
     t = pg.evaluate("GRUPO({n_pares:1604,cargo_pares:'DEPUTADO FEDERAL',cargo:'SENADOR',ano_ini:2022})")
     assert t == "Entre 1.604 que disputaram Deputado Federal em 2022, como esta pessoa (depois ela disputou Senador)"
     assert pg.evaluate("GRUPO({n_pares:81,cargo_pares:'SENADOR',cargo:'SENADOR',ano_ini:2018})") == "Entre 81 candidatos a Senador em 2018"
+
+
+def test_abas_desenhadas_so_ao_abrir(abrir):
+    # #73: na carga so Destaques e montado; as outras abas sao desenhadas quando abrem
+    pg = abrir()
+    assert pg.locator("#kpis > *").count() == 0 and pg.locator("#cota-lista > li").count() == 0
+    assert pg.evaluate("$('leitura').childElementCount") == 0
+    pg.click("#aba-numeros")
+    assert pg.locator("#kpis .kpi").count() == 4
+    if pg.locator("#aba-cota").count():
+        pg.click("#aba-cota")
+        assert pg.locator("#cota-lista > li").count() == pg.evaluate("D.cota.length")
+
+
+def test_numeros_seguem_filtro_feito_fora_da_aba(abrir):
+    pg = abrir()
+    pg.click("#aba-numeros")
+    antes = pg.inner_text("#kpis .kpi b >> nth=0")
+    pg.click("#aba-destaques")
+    pg.locator("#cards .resumo button[data-dim=uf]").first.click()
+    pg.click("#aba-numeros")
+    assert pg.inner_text("#kpis .kpi b >> nth=0") != antes
+
+
+def test_reserva_some_depois_da_carga(abrir):
+    # #73: os textos que reservam espaco durante a carga nunca ficam visiveis
+    pg = abrir()
+    assert pg.locator(".reserva").count() == 0 or not pg.locator(".reserva").first.is_visible()
+    assert "abas-prontas" in pg.evaluate("document.documentElement.className")
