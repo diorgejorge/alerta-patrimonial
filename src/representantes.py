@@ -185,6 +185,14 @@ def montar(parl, tse=None, gerado=None, eleicao=None, contato=None, assembleias=
         for g, l in grupos.items():
             if uf in por_uf and g in por_uf[uf]:
                 por_uf[uf][g] += l
+    # ano em que o senador foi eleito: o ultimo periodo do TSE, se for uma eleicao geral do mandato atual (8 anos)
+    if eleicao:
+        for p in parl or ():
+            if p.get("casa") == "senado" and p.get("ano_fim") in (eleicao, eleicao - 4):
+                uf = str(p.get("uf") or "").upper()
+                for d in por_uf.get(uf, {}).get("senadores", ()):
+                    if d["nome"] == p.get("nome"):
+                        d["eleito_em"] = p["ano_fim"]
     out = {}
     for uf, grupos in por_uf.items():
         for l in grupos.values():

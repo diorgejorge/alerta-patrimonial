@@ -137,6 +137,7 @@ def test_escolher_estado_mostra_grupos_e_lembra(pagina):
     assert pagina.locator("#meus-corpo .selo-cera.ouro").count() == 1 and pagina.locator("#meus-corpo .selo-cera.caramelo").count() == 1
     gov = pagina.locator('.rep-grupo[data-g="governador"] .rep')
     assert "Faixa laranja" in gov.inner_text() and gov.locator(".rep-lista-bt").count() == 1
+    assert "Eleito 2022" in gov.locator(".rep-selos").inner_text() and "eleito" in gov.get_attribute("class")
     assert not SEM_VIRGULA.search(txt), SEM_VIRGULA.findall(txt)  # 43,5%, nunca 43.5%
     assert pagina.locator('a[href="estado/SP.html"]').count() == 1
     assert pagina.locator('a[href="feed/uf-SP.xml"]').count() == 1
@@ -228,6 +229,7 @@ def test_escolher_cidade_mostra_prefeitura_e_lembra(pagina):
     pagina.wait_for_selector("#meus-cidade .rep")
     txt = pagina.locator("#meus-cidade").inner_text()
     assert "Prefeita Demo SP 2" in txt and "Vereadores (9)" in txt.replace("\n", " ")
+    assert "Eleito 2024" in pagina.locator("#meus-cidade .rep-selos").first.inner_text()
     pagina.reload()
     pagina.wait_for_selector("#meus-cidade .rep")
     assert "Prefeita Demo SP 2" in pagina.locator("#meus-cidade").inner_text()

@@ -15,7 +15,7 @@
   const SELOS={eleito:["verde","Eleito e no cargo hoje (TSE)","check","Eleito"],
     exemplar:["ouro","Parlamentar exemplar: patrimônio compatível com o salário, cota abaixo da média e sem sanções","estrela","Exemplar"],
     selo:["caramelo","Mão na massa: entre os 10% da sua casa com mais projetos aprovados nos últimos 4 anos","pata","Mão na massa"]};
-  const selo=k=>{const [cor,tit,ic,rot]=SELOS[k];return`<span class="selo-cera ${cor}" title="${esc(tit)}"><span class="cera" aria-hidden="true"><span>${ico(ic)||"✓"}</span></span><span class="sr">${esc(rot)}</span></span>`;};
+  const selo=(k,ano)=>{const [cor,tit,ic,rot]=SELOS[k];return`<span class="selo-cera ${cor}" title="${esc(tit)}${ano?` em ${esc(ano)}`:""}"><span class="cera" aria-hidden="true"><span>${ico(ic)||"✓"}</span></span>${ano?`<span class="rot">${esc(rot)} ${esc(ano)}</span>`:`<span class="sr">${esc(rot)}</span>`}</span>`;};
   // faixa do patrimonio (mesmo rotulo e cor dos cards: NV do template) e partido com a cor da legenda
   const NVR=typeof NV==="object"?NV:{forte:"Faixa vermelha",atencao:"Faixa laranja",informativo:"Faixa azul"};
   const corPartido=p=>typeof PD==="function"?PD(p):"";
@@ -50,10 +50,11 @@
     const votos=p.votos?`<div><dt>Temas importantes</dt><dd>Votou em ${p.votos[0]} de ${p.votos[1]}</dd></div>`:"";
     return`<dl class="rep-num"><div><dt>Gasto da cota (4 anos)</dt><dd>${cota}</dd></div><div><dt>Projetos aprovados</dt><dd>${proj}</dd></div>${pres}${votos}</dl>`;
   }
-  function pessoa(p,g,uf){
+  // ano: eleicao que deu o mandato atual (estadual para governador e deputados, municipal na cidade)
+  function pessoa(p,g,uf,ano){
     const cargo=g==="estaduais"&&uf==="DF"?"Deputado distrital":CARGO[g];
     const foto=https(p.foto)?`<img src="${esc(p.foto)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:"";
-    const selos=["eleito",...(p.marcas||[]).filter(m=>SELOS[m])].map(selo).join("");
+    const selos=selo("eleito",p.eleito_em||ano)+(p.marcas||[]).filter(m=>SELOS[m]).map(m=>selo(m)).join("");
     const tags=(NVR[p.faixa]?`<span class="chip nv-${p.faixa}" title="${esc(NVR[p.faixa])}: veja a fórmula em Como ler os números">${esc(NVR[p.faixa])}</span>`:"")
       +(p.partido?`<span class="tag">${corPartido(p.partido)}${esc(p.partido)}</span>`:"");
     const parl=g==="senadores"||g==="federais";
@@ -62,17 +63,17 @@
     const c=p.contato||{},tel=(c.telefone||"").replace(/\D/g,"");
     const fale=parl&&(c.email||tel)?`<p class="rep-fale"><b>Cobre direto:</b> ${[c.email?`<a class="lk" href="mailto:${esc(c.email)}">e-mail</a>`:"",
       tel?`<a class="lk" href="tel:+55${esc(tel)}">${esc(c.telefone)}</a>`:"",cobrar(p.dossie)].filter(Boolean).join(" · ")}</p>`:"";
-    return`<li class="rep com-selo"><span class="rep-selos">${selos}</span><span class="avatar" aria-hidden="true">${esc(iniciais(p.nome))}${foto}</span><div class="rep-txt">
+    return`<li class="rep eleito com-selo"><span class="rep-selos">${selos}</span><span class="avatar" aria-hidden="true">${esc(iniciais(p.nome))}${foto}</span><div class="rep-txt">
 <p class="rep-nome"><b>${esc(p.nome)}</b> <small>${esc(cargo)}</small></p>${tags?`<p class="tags">${tags}</p>`:""}
 ${parl?numeros(p):""}${fale}${links?`<p class="rep-links">${links}</p>`:""}</div></li>`;
   }
-  function grupo(g,uf,ala_){
+  function grupo(g,uf,ala_,ano){
     const n=g.pessoas.length;if(!n)return"";
     const tit=g.id==="estaduais"&&uf==="DF"?"Deputados distritais":g.titulo;
     const mais=n>PRIMEIROS?`<p class="mais"><button type="button" class="botao rep-mais" aria-expanded="false">Ver todos os ${n}</button></p>`:"";
     const ala=g.id==="estaduais"&&ala_&&https(ala_.site)?` <a class="lk" href="${esc(ala_.site)}" target="_blank" rel="noopener">Contatos na ${esc(ala_.nome)}</a>`:"";
     return`<section class="rep-grupo${n>PRIMEIROS?" curto":""}" data-g="${esc(g.id)}"><h3>${esc(tit)} <small>(${n})</small>${ala}</h3>
-<ul class="rep-lista">${g.pessoas.map(p=>pessoa(p,g.id,uf)).join("")}</ul>${mais}</section>`;
+<ul class="rep-lista">${g.pessoas.map(p=>pessoa(p,g.id,uf,g.id==="senadores"?null:ano)).join("")}</ul>${mais}</section>`;
   }
   // "1 governador, 3 senadores, 70 deputados federais e 94 deputados estaduais"
   const ROT={governador:["governador","governadores"],senadores:["senador","senadores"],federais:["deputado federal","deputados federais"],
@@ -87,7 +88,7 @@ ${parl?numeros(p):""}${fale}${links?`<p class="rep-links">${links}</p>`:""}</div
     corpo.innerHTML=`<p class="rep-resumo">${esc(nome)} tem hoje <b>${esc(resumo(d))}</b>. Eles trabalham para você: confira e cobre.</p>
 ${(d.cidades||[]).length?`<p class="rep-cidade"><label for="minha-cidade">E na sua cidade?</label> <select id="minha-cidade"><option value="">Escolha sua cidade</option>${d.cidades.map(([c,n])=>`<option value="${esc(c)}">${esc(n)}</option>`).join("")}</select></p><div id="meus-cidade" aria-live="polite"></div>`:""}
 <p class="rep-acoes"><button type="button" class="botao" id="meus-filtrar">Ver ${esc(uf)} nos destaques</button> <a class="botao" href="estado/${esc(uf)}.html">Gastos de ${esc(nome)}</a> ${rss(`feed/uf-${esc(uf)}.xml`,`Acompanhar ${uf} por RSS: aviso quando um dado mudar`)}</p>
-${d.grupos.map(g=>grupo(g,uf,d.assembleia)).join("")}<p class="fonte">Fontes: Câmara dos Deputados, Senado Federal e TSE${d.eleicao_estadual?` (eleitos em ${esc(d.eleicao_estadual)})`:""}. Atualizado em ${esc(d.gerado_em||"Não informado")}.</p>`;
+${d.grupos.map(g=>grupo(g,uf,d.assembleia,d.eleicao_estadual)).join("")}<p class="fonte">Fontes: Câmara dos Deputados, Senado Federal e TSE${d.eleicao_estadual?` (eleitos em ${esc(d.eleicao_estadual)})`:""}. Atualizado em ${esc(d.gerado_em||"Não informado")}.</p>`;
   }
   // prefeitura e camara municipal: um arquivo pequeno por cidade, baixado so na escolha
   async function cidade(cod){
@@ -95,7 +96,7 @@ ${d.grupos.map(g=>grupo(g,uf,d.assembleia)).join("")}<p class="fonte">Fontes: C�
     gravar(cod,CHAVE_CID);if(!cod){alvo.replaceChildren();return;}
     alvo.innerHTML=`<p class="rep-resumo">Farejando…</p>`;
     try{const c=await json(`representantes/cidades/${encodeURIComponent(cod)}.json`);if(document.getElementById("minha-cidade")?.value!==cod)return;
-      alvo.innerHTML=`<div class="rep-cid">${c.grupos.map(g=>grupo(g,c.uf)).join("")||`<p class="rep-resumo">Não informado.</p>`}<p class="fonte">Fonte: TSE (eleitos em ${esc(c.eleicao||"Não informado")}).</p></div>`;}
+      alvo.innerHTML=`<div class="rep-cid">${c.grupos.map(g=>grupo(g,c.uf,null,c.eleicao)).join("")||`<p class="rep-resumo">Não informado.</p>`}<p class="fonte">Fonte: TSE (eleitos em ${esc(c.eleicao||"Não informado")}).</p></div>`;}
     catch(e){alvo.innerHTML=`<p class="rep-resumo">Fonte não encontrada. Tente de novo mais tarde.</p>`;}
   }
   async function escolher(uf){
