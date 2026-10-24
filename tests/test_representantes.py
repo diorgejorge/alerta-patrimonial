@@ -360,3 +360,13 @@ def test_celular_sem_rolagem_para_o_lado(servidor):  # noqa: F811
     pg.goto(url + "#estados")
     assert pg.evaluate("document.documentElement.scrollWidth<=innerWidth"), "a grade de estados passou da largura do celular"
     pg.close()
+
+
+def test_extra_com_dossie_nao_conflita():  # carga de 24/10: parl e extra traziam "dossie" juntos
+    extra = {"cpf:" + CPF: dict(faixa="forte", lista=1, dossie="pessoa/p0042.html")}
+    out = rp.montar([dep(_chave="cpf:" + CPF)], extra=extra)
+    assert out["SP"]["grupos"][2]["pessoas"][0]["dossie"] == "pessoa/p0042.html"
+    linha = pd.DataFrame([dict(ano=2022, cargo="GOVERNADOR", eleito=True, uf="SP", nome="X", nome_urna="", partido="A",
+                               chave="cpf:" + CPF)])
+    tse, _ = rp.eleitos(linha, paginas={"cpf:" + CPF: "pessoa/p0001.html"}, extra=extra, hoje=dt.date(2026, 10, 23))
+    assert tse["SP"]["governador"][0]["dossie"] == "pessoa/p0042.html"

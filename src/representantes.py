@@ -144,9 +144,10 @@ def cidades(serie, link=None, foto=None, paginas=None, hoje=None, extra=None):
 
 def _pessoa_tse(r, link, foto, paginas, extra=None):
     nome = (str(r.get("nome_urna") or "").strip() or str(r.get("nome") or "")).title()
-    return _limpa(dict(nome=nome or "Não informado", partido=r.get("partido"), foto=_https(foto(r)) if foto else None,
-                       perfil=_https(link(r)) if link else None, dossie=_local((paginas or {}).get(r.get("chave"))),
-                       **(extra or {}).get(r.get("chave"), {})))
+    # extra (faixas) pode trazer a mesma chave (dossie): mescla com prioridade para o extra, sem repetir argumento
+    return _limpa({**dict(nome=nome or "Não informado", partido=r.get("partido"), foto=_https(foto(r)) if foto else None,
+                          perfil=_https(link(r)) if link else None, dossie=_local((paginas or {}).get(r.get("chave")))),
+                   **(extra or {}).get(r.get("chave"), {})})
 
 
 def gravar_cidades(docs, cid, ano):
@@ -179,8 +180,8 @@ def montar(parl, tse=None, gerado=None, eleicao=None, contato=None, assembleias=
         uf = str(p.get("uf") or "").upper()
         if uf in por_uf:
             por_uf[uf]["senadores" if p.get("casa") == "senado" else "federais"].append(
-                dict(parlamentar(p, (contato or {}).get((p.get("casa"), p.get("_id")))),
-                     **(extra or {}).get(p.get("_chave"), {})))
+                {**parlamentar(p, (contato or {}).get((p.get("casa"), p.get("_id")))),
+                 **(extra or {}).get(p.get("_chave"), {})})
     for uf, grupos in (tse or {}).items():
         for g, l in grupos.items():
             if uf in por_uf and g in por_uf[uf]:
